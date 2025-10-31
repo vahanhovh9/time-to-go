@@ -128,7 +128,7 @@ struct DesignSystemView: View {
                     .h4Style()
                     .foregroundColor(Color.black)
                 
-                Text("17px, -1px, 120%")
+                Text("17px, -0.5px, 120%")
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
@@ -215,6 +215,49 @@ struct DesignSystemView: View {
                 .h2Style()
                 .foregroundColor(Color.black)
                 .padding(.horizontal)
+            
+            // Title Home
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Title Home")
+                    .h3Style()
+                    .foregroundColor(Color.black)
+                
+                TitleHome(
+                    title: "Time to GO!",
+                    subtitle: "A simple vibe coded app designed to help you ARRIVING ON TIME"
+                )
+            }
+            .padding(.horizontal)
+            
+            // Onboarding Header
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Onboarding Header")
+                    .h3Style()
+                    .foregroundColor(Color.black)
+                
+                VStack(alignment: .leading, spacing: 24) {
+                    OnboardingHeader(step: 1, totalSteps: 4, title: "Where do you live?")
+                    OnboardingHeader(step: 2, totalSteps: 4, title: "Where do you live?", showsBackButton: true) {
+                        print("Back tapped")
+                    }
+                    OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome all set up!")
+                }
+                .padding(.vertical, 16)
+                .padding(.horizontal, 20)
+                .background(Color.grey10)
+                .cornerRadius(8)
+            }
+            .padding(.horizontal)
+            
+            // Time Display
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Time Display")
+                    .h3Style()
+                    .foregroundColor(Color.black)
+                
+                TimeDisplay(time: "12:59 AM")
+            }
+            .padding(.horizontal)
             
             // Checkmark
             VStack(alignment: .leading, spacing: 16) {

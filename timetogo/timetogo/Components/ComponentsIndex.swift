@@ -28,6 +28,18 @@ import SwiftUI
  4. DayPicker - A day selection component with checkmark
     Location: Components/DayPicker.swift
     Usage: DayPicker(day: "Monday", isSelected: $binding)
+
+ 5. TitleHome - Home title and subtitle stack
+    Location: Components/TitleHome.swift
+    Usage: TitleHome(title: "Title", subtitle: "Subtitle")
+
+ 6. OnboardingHeader - Onboarding progress header with optional back button
+    Location: Components/OnboardingHeader.swift
+    Usage: OnboardingHeader(step: 1, totalSteps: 4, title: "Question", showsBackButton: true, onBack: { })
+
+ 7. TimeDisplay - Time showcase component with circular backdrop and digital board
+    Location: Components/TimeDisplay.swift
+    Usage: TimeDisplay(time: "12:59 AM")
 */
 
 // MARK: - Design Tokens Used
