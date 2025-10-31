@@ -40,7 +40,7 @@ Text("Small text")
 | H1 | SF Pro | Bold | 40px | -2p | 100% |
 | H2 | SF Pro | Bold | 24px | -1px | 100% |
 | H3 | SF Pro | Bold | 20px | -0.5px | 100% |
-| H4 | SF Pro | Bold | 17px | -1px | 120% |
+| H4 | SF Pro | Bold | 17px | -0.5px | 120% |
 | Body Text | SF Pro | Medium | 20px | -1px | 123% |
 | Label | SF Pro | Medium | 16px | -0.5px | 100% |
 | Body Small | SF Pro | Medium | 14px | 0px | 120% |

@@ -121,8 +121,9 @@ struct H4Style: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(Typography.h4())
-            .tracking(-1)
+            .tracking(-0.5)
             .lineSpacing(20.4 - 17) // 120% line height = 20.4px
+            .padding(.trailing, 1)
     }
 }
 
