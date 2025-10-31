@@ -259,6 +259,22 @@ struct DesignSystemView: View {
             }
             .padding(.horizontal)
             
+            // Info Card
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Info")
+                    .h3Style()
+                    .foregroundColor(Color.black)
+                
+                InfoCard(
+                    items: [
+                        InfoItemData(title: "Home", subtitle: "Woodside Park", time: "08:24", iconColor: Color(red: 1.0, green: 0.689, blue: 0.689), iconName: "house.fill"),
+                        InfoItemData(title: "Work", subtitle: "Waterloo", time: "08:24", iconColor: Color(red: 0.973, green: 0.925, blue: 0.51), iconName: "tram.fill"),
+                        InfoItemData(title: "Gym", subtitle: "Angel", time: "08:24", iconColor: Color(red: 0.64, green: 0.986, blue: 0.515), iconName: "figure.run")
+                    ]
+                )
+            }
+            .padding(.horizontal)
+            
             // Checkmark
             VStack(alignment: .leading, spacing: 16) {
                 Text("Checkmark")

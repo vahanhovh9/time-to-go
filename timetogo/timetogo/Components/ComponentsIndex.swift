@@ -40,6 +40,10 @@ import SwiftUI
  7. TimeDisplay - Time showcase component with circular backdrop and digital board
     Location: Components/TimeDisplay.swift
     Usage: TimeDisplay(time: "12:59 AM")
+
+ 8. InfoCard - Informational list with coloured glyphs, titles and times
+    Location: Components/InfoCard.swift
+    Usage: InfoCard(items: [InfoItemData(...)])
 */
 
 // MARK: - Design Tokens Used
