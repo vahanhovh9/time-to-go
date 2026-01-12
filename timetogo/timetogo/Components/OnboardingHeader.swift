@@ -72,7 +72,7 @@ struct OnboardingHeader: View {
                 headerContent
                 
                 Text(title)
-                    .h2Style()
+                    .h1Style()
                     .foregroundColor(Color.black)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -80,7 +80,7 @@ struct OnboardingHeader: View {
             .frame(maxHeight: .infinity, alignment: .bottom)
         } else {
             Text(title)
-                .h2Style()
+                .h1Style()
                 .foregroundColor(Color.black)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -93,11 +93,11 @@ struct OnboardingHeader: View {
     }
     
     private var totalHeight: CGFloat {
-        isVariantWithProgress ? 88 : 72
+        isVariantWithProgress ? 104 : 88
     }
     
     private var contentHeight: CGFloat {
-        isVariantWithProgress ? 84 : 68
+        isVariantWithProgress ? 100 : 84
     }
 }
 

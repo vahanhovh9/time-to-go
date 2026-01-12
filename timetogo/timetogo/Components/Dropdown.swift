@@ -13,6 +13,8 @@ struct Dropdown<Item: Hashable>: View where Item: CustomStringConvertible {
     @Binding var selectedItem: Item
     var onItemSelected: ((Item) -> Void)?
     
+    @State private var showModal = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Label
@@ -21,21 +23,13 @@ struct Dropdown<Item: Hashable>: View where Item: CustomStringConvertible {
                 .foregroundColor(Color.black)
             
             // Dropdown field
-            Menu {
-                ForEach(items, id: \.self) { item in
-                    Button {
-                        selectedItem = item
-                        onItemSelected?(item)
-                    } label: {
-                        Text(item.description)
-                            .h4Style()
-                    }
-                }
+            Button {
+                showModal = true
             } label: {
                 HStack {
                     Text(selectedItem.description)
                         .h4Style()
-                        .foregroundColor(Color.black)
+                        .foregroundColor(selectedItem.description == "Choose" ? Color.grey30 : Color.black)
                     
                     Spacer()
                     
@@ -53,6 +47,68 @@ struct Dropdown<Item: Hashable>: View where Item: CustomStringConvertible {
                         .stroke(Color.grey30, lineWidth: 1)
                 )
                 .cornerRadius(5)
+            }
+            .buttonStyle(.plain)
+        }
+        .sheet(isPresented: $showModal) {
+            DropdownModalView(
+                title: label,
+                items: items,
+                selectedItem: $selectedItem,
+                onItemSelected: { item in
+                    selectedItem = item
+                    onItemSelected?(item)
+                    showModal = false
+                },
+                onDismiss: {
+                    showModal = false
+                }
+            )
+        }
+    }
+}
+
+struct DropdownModalView<Item: Hashable>: View where Item: CustomStringConvertible {
+    var title: String
+    var items: [Item]
+    @Binding var selectedItem: Item
+    var onItemSelected: (Item) -> Void
+    var onDismiss: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(items, id: \.self) { item in
+                    Button {
+                        onItemSelected(item)
+                    } label: {
+                        HStack {
+                            Text(item.description)
+                                .h4Style()
+                                .foregroundColor(Color.black)
+                            
+                            Spacer()
+                            
+                            if item == selectedItem {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(Color.black)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        onDismiss()
+                    }
+                    .foregroundColor(Color.black)
+                }
             }
         }
     }

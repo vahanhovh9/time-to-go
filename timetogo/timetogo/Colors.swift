@@ -14,6 +14,7 @@ extension Color {
     static let grey30 = Color(hex: "949494")
     static let grey50 = Color(hex: "3E3E3E")
     static let black = Color(hex: "000000")
+    static let yellow = Color(hex: "FFF9E6") // Light yellow background
 }
 
 // MARK: - Color Extension for Hex
