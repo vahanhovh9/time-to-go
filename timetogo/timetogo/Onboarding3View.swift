@@ -1,0 +1,96 @@
+//
+//  Onboarding3View.swift
+//  timetogo
+//
+//  Created by Vahan Hovhannisyan on 31/10/2025.
+//
+
+import SwiftUI
+
+struct Onboarding3View: View {
+    @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var monday = false
+    @State private var tuesday = true
+    @State private var wednesday = false
+    @State private var thursday = true
+    @State private var friday = false
+    
+    var onNext: () -> Void
+    var onBack: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            OnboardingHeader(
+                step: 3,
+                totalSteps: 4,
+                title: "When at office?",
+                showsBackButton: true,
+                onBack: onBack
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            
+            // Content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Spacer(minLength: 40)
+                    
+                    // Arrival time picker
+                    ArrivalTimePicker(
+                        label: "Arrival time",
+                        selectedTime: $arrivalTime
+                    )
+                    .padding(.horizontal, 20)
+                    
+                    // Day pickers in 2-column grid (Monday-Friday only)
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 12) {
+                        // Row 1: Monday, Tuesday
+                        DayPicker(day: "Monday", isSelected: $monday)
+                        DayPicker(day: "Tuesday", isSelected: $tuesday)
+                        
+                        // Row 2: Wednesday, Thursday
+                        DayPicker(day: "Wednesday", isSelected: $wednesday)
+                        DayPicker(day: "Thursday", isSelected: $thursday)
+                        
+                        // Row 3: Friday, empty space
+                        DayPicker(day: "Friday", isSelected: $friday)
+                        // Empty space - invisible spacer
+                        Color.clear
+                            .frame(height: 56)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 24)
+                    
+                    Spacer(minLength: 40)
+                }
+            }
+            
+            // Footer with button
+            VStack(spacing: 0) {
+                Divider()
+                    .background(Color.grey10)
+                
+                VStack(spacing: 16) {
+                    CustomButton(title: "Next", style: .filled) {
+                        onNext()
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 20)
+            }
+            .background(Color.white)
+        }
+        .background(Color.white)
+    }
+}
+
+#Preview {
+    Onboarding3View(
+        onNext: { print("Next tapped") },
+        onBack: { print("Back tapped") }
+    )
+}
