@@ -16,21 +16,23 @@ struct CustomButton: View {
     var title: String
     var style: ButtonStyle
     var action: () -> Void
+    var isEnabled: Bool = true
     
     var body: some View {
         Button(action: action) {
             Text(title)
                 .h4Style()
-                .foregroundColor(style == .filled ? Color.white : Color.black)
+                .foregroundColor(isEnabled ? (style == .filled ? Color.white : Color.black) : Color.grey30)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(style == .filled ? Color.black : Color.clear)
+                .background(isEnabled ? (style == .filled ? Color.black : Color.clear) : Color.grey10)
                 .overlay(
                     RoundedRectangle(cornerRadius: 5)
                         .stroke(Color.clear, lineWidth: 1)
                 )
                 .cornerRadius(5)
         }
+        .disabled(!isEnabled)
     }
 }
 

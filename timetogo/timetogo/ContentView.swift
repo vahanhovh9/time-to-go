@@ -17,12 +17,35 @@ enum OnboardingStep {
 
 struct ContentView: View {
     @State private var showDesignSystem = false
+    @State private var showMain = false
     @State private var currentOnboardingStep: OnboardingStep = .step1
+    
+    // Onboarding state (prefilled when returning to settings)
+    @State private var homeLine = "Northern line"
+    @State private var homeStation = "Choose"
+    @State private var homeWalkTime = "Choose"
+    @State private var officeLine = "Northern line"
+    @State private var officeStation = "Choose"
+    @State private var officeWalkTime = "Choose"
+    @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var monday = false
+    @State private var tuesday = true
+    @State private var wednesday = false
+    @State private var thursday = true
+    @State private var friday = false
+    @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if showDesignSystem {
                 DesignSystemView()
+            } else if showMain {
+                MainView(onChangeSettings: {
+                    withAnimation {
+                        showMain = false
+                        currentOnboardingStep = .step1
+                    }
+                })
             } else {
                 onboardingView
             }
@@ -57,6 +80,9 @@ struct ContentView: View {
         switch currentOnboardingStep {
         case .step1:
             Onboarding1View(
+                selectedLine: $homeLine,
+                selectedStation: $homeStation,
+                selectedWalkTime: $homeWalkTime,
                 onNext: {
                     withAnimation {
                         currentOnboardingStep = .step2
@@ -65,6 +91,9 @@ struct ContentView: View {
             )
         case .step2:
             Onboarding2View(
+                selectedLine: $officeLine,
+                selectedStation: $officeStation,
+                selectedWalkTime: $officeWalkTime,
                 onNext: {
                     withAnimation {
                         currentOnboardingStep = .step3
@@ -78,6 +107,12 @@ struct ContentView: View {
             )
         case .step3:
             Onboarding3View(
+                arrivalTime: $arrivalTime,
+                monday: $monday,
+                tuesday: $tuesday,
+                wednesday: $wednesday,
+                thursday: $thursday,
+                friday: $friday,
                 onNext: {
                     withAnimation {
                         currentOnboardingStep = .step4
@@ -91,6 +126,7 @@ struct ContentView: View {
             )
         case .step4:
             Onboarding4View(
+                notificationTime: $notificationTime,
                 onComplete: {
                     withAnimation {
                         currentOnboardingStep = .success
@@ -105,12 +141,14 @@ struct ContentView: View {
         case .success:
             OnboardingSuccessView(
                 onAllDone: {
-                    // Handle completion - could navigate to main app
-                    print("All done tapped")
+                    withAnimation {
+                        showMain = true
+                    }
                 },
                 onChangeSettings: {
                     // Navigate back to step 1 to change settings
                     withAnimation {
+                        showMain = false
                         currentOnboardingStep = .step1
                     }
                 }

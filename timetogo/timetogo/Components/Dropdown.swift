@@ -84,7 +84,7 @@ struct DropdownModalView<Item: Hashable>: View where Item: CustomStringConvertib
                     } label: {
                         HStack {
                             Text(item.description)
-                                .h4Style()
+                                .labelStyle()
                                 .foregroundColor(Color.black)
                             
                             Spacer()

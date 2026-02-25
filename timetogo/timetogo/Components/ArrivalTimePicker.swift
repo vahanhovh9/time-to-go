@@ -85,6 +85,8 @@ struct ArrivalTimePickerModalView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                
                 DatePicker(
                     "Time",
                     selection: $selectedTime,
@@ -93,9 +95,7 @@ struct ArrivalTimePickerModalView: View {
                 .datePickerStyle(.wheel)
                 .labelsHidden()
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                
-                Spacer()
+                .padding(.bottom, 8)
             }
             .background(Color.white)
             .navigationTitle(title)
@@ -115,6 +115,7 @@ struct ArrivalTimePickerModalView: View {
                 }
             }
         }
+        .presentationDetents([.height(300)])
     }
 }
 

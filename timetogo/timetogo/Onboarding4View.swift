@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct Onboarding4View: View {
-    @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
+    @Binding var notificationTime: Date
     
     var onComplete: () -> Void
     var onBack: () -> Void
@@ -62,8 +62,17 @@ struct Onboarding4View: View {
 }
 
 #Preview {
-    Onboarding4View(
-        onComplete: { print("Onboarding completed") },
-        onBack: { print("Back tapped") }
-    )
+    struct PreviewWrapper: View {
+        @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
+        
+        var body: some View {
+            Onboarding4View(
+                notificationTime: $notificationTime,
+                onComplete: { print("Onboarding completed") },
+                onBack: { print("Back tapped") }
+            )
+        }
+    }
+    
+    return PreviewWrapper()
 }

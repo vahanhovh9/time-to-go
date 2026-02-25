@@ -68,7 +68,7 @@ struct InfoCard: View {
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 12)
-        .frame(width: 353, alignment: .leading)
+        .frame(width: 369, alignment: .leading)
         .background(Color.white)
         .cornerRadius(10)
     }

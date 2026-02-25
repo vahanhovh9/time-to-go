@@ -8,11 +8,15 @@
 import SwiftUI
 
 struct Onboarding1View: View {
-    @State private var selectedLine = "Northern line"
-    @State private var selectedStation = "Choose"
-    @State private var selectedWalkTime = "Choose"
+    @Binding var selectedLine: String
+    @Binding var selectedStation: String
+    @Binding var selectedWalkTime: String
     
     var onNext: () -> Void = {}
+    
+    private var isFormValid: Bool {
+        selectedStation != "Choose" && selectedWalkTime != "Choose"
+    }
     
     let subwayLines = ["Northern line", "Central line", "Jubilee line", "Victoria line"]
     let stations = [
@@ -70,7 +74,7 @@ struct Onboarding1View: View {
                     .background(Color.grey10)
                 
                 VStack(spacing: 16) {
-                    CustomButton(title: "Next", style: .filled) {
+                    CustomButton(title: "Next", style: .filled, isEnabled: isFormValid) {
                         onNext()
                     }
                 }
@@ -84,7 +88,20 @@ struct Onboarding1View: View {
 }
 
 #Preview {
-    Onboarding1View(
-        onNext: { print("Next tapped") }
-    )
+    struct PreviewWrapper: View {
+        @State private var selectedLine = "Northern line"
+        @State private var selectedStation = "Choose"
+        @State private var selectedWalkTime = "Choose"
+        
+        var body: some View {
+            Onboarding1View(
+                selectedLine: $selectedLine,
+                selectedStation: $selectedStation,
+                selectedWalkTime: $selectedWalkTime,
+                onNext: { print("Next tapped") }
+            )
+        }
+    }
+    
+    return PreviewWrapper()
 }

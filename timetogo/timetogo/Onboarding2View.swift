@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct Onboarding2View: View {
-    @State private var selectedLine = "Northern line"
-    @State private var selectedStation = "Choose"
-    @State private var selectedWalkTime = "Choose"
+    @Binding var selectedLine: String
+    @Binding var selectedStation: String
+    @Binding var selectedWalkTime: String
     
     var onNext: () -> Void
     var onBack: () -> Void
+    
+    private var isFormValid: Bool {
+        selectedStation != "Choose" && selectedWalkTime != "Choose"
+    }
     
     let subwayLines = ["Northern line", "Central line", "Jubilee line", "Victoria line"]
     let stations = [
@@ -40,17 +44,17 @@ struct Onboarding2View: View {
                 VStack(alignment: .leading, spacing: 24) {
                     Spacer(minLength: 40)
                     
-                    // Your line dropdown
+                    // Office's line dropdown
                     Dropdown(
-                        label: "Your line",
+                        label: "Office's line",
                         items: subwayLines,
                         selectedItem: $selectedLine
                     )
                     .padding(.horizontal, 20)
                     
-                    // Your station dropdown
+                    // Office's station dropdown
                     Dropdown(
-                        label: "Your station",
+                        label: "Office's station",
                         items: stations,
                         selectedItem: $selectedStation
                     )
@@ -73,7 +77,7 @@ struct Onboarding2View: View {
                     .background(Color.grey10)
                 
                 VStack(spacing: 16) {
-                    CustomButton(title: "Next", style: .filled) {
+                    CustomButton(title: "Next", style: .filled, isEnabled: isFormValid) {
                         onNext()
                     }
                 }
@@ -87,8 +91,21 @@ struct Onboarding2View: View {
 }
 
 #Preview {
-    Onboarding2View(
-        onNext: { print("Next tapped") },
-        onBack: { print("Back tapped") }
-    )
+    struct PreviewWrapper: View {
+        @State private var selectedLine = "Northern line"
+        @State private var selectedStation = "Choose"
+        @State private var selectedWalkTime = "Choose"
+        
+        var body: some View {
+            Onboarding2View(
+                selectedLine: $selectedLine,
+                selectedStation: $selectedStation,
+                selectedWalkTime: $selectedWalkTime,
+                onNext: { print("Next tapped") },
+                onBack: { print("Back tapped") }
+            )
+        }
+    }
+    
+    return PreviewWrapper()
 }

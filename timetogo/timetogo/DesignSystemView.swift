@@ -255,7 +255,7 @@ struct DesignSystemView: View {
                     .h3Style()
                     .foregroundColor(Color.black)
                 
-                TimeDisplay(time: "12:59 AM")
+                TimeDisplay(day: "Today at", time: "12:59 AM")
             }
             .padding(.horizontal)
             

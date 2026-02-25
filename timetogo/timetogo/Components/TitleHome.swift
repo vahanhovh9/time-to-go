@@ -9,19 +9,25 @@ import SwiftUI
 
 struct TitleHome: View {
     var title: String
-    var subtitle: String
+    var subtitle: String? = nil
+    var alignment: HorizontalAlignment = .leading
+    var textAlignment: TextAlignment = .leading
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: alignment, spacing: 24) {
             Text(title)
                 .h1Style()
                 .foregroundColor(Color.black)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(textAlignment)
+                .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .center)
             
-            Text(subtitle)
-                .bodyTextStyle()
-                .foregroundColor(Color.black)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .bodyTextStyle()
+                    .foregroundColor(Color.black)
+                    .multilineTextAlignment(textAlignment)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 }

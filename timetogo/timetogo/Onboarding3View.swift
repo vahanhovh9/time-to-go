@@ -8,15 +8,19 @@
 import SwiftUI
 
 struct Onboarding3View: View {
-    @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-    @State private var monday = false
-    @State private var tuesday = true
-    @State private var wednesday = false
-    @State private var thursday = true
-    @State private var friday = false
+    @Binding var arrivalTime: Date
+    @Binding var monday: Bool
+    @Binding var tuesday: Bool
+    @Binding var wednesday: Bool
+    @Binding var thursday: Bool
+    @Binding var friday: Bool
     
     var onNext: () -> Void
     var onBack: () -> Void
+    
+    private var isFormValid: Bool {
+        monday || tuesday || wednesday || thursday || friday
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -75,7 +79,7 @@ struct Onboarding3View: View {
                     .background(Color.grey10)
                 
                 VStack(spacing: 16) {
-                    CustomButton(title: "Next", style: .filled) {
+                    CustomButton(title: "Next", style: .filled, isEnabled: isFormValid) {
                         onNext()
                     }
                 }
@@ -89,8 +93,27 @@ struct Onboarding3View: View {
 }
 
 #Preview {
-    Onboarding3View(
-        onNext: { print("Next tapped") },
-        onBack: { print("Back tapped") }
-    )
+    struct PreviewWrapper: View {
+        @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+        @State private var monday = false
+        @State private var tuesday = true
+        @State private var wednesday = false
+        @State private var thursday = true
+        @State private var friday = false
+        
+        var body: some View {
+            Onboarding3View(
+                arrivalTime: $arrivalTime,
+                monday: $monday,
+                tuesday: $tuesday,
+                wednesday: $wednesday,
+                thursday: $thursday,
+                friday: $friday,
+                onNext: { print("Next tapped") },
+                onBack: { print("Back tapped") }
+            )
+        }
+    }
+    
+    return PreviewWrapper()
 }

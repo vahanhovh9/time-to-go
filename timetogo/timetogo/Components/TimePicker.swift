@@ -90,6 +90,8 @@ struct TimePickerModalView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                
                 Picker("Time", selection: $selectedMinutes) {
                     ForEach(timeOptions, id: \.self) { minutes in
                         Text("\(minutes) min")
@@ -100,9 +102,7 @@ struct TimePickerModalView: View {
                 }
                 .pickerStyle(.wheel)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                
-                Spacer()
+                .padding(.bottom, 8)
             }
             .background(Color.white)
             .navigationTitle(title)
@@ -122,6 +122,7 @@ struct TimePickerModalView: View {
                 }
             }
         }
+        .presentationDetents([.height(300)])
     }
 }
 

@@ -8,40 +8,47 @@
 import SwiftUI
 
 struct TimeDisplay: View {
+    var day: String
     var time: String
     
     var body: some View {
-        ZStack(alignment: .top) {
-            HStack {
-                Spacer()
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 228, height: 228)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.black, lineWidth: 1)
-                    )
-                Spacer()
-            }
+        ZStack {
+            // White circle with black border
+            Circle()
+                .fill(Color.white)
+                .frame(width: 228, height: 228)
+                .overlay(
+                    Circle()
+                        .stroke(Color.black, lineWidth: 1)
+                )
             
+            // Black Timeboard rectangle - centered vertically and horizontally
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.black)
-                .frame(height: 104)
+                .frame(width: 369, height: 149)
                 .overlay(
-                    Text(time)
-                        .timeStyle()
-                        .foregroundColor(Color.white)
-                        .padding(.horizontal, 26)
+                    VStack(spacing: 10) {
+                        Text(day)
+                            .bodyTextStyle()
+                            .foregroundColor(Color.white)
+                            .padding(.top, 24)
+                        
+                        Text(time)
+                            .timeStyle()
+                            .foregroundColor(Color.white)
+                            .padding(.top, -16)
+                    }
+                    .padding(.horizontal, 26)
+                    .padding(.top, 14)
+                    .padding(.bottom, 28)
                 )
-                .padding(.horizontal, -0.5)
-                .padding(.top, 61)
         }
-        .frame(width: 369, height: 228, alignment: .top)
+        .frame(width: 369, height: 228)
     }
 }
 
 #Preview {
-    TimeDisplay(time: "12:59 AM")
+    TimeDisplay(day: "Today at", time: "12:59 AM")
         .padding()
         .background(Color.white)
 }
