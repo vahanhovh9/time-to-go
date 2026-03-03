@@ -1,107 +1,165 @@
-//
-//  Onboarding1View.swift
-//  timetogo
-//
-//  Created by Vahan Hovhannisyan on 31/10/2025.
-//
-
 import SwiftUI
 
 struct Onboarding1View: View {
-    @Binding var selectedLine: String
-    @Binding var selectedStation: String
+    @EnvironmentObject var store: TFLDataStore
+
+    // String bindings owned by ContentView
+    @Binding var selectedLineId: String
+    @Binding var selectedStationId: String
+    @Binding var selectedStationName: String
     @Binding var selectedWalkTime: String
-    
+
     var onNext: () -> Void = {}
-    
+
+    // Local display objects (derived from bindings + store)
+    @State private var selectedLine: TFLLine = .placeholder
+    @State private var selectedStation: TFLStopPoint = .placeholder
+
     private var isFormValid: Bool {
-        selectedStation != "Choose" && selectedWalkTime != "Choose"
+        !selectedStationId.isEmpty && selectedWalkTime != "Choose"
     }
-    
-    let subwayLines = ["Northern line", "Central line", "Jubilee line", "Victoria line"]
-    let stations = [
-        "Choose", "Woodside Park", "Waterloo", "Angel", "King's Cross", "Oxford Circus",
-        "Piccadilly Circus", "Leicester Square", "Covent Garden", "Tottenham Court Road",
-        "Bank", "London Bridge", "Canary Wharf", "Greenwich", "Stratford"
-    ]
-    
+
+    // MARK: - Computed dropdown items
+
+    private var lineItems: [TFLLine] {
+        [.placeholder] + store.lines
+    }
+
+    private var stationItems: [TFLStopPoint] {
+        let cached = store.stations(for: selectedLine.id)
+        return [.placeholder] + cached
+    }
+
+    // MARK: - Bindings for Dropdown
+
+    private var lineBinding: Binding<TFLLine> {
+        Binding(
+            get: { selectedLine },
+            set: { line in
+                selectedLine = line
+                selectedLineId = line.id
+                // Reset station when line changes
+                selectedStation = .placeholder
+                selectedStationId = ""
+                selectedStationName = ""
+                if !line.id.isEmpty {
+                    store.loadStations(for: line.id)
+                }
+            }
+        )
+    }
+
+    private var stationBinding: Binding<TFLStopPoint> {
+        Binding(
+            get: { selectedStation },
+            set: { stop in
+                selectedStation = stop
+                selectedStationId = stop.naptanId
+                selectedStationName = stop.commonName
+            }
+        )
+    }
+
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             OnboardingHeader(
                 step: 1,
                 totalSteps: 4,
                 title: "Where do you leave?"
             )
             .padding(.horizontal, 20)
-            .padding(.top, 20)
-            
-            // Content
+            .padding(.top, 68)
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Spacer(minLength: 40)
-                    
-                    // Your line dropdown
+
                     Dropdown(
                         label: "Your line",
-                        items: subwayLines,
-                        selectedItem: $selectedLine
+                        items: lineItems,
+                        selectedItem: lineBinding
                     )
                     .padding(.horizontal, 20)
-                    
-                    // Your station dropdown
+
                     Dropdown(
                         label: "Your station",
-                        items: stations,
-                        selectedItem: $selectedStation
+                        items: stationItems,
+                        selectedItem: stationBinding,
+                        searchable: true
                     )
                     .padding(.horizontal, 20)
-                    
-                    // How long do you walk to tube time picker
+                    .disabled(selectedLine.id.isEmpty)
+                    .opacity(selectedLine.id.isEmpty ? 0.5 : 1)
+
                     TimePicker(
                         label: "How long do you walk to tube?",
                         selectedValue: $selectedWalkTime
                     )
                     .padding(.horizontal, 20)
-                    
+
                     Spacer(minLength: 40)
                 }
             }
-            
-            // Footer with button
+
             VStack(spacing: 0) {
-                Divider()
-                    .background(Color.grey10)
-                
+                Divider().background(Color.grey10)
                 VStack(spacing: 16) {
-                    CustomButton(title: "Next", style: .filled, isEnabled: isFormValid) {
-                        onNext()
-                    }
+                    CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 56)
             }
             .background(Color.white)
         }
         .background(Color.white)
+        .onAppear {
+            store.loadLines()
+            restoreSelections()
+        }
+        .onChange(of: store.lines) { restoreSelections() }
+        .onChange(of: store.stationsCache) { restoreStationSelection() }
+    }
+
+    // MARK: - Restore saved selections when navigating back
+
+    private func restoreSelections() {
+        if selectedLine.id.isEmpty, !selectedLineId.isEmpty,
+           let line = store.line(for: selectedLineId) {
+            selectedLine = line
+            store.loadStations(for: selectedLineId)
+        }
+        restoreStationSelection()
+    }
+
+    private func restoreStationSelection() {
+        if selectedStation.naptanId.isEmpty, !selectedStationId.isEmpty {
+            if let stop = store.station(naptanId: selectedStationId, lineId: selectedLineId) {
+                selectedStation = stop
+            }
+        }
     }
 }
 
 #Preview {
     struct PreviewWrapper: View {
-        @State private var selectedLine = "Northern line"
-        @State private var selectedStation = "Choose"
-        @State private var selectedWalkTime = "Choose"
-        
+        @State private var lineId = ""
+        @State private var stationId = ""
+        @State private var stationName = ""
+        @State private var walkTime = "Choose"
+
         var body: some View {
             Onboarding1View(
-                selectedLine: $selectedLine,
-                selectedStation: $selectedStation,
-                selectedWalkTime: $selectedWalkTime,
+                selectedLineId: $lineId,
+                selectedStationId: $stationId,
+                selectedStationName: $stationName,
+                selectedWalkTime: $walkTime,
                 onNext: { print("Next tapped") }
             )
+            .environmentObject(TFLDataStore(service: MockTFLService()))
         }
     }
-    
     return PreviewWrapper()
 }

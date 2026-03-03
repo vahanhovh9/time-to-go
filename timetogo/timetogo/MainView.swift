@@ -1,21 +1,9 @@
-//
-//  MainView.swift
-//  timetogo
-//
-//  Created by Vahan Hovhannisyan on 31/10/2025.
-//
-
 import SwiftUI
 
 struct MainView: View {
+    @ObservedObject var viewModel: MainViewModel
     var onChangeSettings: () -> Void
-    
-    private let infoItems: [InfoItemData] = [
-        InfoItemData(title: "Home", subtitle: "Woodside Park", time: "08:24", iconColor: Color(red: 1.0, green: 0.689, blue: 0.689), iconName: "house.fill"),
-        InfoItemData(title: "Tube Journey", subtitle: "17 stations", time: "33 min", iconColor: Color(red: 0.973, green: 0.925, blue: 0.51), iconName: "tram.fill"),
-        InfoItemData(title: "Work", subtitle: "Old Street", time: "09:00", iconColor: Color(red: 0.64, green: 0.986, blue: 0.515), iconName: "building.2.fill")
-    ]
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .center, spacing: 32) {
@@ -25,27 +13,40 @@ struct MainView: View {
                     title: "Leave home at"
                 )
                 .padding(.horizontal, 20)
-                .padding(.top, 20)
-                
-                TimeDisplay(day: "Today at", time: "8:19 AM")
+                .padding(.top, 68)
+
+                TimeDisplay(day: viewModel.dayLabelText, time: viewModel.leaveHomeTimeText)
                     .padding(.horizontal, 20)
-                
-                Text("Good service on all lines")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.black)
-                
+
+                if viewModel.isLoading {
+                    ProgressView()
+                        .tint(.black)
+                } else {
+                    Text(viewModel.serviceStatusText)
+                        .bodySmallStyle()
+                        .foregroundColor(Color.black)
+                }
+
                 InfoCard(items: infoItems)
                     .padding(.horizontal, 20)
-                
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .labelStyle()
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 20)
+                        .multilineTextAlignment(.center)
+                }
+
                 CustomButton(title: "Change your settings", style: .outline) {
                     onChangeSettings()
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
-                
+
                 Spacer(minLength: 40)
             }
-            .padding(.bottom, 40)
+            .padding(.bottom, 56)
         }
         .background(
             ZStack {
@@ -56,9 +57,45 @@ struct MainView: View {
                     .ignoresSafeArea()
             }
         )
+        .onAppear {
+            viewModel.loadCommute()
+        }
+    }
+
+    // MARK: - InfoCard items built from real viewModel data
+
+    private var infoItems: [InfoItemData] {
+        [
+            InfoItemData(
+                title: "Home station",
+                subtitle: viewModel.homeStationDisplayName,
+                time: viewModel.trainDepartureText,
+                iconColor: Color(red: 1.0, green: 0.689, blue: 0.689),
+                iconName: "house.fill"
+            ),
+            InfoItemData(
+                title: "Tube Journey",
+                subtitle: viewModel.numberOfStopsText,
+                time: viewModel.journeyDurationText,
+                iconColor: Color(red: 0.973, green: 0.925, blue: 0.51),
+                iconName: "tram.fill"
+            ),
+            InfoItemData(
+                title: "Work",
+                subtitle: viewModel.officeStationDisplayName,
+                time: viewModel.userArrivalTimeText,
+                iconColor: Color(red: 0.64, green: 0.986, blue: 0.515),
+                iconName: "building.2.fill"
+            )
+        ]
     }
 }
 
 #Preview {
-    MainView(onChangeSettings: { print("Change settings tapped") })
+    let settings = UserSettings()
+    let vm = MainViewModel(
+        settings: settings,
+        calculationService: CommuteCalculationService(tflService: MockTFLService())
+    )
+    return MainView(viewModel: vm, onChangeSettings: { print("Change settings") })
 }

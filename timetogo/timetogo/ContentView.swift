@@ -1,46 +1,50 @@
-//
-//  ContentView.swift
-//  timetogo
-//
-//  Created by Vahan Hovhannisyan on 26/10/2025.
-//
-
 import SwiftUI
 
 enum OnboardingStep {
-    case step1
-    case step2
-    case step3
-    case step4
-    case success
+    case step1, step2, step3, step4, success
 }
 
 struct ContentView: View {
+    @StateObject private var store = TFLDataStore()
+
     @State private var showDesignSystem = false
     @State private var showMain = false
     @State private var currentOnboardingStep: OnboardingStep = .step1
-    
-    // Onboarding state (prefilled when returning to settings)
-    @State private var homeLine = "Northern line"
-    @State private var homeStation = "Choose"
+    @State private var mainViewModel: MainViewModel?
+
+    // MARK: - Onboarding state (persists when navigating back)
+
+    // Step 1 — Home
+    @State private var homeLineId = ""
+    @State private var homeStationId = ""
+    @State private var homeStationName = ""
     @State private var homeWalkTime = "Choose"
-    @State private var officeLine = "Northern line"
-    @State private var officeStation = "Choose"
+
+    // Step 2 — Office
+    @State private var officeLineId = ""
+    @State private var officeStationId = ""
+    @State private var officeStationName = ""
     @State private var officeWalkTime = "Choose"
+
+    // Step 3 — Schedule
     @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var monday = false
     @State private var tuesday = true
     @State private var wednesday = false
     @State private var thursday = true
     @State private var friday = false
+
+    // Step 4 — Notification
     @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
-    
+
+    // MARK: - Body
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if showDesignSystem {
                 DesignSystemView()
-            } else if showMain {
-                MainView(onChangeSettings: {
+            } else if showMain, let vm = mainViewModel {
+                MainView(viewModel: vm, onChangeSettings: {
                     withAnimation {
                         showMain = false
                         currentOnboardingStep = .step1
@@ -49,12 +53,9 @@ struct ContentView: View {
             } else {
                 onboardingView
             }
-            
-            // Switcher button
+
             Button {
-                withAnimation {
-                    showDesignSystem.toggle()
-                }
+                withAnimation { showDesignSystem.toggle() }
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: showDesignSystem ? "app.fill" : "paintpalette.fill")
@@ -74,37 +75,33 @@ struct ContentView: View {
             .zIndex(1000)
         }
     }
-    
+
+    // MARK: - Onboarding navigation
+
     @ViewBuilder
     private var onboardingView: some View {
         switch currentOnboardingStep {
         case .step1:
             Onboarding1View(
-                selectedLine: $homeLine,
-                selectedStation: $homeStation,
+                selectedLineId: $homeLineId,
+                selectedStationId: $homeStationId,
+                selectedStationName: $homeStationName,
                 selectedWalkTime: $homeWalkTime,
-                onNext: {
-                    withAnimation {
-                        currentOnboardingStep = .step2
-                    }
-                }
+                onNext: { withAnimation { currentOnboardingStep = .step2 } }
             )
+            .environmentObject(store)
+
         case .step2:
             Onboarding2View(
-                selectedLine: $officeLine,
-                selectedStation: $officeStation,
+                selectedLineId: $officeLineId,
+                selectedStationId: $officeStationId,
+                selectedStationName: $officeStationName,
                 selectedWalkTime: $officeWalkTime,
-                onNext: {
-                    withAnimation {
-                        currentOnboardingStep = .step3
-                    }
-                },
-                onBack: {
-                    withAnimation {
-                        currentOnboardingStep = .step1
-                    }
-                }
+                onNext: { withAnimation { currentOnboardingStep = .step3 } },
+                onBack: { withAnimation { currentOnboardingStep = .step1 } }
             )
+            .environmentObject(store)
+
         case .step3:
             Onboarding3View(
                 arrivalTime: $arrivalTime,
@@ -113,40 +110,27 @@ struct ContentView: View {
                 wednesday: $wednesday,
                 thursday: $thursday,
                 friday: $friday,
-                onNext: {
-                    withAnimation {
-                        currentOnboardingStep = .step4
-                    }
-                },
-                onBack: {
-                    withAnimation {
-                        currentOnboardingStep = .step2
-                    }
-                }
+                onNext: { withAnimation { currentOnboardingStep = .step4 } },
+                onBack: { withAnimation { currentOnboardingStep = .step2 } }
             )
+
         case .step4:
             Onboarding4View(
                 notificationTime: $notificationTime,
-                onComplete: {
-                    withAnimation {
-                        currentOnboardingStep = .success
-                    }
-                },
-                onBack: {
-                    withAnimation {
-                        currentOnboardingStep = .step3
-                    }
-                }
+                arrivalTime: arrivalTime,
+                onComplete: { withAnimation { currentOnboardingStep = .success } },
+                onBack: { withAnimation { currentOnboardingStep = .step3 } }
             )
+
         case .success:
             OnboardingSuccessView(
                 onAllDone: {
-                    withAnimation {
-                        showMain = true
-                    }
+                    let settings = buildUserSettings()
+                    settings.save()
+                    mainViewModel = MainViewModel(settings: settings)
+                    withAnimation { showMain = true }
                 },
                 onChangeSettings: {
-                    // Navigate back to step 1 to change settings
                     withAnimation {
                         showMain = false
                         currentOnboardingStep = .step1
@@ -154,6 +138,38 @@ struct ContentView: View {
                 }
             )
         }
+    }
+
+    // MARK: - Assemble UserSettings from collected state
+
+    private func buildUserSettings() -> UserSettings {
+        var s = UserSettings()
+        s.homeLineId            = homeLineId
+        s.homeStationId         = homeStationId
+        s.homeStationName       = homeStationName
+        s.walkingMinutesToStation = parseMinutes(homeWalkTime)
+        s.officeLineId          = officeLineId
+        s.officeStationId       = officeStationId
+        s.officeStationName     = officeStationName
+        s.walkingMinutesToOffice = parseMinutes(officeWalkTime)
+        s.arrivalTime           = arrivalTime
+        s.officeDays            = selectedDays
+        s.notificationTime      = notificationTime
+        return s
+    }
+
+    private func parseMinutes(_ value: String) -> Int {
+        Int(value.replacingOccurrences(of: " min", with: "")) ?? 5
+    }
+
+    private var selectedDays: [Weekday] {
+        var days: [Weekday] = []
+        if monday    { days.append(.monday) }
+        if tuesday   { days.append(.tuesday) }
+        if wednesday { days.append(.wednesday) }
+        if thursday  { days.append(.thursday) }
+        if friday    { days.append(.friday) }
+        return days
     }
 }
 

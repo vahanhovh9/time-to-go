@@ -10,20 +10,22 @@ import SwiftUI
 struct ArrivalTimePicker: View {
     var label: String
     @Binding var selectedTime: Date
+    var maximumTime: Date? = nil
     @State private var showPicker = false
-    
+
     private var timeString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         let timeStr = formatter.string(from: selectedTime)
-        // Ensure AM/PM is uppercase
-        return timeStr.replacingOccurrences(of: " am", with: " AM", options: .caseInsensitive)
-                     .replacingOccurrences(of: " pm", with: " PM", options: .caseInsensitive)
+        return timeStr
+            .replacingOccurrences(of: " am", with: " AM", options: .caseInsensitive)
+            .replacingOccurrences(of: " pm", with: " PM", options: .caseInsensitive)
     }
-    
-    init(label: String, selectedTime: Binding<Date>) {
+
+    init(label: String, selectedTime: Binding<Date>, maximumTime: Date? = nil) {
         self.label = label
         self._selectedTime = selectedTime
+        self.maximumTime = maximumTime
     }
     
     var body: some View {
@@ -65,12 +67,9 @@ struct ArrivalTimePicker: View {
             ArrivalTimePickerModalView(
                 title: label,
                 selectedTime: $selectedTime,
-                onDone: {
-                    showPicker = false
-                },
-                onDismiss: {
-                    showPicker = false
-                }
+                maximumTime: maximumTime,
+                onDone: { showPicker = false },
+                onDismiss: { showPicker = false }
             )
         }
     }
@@ -79,23 +78,37 @@ struct ArrivalTimePicker: View {
 struct ArrivalTimePickerModalView: View {
     var title: String
     @Binding var selectedTime: Date
+    var maximumTime: Date? = nil
     var onDone: () -> Void
     var onDismiss: () -> Void
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                
-                DatePicker(
-                    "Time",
-                    selection: $selectedTime,
-                    displayedComponents: .hourAndMinute
-                )
-                .datePickerStyle(.wheel)
-                .labelsHidden()
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 8)
+
+                if let max = maximumTime {
+                    DatePicker(
+                        "Time",
+                        selection: $selectedTime,
+                        in: ...max,
+                        displayedComponents: .hourAndMinute
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 8)
+                } else {
+                    DatePicker(
+                        "Time",
+                        selection: $selectedTime,
+                        displayedComponents: .hourAndMinute
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 8)
+                }
             }
             .background(Color.white)
             .navigationTitle(title)

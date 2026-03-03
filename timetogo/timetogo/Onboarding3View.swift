@@ -33,7 +33,7 @@ struct Onboarding3View: View {
                 onBack: onBack
             )
             .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.top, 68)
             
             // Content
             ScrollView {
@@ -79,12 +79,11 @@ struct Onboarding3View: View {
                     .background(Color.grey10)
                 
                 VStack(spacing: 16) {
-                    CustomButton(title: "Next", style: .filled, isEnabled: isFormValid) {
-                        onNext()
-                    }
+                    CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 56)
             }
             .background(Color.white)
         }
