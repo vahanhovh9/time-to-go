@@ -27,9 +27,6 @@ struct MainView: View {
                         .foregroundColor(Color.black)
                 }
 
-                InfoCard(items: infoItems)
-                    .padding(.horizontal, 20)
-
                 if let error = viewModel.errorMessage {
                     Text(error)
                         .labelStyle()
@@ -37,6 +34,9 @@ struct MainView: View {
                         .padding(.horizontal, 20)
                         .multilineTextAlignment(.center)
                 }
+
+                InfoCard(items: infoItems)
+                    .padding(.horizontal, 20)
 
                 CustomButton(title: "Change your settings", style: .outline) {
                     onChangeSettings()

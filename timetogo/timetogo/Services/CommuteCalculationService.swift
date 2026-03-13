@@ -1,79 +1,99 @@
 import Foundation
 
-/// Orchestrates a full commute calculation:
-/// 1. Find the next working commute day.
-/// 2. Work backwards from the desired office arrival time.
-/// 3. Query TFL for the journey using station naptanIds.
-/// 4. Subtract walking time + safety buffer to derive "leave home at".
+/// Orchestrates the full commute calculation pipeline (§7):
+///   1. Respect §11.6 active-cache rule — skip API if an active result exists for today.
+///   2. Work backwards from desired arrival time to derive the TFL query target.
+///   3. Query TFL for the latest viable journey.
+///   4. Subtract walking time + safety buffer → leaveHomeTime.
+///   5. Cache the result (§11.4).
+///   6. Fall back to stale cache if TFL fails (§11.5).
 final class CommuteCalculationService {
 
-    /// Extra buffer added on top of walking time so the user doesn't miss their train.
     private let safetyBufferMinutes: Int = 2
 
-    private let tflService: TFLServiceProtocol
+    private let tflService:   TFLServiceProtocol
+    private let cacheManager: CommuteCacheManager
 
-    init(tflService: TFLServiceProtocol = TFLService()) {
-        self.tflService = tflService
+    init(
+        tflService:   TFLServiceProtocol   = TFLService(),
+        cacheManager: CommuteCacheManager  = CommuteCacheManager()
+    ) {
+        self.tflService   = tflService
+        self.cacheManager = cacheManager
     }
 
     // MARK: - Public API
 
-    func calculate(for settings: UserSettings) async throws -> CommuteResult {
+    /// Calculate the commute result for the user's next office day.
+    ///
+    /// - Parameter forceRefresh: When `true`, bypasses the active-cache rule.
+    ///   Use for manual refresh, date changes, or settings changes (§11.7).
+    func calculate(for settings: UserSettings, forceRefresh: Bool = false) async throws -> CommuteResult {
         let commuteDate = nextCommuteDate(from: settings)
 
-        // Target train arrival = desired office arrival − walk from station to office
-        let trainArrivalTarget = applyTime(settings.arrivalTime, to: commuteDate)
-            .addingTimeInterval(TimeInterval(-settings.walkingMinutesToOffice * 60))
+        // §11.6 — Return active cache immediately unless a refresh is forced.
+        if !forceRefresh, cacheManager.hasActiveResult(for: commuteDate) {
+            if let cached = cacheManager.load(for: commuteDate) {
+                return CommuteResult(from: cached)
+            }
+        }
 
-        // Query TFL using naptanIds
-        let journey = try await tflService.fetchJourney(
-            from: settings.homeStationId,
-            to: settings.officeStationId,
-            arrivingBy: trainArrivalTarget
-        )
-
-        let trainDeparture = Self.parseTFLDate(journey.startDateTime) ?? trainArrivalTarget
-        let trainArrival   = Self.parseTFLDate(journey.arrivalDateTime) ?? trainArrivalTarget
-
-        let numberOfStops = journey.legs.reduce(0) { $0 + ($1.path?.stopPoints.count ?? 0) }
-
-        // leave home = train departure − walk to station − safety buffer
-        let leaveHomeTime = trainDeparture
-            .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToStation + safetyBufferMinutes) * 60))
-
-        // Fetch service status for both lines
-        let lineIds = [settings.homeLineId, settings.officeLineId].filter { !$0.isEmpty }
-        let lineStatuses = try await tflService.fetchLineStatus(for: lineIds)
-
-        return CommuteResult(
-            leaveHomeTime: leaveHomeTime,
-            trainDepartureAtHomeStation: trainDeparture,
-            trainArrivalAtOfficeStation: trainArrival,
-            journeyDurationMinutes: journey.durationMinutes,
-            numberOfStops: numberOfStops,
-            serviceStatus: resolveServiceStatus(from: lineStatuses),
-            dayLabel: dayLabel(for: commuteDate)
-        )
+        do {
+            let result = try await fetchFreshResult(for: settings, on: commuteDate)
+            cacheManager.save(result, for: commuteDate)   // §11.4
+            return result
+        } catch {
+            // §11.5 — API failed: use any same-day cache entry as fallback.
+            if let fallback = cacheManager.fallback(for: commuteDate) {
+                let note = fallback.serviceStatusText + " (Using last available data)"
+                return CommuteResult(
+                    leaveHomeTime:               fallback.leaveHomeTime,
+                    trainDepartureAtHomeStation: fallback.trainDepartureAtHomeStation,
+                    trainArrivalAtOfficeStation: fallback.trainArrivalAtOfficeStation,
+                    journeyDurationMinutes:      fallback.journeyDurationMinutes,
+                    numberOfStops:               fallback.numberOfStops,
+                    serviceStatus:               .unknown(note),
+                    dayLabel:                    fallback.dayLabel,
+                    isFromCache:                 true
+                )
+            }
+            throw error   // No cache available — surface the error.
+        }
     }
 
     // MARK: - Helpers
 
-    /// Returns the soonest upcoming date that falls on one of the user's office days.
+    /// Returns the soonest upcoming date that falls on one of the user's office days
+    /// AND whose commute window has not yet passed.
+    ///
+    /// "Passed" means `now >= arrivalTime` for that day — the user has already
+    /// arrived (or should have). Example: it is Thursday 21:08 and arrivalTime is 09:00,
+    /// so Thursday's slot is gone and the function returns the next office day instead.
     func nextCommuteDate(from settings: UserSettings) -> Date {
-        let calendar = Calendar.current
-        let today = Date()
-        let todayWeekday = calendar.component(.weekday, from: today) // 1=Sun … 7=Sat
-
+        let calendar        = Calendar.current
+        let now             = Date()
+        let todayWeekday    = calendar.component(.weekday, from: now)
         let officeDayValues = Set(settings.officeDays.map { $0.rawValue })
-        guard !officeDayValues.isEmpty else { return today }
+        guard !officeDayValues.isEmpty else { return now }
 
-        for offset in 0...6 {
-            let candidateWeekday = ((todayWeekday - 1 + offset) % 7) + 1
-            if officeDayValues.contains(candidateWeekday) {
-                return calendar.date(byAdding: .day, value: offset, to: today) ?? today
+        for offset in 0...13 {   // scan up to two weeks to be safe
+            let weekdayCandidate = ((todayWeekday - 1 + offset) % 7) + 1
+            guard officeDayValues.contains(weekdayCandidate) else { continue }
+
+            guard let candidateDay = calendar.date(byAdding: .day, value: offset, to: now) else { continue }
+
+            // Build the arrival datetime for this candidate day.
+            let arrivalOnDay = applyTime(settings.arrivalTime, to: candidateDay)
+
+            // If now is before arrivalTime on this day, the commute window is still open.
+            if now < arrivalOnDay {
+                return candidateDay
             }
+            // Otherwise today's window has passed — continue to the next office day.
         }
-        return today
+
+        // Fallback: return tomorrow (should never be reached with valid settings).
+        return calendar.date(byAdding: .day, value: 1, to: now) ?? now
     }
 
     func dayLabel(for date: Date) -> String {
@@ -87,17 +107,48 @@ final class CommuteCalculationService {
 
     // MARK: - Private
 
-    /// Parses TFL date strings, which may or may not carry timezone info.
-    /// TFL typically returns local London time without a timezone suffix,
-    /// e.g. "2026-01-23T08:19:00". Standard ISO8601DateFormatter requires
-    /// a timezone and returns nil for such strings, so we fall back to a
-    /// custom formatter locked to Europe/London.
+    private func fetchFreshResult(for settings: UserSettings, on commuteDate: Date) async throws -> CommuteResult {
+        // desiredTrainArrival = userArrivalTime − walkToOffice
+        let trainArrivalTarget = applyTime(settings.arrivalTime, to: commuteDate)
+            .addingTimeInterval(TimeInterval(-settings.walkingMinutesToOffice * 60))
+
+        let journey = try await tflService.fetchJourney(
+            from:      settings.homeStationId,
+            to:        settings.officeStationId,
+            arrivingBy: trainArrivalTarget
+        )
+
+        let trainDeparture = Self.parseTFLDate(journey.startDateTime)  ?? trainArrivalTarget
+        let trainArrival   = Self.parseTFLDate(journey.arrivalDateTime) ?? trainArrivalTarget
+
+        let numberOfStops = journey.legs.reduce(0) { $0 + ($1.path?.stopPoints.count ?? 0) }
+
+        // leaveHomeTime = trainDeparture − walkToStation − safetyBuffer
+        let leaveHomeTime = trainDeparture
+            .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToStation + safetyBufferMinutes) * 60))
+
+        let lineIds     = [settings.homeLineId, settings.officeLineId].filter { !$0.isEmpty }
+        let lineStatuses = try await tflService.fetchLineStatus(for: lineIds)
+
+        return CommuteResult(
+            leaveHomeTime:               leaveHomeTime,
+            trainDepartureAtHomeStation: trainDeparture,
+            trainArrivalAtOfficeStation: trainArrival,
+            journeyDurationMinutes:      journey.durationMinutes,
+            numberOfStops:               numberOfStops,
+            serviceStatus:               resolveServiceStatus(from: lineStatuses),
+            dayLabel:                    dayLabel(for: commuteDate)
+        )
+    }
+
+    /// Parses TFL date strings, which typically omit timezone:
+    /// e.g. "2026-01-23T08:19:00" — treated as Europe/London local time.
     private static func parseTFLDate(_ string: String) -> Date? {
         let iso = ISO8601DateFormatter()
         if let date = iso.date(from: string) { return date }
 
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.locale   = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "Europe/London")
         for format in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd'T'HH:mm:ss.SSSZ"] {
             formatter.dateFormat = format
@@ -106,27 +157,26 @@ final class CommuteCalculationService {
         return nil
     }
 
+    /// Copies the hour/minute from `time` onto the calendar `date`.
     private func applyTime(_ time: Date, to date: Date) -> Date {
-        let cal = Calendar.current
-        let timeComponents = cal.dateComponents([.hour, .minute], from: time)
+        let cal        = Calendar.current
+        let components = cal.dateComponents([.hour, .minute], from: time)
         return cal.date(
-            bySettingHour: timeComponents.hour ?? 9,
-            minute: timeComponents.minute ?? 0,
-            second: 0,
-            of: date
+            bySettingHour: components.hour   ?? 9,
+            minute:        components.minute ?? 0,
+            second:        0,
+            of:            date
         ) ?? date
     }
 
     private func resolveServiceStatus(from lines: [TFLLine]) -> ServiceStatus {
         for line in lines {
-            let status = (line.lineStatuses?.first?.statusSeverityDescription ?? "").lowercased()
-            if status.contains("severe") { return .severeDelays(line.serviceStatus) }
+            let s = (line.lineStatuses?.first?.statusSeverityDescription ?? "").lowercased()
+            if s.contains("severe") { return .severeDelays(line.serviceStatus) }
         }
         for line in lines {
-            let status = (line.lineStatuses?.first?.statusSeverityDescription ?? "").lowercased()
-            if status.contains("minor") || status.contains("delay") {
-                return .minorDelays(line.serviceStatus)
-            }
+            let s = (line.lineStatuses?.first?.statusSeverityDescription ?? "").lowercased()
+            if s.contains("minor") || s.contains("delay") { return .minorDelays(line.serviceStatus) }
         }
         return .goodService
     }

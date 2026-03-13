@@ -29,12 +29,23 @@ final class MainViewModel: ObservableObject {
 
     // MARK: - Actions
 
-    func loadCommute() {
+    /// Load commute result.
+    ///
+    /// - Parameter forceRefresh: When `true`, bypasses the active-cache lock and forces a
+    ///   fresh API call. Use for:
+    ///     • Notification tap when no active cache exists (§11.8 Case B).
+    ///     • Manual pull-to-refresh.
+    ///     • Date or settings change (§11.9).
+    ///   When `false` (default), the active-cache rule is respected per §11.7.
+    func loadCommute(forceRefresh: Bool = false) {
         Task {
             isLoading = true
             errorMessage = nil
             do {
-                commuteResult = try await calculationService.calculate(for: settings)
+                commuteResult = try await calculationService.calculate(
+                    for: settings,
+                    forceRefresh: forceRefresh
+                )
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -45,7 +56,7 @@ final class MainViewModel: ObservableObject {
     func updateSettings(_ newSettings: UserSettings) {
         settings = newSettings
         settings.save()
-        loadCommute()
+        loadCommute(forceRefresh: true)   // Settings changed → §11.9 mandates fresh data
     }
 
     // MARK: - Formatted display values
@@ -87,6 +98,9 @@ final class MainViewModel: ObservableObject {
         guard let result = commuteResult else { return "-- stops" }
         return "\(result.numberOfStops) stops"
     }
+
+    /// §11.6: True when the displayed result was reconstructed from cache (stale indicator).
+    var isShowingCachedResult: Bool { commuteResult?.isFromCache ?? false }
 
     var homeStationDisplayName: String { cleanStationName(settings.homeStationName) }
     var officeStationDisplayName: String { cleanStationName(settings.officeStationName) }

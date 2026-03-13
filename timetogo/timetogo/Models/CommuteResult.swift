@@ -14,8 +14,44 @@ struct CommuteResult {
     let numberOfStops: Int
     /// Current service status across the relevant lines.
     let serviceStatus: ServiceStatus
-    /// Human-readable day label, e.g. "Today at" or "Tomorrow at".
+    /// Human-readable day label, e.g. "Today", "Tomorrow", "Upcoming Tuesday".
     let dayLabel: String
+    /// True when reconstructed from cache rather than a live API call.
+    let isFromCache: Bool
+
+    init(
+        leaveHomeTime: Date,
+        trainDepartureAtHomeStation: Date,
+        trainArrivalAtOfficeStation: Date,
+        journeyDurationMinutes: Int,
+        numberOfStops: Int,
+        serviceStatus: ServiceStatus,
+        dayLabel: String,
+        isFromCache: Bool = false
+    ) {
+        self.leaveHomeTime               = leaveHomeTime
+        self.trainDepartureAtHomeStation = trainDepartureAtHomeStation
+        self.trainArrivalAtOfficeStation = trainArrivalAtOfficeStation
+        self.journeyDurationMinutes      = journeyDurationMinutes
+        self.numberOfStops               = numberOfStops
+        self.serviceStatus               = serviceStatus
+        self.dayLabel                    = dayLabel
+        self.isFromCache                 = isFromCache
+    }
+
+    /// Reconstruct a CommuteResult from a CachedCommuteResult.
+    init(from cache: CachedCommuteResult) {
+        self.init(
+            leaveHomeTime:               cache.leaveHomeTime,
+            trainDepartureAtHomeStation: cache.trainDepartureAtHomeStation,
+            trainArrivalAtOfficeStation: cache.trainArrivalAtOfficeStation,
+            journeyDurationMinutes:      cache.journeyDurationMinutes,
+            numberOfStops:               cache.numberOfStops,
+            serviceStatus:               .unknown(cache.serviceStatusText),
+            dayLabel:                    cache.dayLabel,
+            isFromCache:                 true
+        )
+    }
 }
 
 // MARK: - Service Status

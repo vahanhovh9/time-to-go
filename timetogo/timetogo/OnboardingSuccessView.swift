@@ -37,79 +37,85 @@ struct OnboardingSuccessView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.yellow.ignoresSafeArea()
-            Image("bg-main")
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
+        // Use .background so the VStack respects the safe-area top exactly like every
+        // other onboarding page. Children of a ZStack that carry .ignoresSafeArea()
+        // expand the ZStack's layout frame to the physical screen top, shifting all
+        // siblings upward and making .padding(.top, 68) inconsistent.
+        VStack(spacing: 0) {
 
-            VStack(spacing: 0) {
+            // MARK: Header
+            OnboardingHeader(
+                step: nil,
+                totalSteps: nil,
+                title: "Awesome, all set up!"
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 68)
 
-                // MARK: Header
-                OnboardingHeader(
-                    step: nil,
-                    totalSteps: nil,
-                    title: "Awesome, all set up!"
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 68)
+            Spacer()
 
-                Spacer()
+            // MARK: White card
+            VStack(spacing: 38) {
 
-                // MARK: White card
-                VStack(spacing: 38) {
+                Text("🎉")
+                    .font(.system(size: 62))
 
-                    Text("🎉")
-                        .font(.system(size: 62))
-
-                    // What's next
-                    VStack(spacing: 8) {
-                        Text("What's next?")
-                            .h3Style()
-                            .foregroundColor(Color.black)
-
-                        Text("You shouldn't do anything.\nThe agent will send you a notification.")
-                            .bodySmallStyle()
-                            .foregroundColor(Color.grey50)
-                            .multilineTextAlignment(.center)
-                    }
-
-                    // Next update
-                    VStack(spacing: 8) {
-                        Text("Next update")
-                            .bodySmallStyle()
-                            .foregroundColor(Color.black)
-
-                        Text(nextUpdateDate)
-                            .bodySmallStyle()
-                            .foregroundColor(Color.grey50)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 55)
-                .padding(.horizontal, 20)
-                .background(Color.white)
-                .cornerRadius(10)
-                .padding(.horizontal, 20)
-
-                Spacer()
-
-                // MARK: Buttons
+                // What's next
                 VStack(spacing: 8) {
-                    CustomButton(title: "All done", style: .filled) {
-                        onAllDone()
-                    }
+                    Text("What's next?")
+                        .h3Style()
+                        .foregroundColor(Color.black)
 
-                    CustomButton(title: "Change your settings", style: .outline) {
-                        onChangeSettings()
-                    }
+                    Text("You shouldn't do anything.\nThe agent will send you a notification.")
+                        .bodySmallStyle()
+                        .foregroundColor(Color.grey50)
+                        .multilineTextAlignment(.center)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 56)
+
+                // Next update
+                VStack(spacing: 8) {
+                    Text("Next update")
+                        .bodySmallStyle()
+                        .foregroundColor(Color.black)
+
+                    Text(nextUpdateDate)
+                        .bodySmallStyle()
+                        .foregroundColor(Color.grey50)
+                        .multilineTextAlignment(.center)
+                }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 55)
+            .padding(.horizontal, 20)
+            .background(Color.white)
+            .cornerRadius(10)
+            .padding(.horizontal, 20)
+
+            Spacer()
+
+            // MARK: Buttons
+            VStack(spacing: 8) {
+                CustomButton(title: "All done", style: .filled) {
+                    onAllDone()
+                }
+
+                CustomButton(title: "Change your settings", style: .outline) {
+                    onChangeSettings()
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 56)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            ZStack {
+                Color.yellow
+                Image("bg-main")
+                    .resizable()
+                    .scaledToFill()
+            }
+            .ignoresSafeArea()
         }
     }
 }

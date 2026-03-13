@@ -5,6 +5,10 @@ enum OnboardingStep {
 }
 
 struct ContentView: View {
+    // §11.8: Observes notification taps → routes to MainView.
+    // No business logic here; all routing decisions are made in NotificationService.
+    @EnvironmentObject private var notificationService: NotificationService
+
     @StateObject private var store = TFLDataStore()
 
     @State private var showDesignSystem = false
@@ -74,6 +78,13 @@ struct ContentView: View {
             .padding(.trailing, 20)
             .zIndex(1000)
         }
+        // §11.8: Route notification taps to the main screen.
+        // All routing decisions (forceRefresh) are made in NotificationService — not here.
+        .onChange(of: notificationService.pendingDeepLink) {
+            guard let action = notificationService.pendingDeepLink else { return }
+            handleDeepLink(action)
+            notificationService.pendingDeepLink = nil   // consume so it doesn't retrigger
+        }
     }
 
     // MARK: - Onboarding navigation
@@ -137,6 +148,29 @@ struct ContentView: View {
                     }
                 }
             )
+        }
+    }
+
+    // MARK: - §11.8 Deep link routing (navigation only — no business logic)
+
+    private func handleDeepLink(_ action: DeepLinkAction) {
+        switch action {
+        case .openMain(let forceRefresh):
+            // Ensure we have a ViewModel to show. If the user hasn't completed
+            // onboarding yet, UserSettings.load() will return nil and we skip routing.
+            if mainViewModel == nil, let settings = UserSettings.load() {
+                mainViewModel = MainViewModel(settings: settings)
+            }
+            guard let vm = mainViewModel else { return }
+
+            withAnimation { showMain = true }
+
+            if forceRefresh {
+                // Case B tap (§11.8): no active cache → force immediate recalculation.
+                vm.loadCommute(forceRefresh: true)
+            }
+            // Case A tap: active cache exists; MainView will display it via loadCommute()
+            // called in its .onAppear without recalculating (forceRefresh defaults to false).
         }
     }
 
