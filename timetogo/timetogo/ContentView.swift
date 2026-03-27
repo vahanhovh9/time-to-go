@@ -61,21 +61,25 @@ struct ContentView: View {
             Button {
                 withAnimation { showDesignSystem.toggle() }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
                     Image(systemName: showDesignSystem ? "app.fill" : "paintpalette.fill")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 9, weight: .medium))
                     Text(showDesignSystem ? "App" : "Design System")
-                        .labelStyle()
+                        .font(.system(size: 10, weight: .medium))
                 }
-                .foregroundColor(Color.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color.black)
-                .cornerRadius(8)
-                .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                .foregroundColor(Color.black)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.white)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color.grey30, lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
             }
             .padding(.top, 16)
-            .padding(.trailing, 20)
+            .padding(.trailing, 24)
             .zIndex(1000)
         }
         // §11.8: Route notification taps to the main screen.

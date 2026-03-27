@@ -50,7 +50,7 @@ struct ArrivalTimePicker: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(Color.black)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .padding(.vertical, 16)
                 .frame(height: 56)
                 .frame(maxWidth: .infinity)
@@ -71,6 +71,7 @@ struct ArrivalTimePicker: View {
                 onDone: { showPicker = false },
                 onDismiss: { showPicker = false }
             )
+            .preferredColorScheme(.light)
         }
     }
 }
@@ -127,7 +128,12 @@ struct ArrivalTimePickerModalView: View {
                     .foregroundColor(Color.black)
                 }
             }
+            .toolbarBackground(Color.white, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .tint(Color.black)
         }
+        .navigationViewStyle(.stack)
+        .preferredColorScheme(.light)
         .presentationDetents([.height(300)])
     }
 }

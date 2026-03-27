@@ -26,7 +26,7 @@ struct DayPicker: View {
                 
                 Checkmark(state: isSelected ? .checked : .unchecked)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 24)
             .frame(height: 56)
             .background(isSelected ? Color.black : Color.grey10)
             .overlay(

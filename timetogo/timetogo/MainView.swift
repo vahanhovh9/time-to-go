@@ -5,49 +5,55 @@ struct MainView: View {
     var onChangeSettings: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .center, spacing: 32) {
-                OnboardingHeader(
-                    step: nil,
-                    totalSteps: nil,
-                    title: "Leave home at"
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 68)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .center, spacing: 32) {
+                    OnboardingHeader(
+                        step: nil,
+                        totalSteps: nil,
+                        title: "Leave home at"
+                    )
+                    .padding(.horizontal, 24)
+                    .padding(.top, 48)
 
-                TimeDisplay(day: viewModel.dayLabelText, time: viewModel.leaveHomeTimeText)
-                    .padding(.horizontal, 20)
+                    TimeDisplay(day: viewModel.dayLabelText, time: viewModel.leaveHomeTimeText)
+                        .padding(.horizontal, 24)
 
-                if viewModel.isLoading {
-                    ProgressView()
-                        .tint(.black)
-                } else {
-                    Text(viewModel.serviceStatusText)
-                        .bodySmallStyle()
-                        .foregroundColor(Color.black)
+                    Group {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .tint(.black)
+                        } else {
+                            Text(viewModel.serviceStatusText)
+                                .bodySmallStyle()
+                                .foregroundColor(Color.black)
+                        }
+                    }
+                    // VStack spacing is 32pt; −8pt yields 24pt above service status / loading.
+                    .padding(.top, -8)
+
+                    if let error = viewModel.errorMessage {
+                        Text(error)
+                            .labelStyle()
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 24)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    InfoCard(items: infoItems)
+                        .padding(.horizontal, 24)
                 }
-
-                if let error = viewModel.errorMessage {
-                    Text(error)
-                        .labelStyle()
-                        .foregroundColor(.red)
-                        .padding(.horizontal, 20)
-                        .multilineTextAlignment(.center)
-                }
-
-                InfoCard(items: infoItems)
-                    .padding(.horizontal, 20)
-
-                CustomButton(title: "Change your settings", style: .outline) {
-                    onChangeSettings()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-                Spacer(minLength: 40)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.bottom, 56)
+
+            CustomButton(title: "Change your settings", style: .outline) {
+                onChangeSettings()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             ZStack {
                 Color.yellow

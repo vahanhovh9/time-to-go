@@ -43,7 +43,7 @@ struct Dropdown<Item: Hashable>: View where Item: CustomStringConvertible {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(Color.black)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .padding(.vertical, 16)
                 .frame(height: 56)
                 .frame(maxWidth: .infinity)
@@ -71,6 +71,9 @@ struct Dropdown<Item: Hashable>: View where Item: CustomStringConvertible {
                     showModal = false
                 }
             )
+            // Sheets must opt into light mode explicitly so NavigationView + List
+            // use white chrome when the device is in Dark Mode.
+            .preferredColorScheme(.light)
         }
     }
 }
@@ -130,7 +133,13 @@ struct DropdownModalView<Item: Hashable>: View where Item: CustomStringConvertib
                     .foregroundColor(Color.black)
                 }
             }
+            .toolbarBackground(Color.white, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .scrollContentBackground(.hidden)
+            .background(Color.white)
+            .preferredColorScheme(.light)
         }
+        .navigationViewStyle(.stack)
     }
 }
 

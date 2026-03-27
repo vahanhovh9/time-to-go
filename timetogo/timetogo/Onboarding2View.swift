@@ -63,8 +63,8 @@ struct Onboarding2View: View {
                 showsBackButton: true,
                 onBack: onBack
             )
-            .padding(.horizontal, 20)
-            .padding(.top, 68)
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -75,7 +75,7 @@ struct Onboarding2View: View {
                         items: lineItems,
                         selectedItem: lineBinding
                     )
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 24)
 
                     Dropdown(
                         label: "Office's station",
@@ -83,7 +83,7 @@ struct Onboarding2View: View {
                         selectedItem: stationBinding,
                         searchable: true
                     )
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 24)
                     .disabled(selectedLine.id.isEmpty)
                     .opacity(selectedLine.id.isEmpty ? 0.5 : 1)
 
@@ -91,7 +91,7 @@ struct Onboarding2View: View {
                         label: "How long do you walk to office?",
                         selectedValue: $selectedWalkTime
                     )
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 24)
 
                     Spacer(minLength: 40)
                 }
@@ -102,9 +102,9 @@ struct Onboarding2View: View {
                 VStack(spacing: 16) {
                     CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .padding(.top, 20)
-                .padding(.bottom, 56)
+                .padding(.bottom, 24)
             }
             .background(Color.white)
         }

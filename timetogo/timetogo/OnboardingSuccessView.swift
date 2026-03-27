@@ -40,7 +40,7 @@ struct OnboardingSuccessView: View {
         // Use .background so the VStack respects the safe-area top exactly like every
         // other onboarding page. Children of a ZStack that carry .ignoresSafeArea()
         // expand the ZStack's layout frame to the physical screen top, shifting all
-        // siblings upward and making .padding(.top, 68) inconsistent.
+        // siblings upward and making header top padding inconsistent.
         VStack(spacing: 0) {
 
             // MARK: Header
@@ -49,8 +49,8 @@ struct OnboardingSuccessView: View {
                 totalSteps: nil,
                 title: "Awesome, all set up!"
             )
-            .padding(.horizontal, 20)
-            .padding(.top, 68)
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
 
             Spacer()
 
@@ -86,10 +86,10 @@ struct OnboardingSuccessView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 55)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 24)
             .background(Color.white)
             .cornerRadius(10)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 24)
 
             Spacer()
 
@@ -103,9 +103,9 @@ struct OnboardingSuccessView: View {
                     onChangeSettings()
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 24)
             .padding(.top, 20)
-            .padding(.bottom, 56)
+            .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {

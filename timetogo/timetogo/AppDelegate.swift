@@ -40,14 +40,28 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             BackgroundTaskManager.shared.scheduleNextRefresh(for: settings)
         }
 
+        // 4. App is light-only: force every UIWindow to light mode so system sheets,
+        //    navigation bars, and pickers never use Dark Mode chrome (matches Info.plist).
+        applyLightInterfaceStyleToAllWindows()
+
         return true
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
+        applyLightInterfaceStyleToAllWindows()
+
         // Resubmit the next refresh on every foreground transition.
         // Covers BGTask submissions cancelled by settings change or app termination.
         if let settings = UserSettings.load() {
             BackgroundTaskManager.shared.scheduleNextRefresh(for: settings)
+        }
+    }
+
+    /// Ensures newly created windows (e.g. after sheet presentation) stay light.
+    private func applyLightInterfaceStyleToAllWindows() {
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            windowScene.windows.forEach { $0.overrideUserInterfaceStyle = .light }
         }
     }
 }

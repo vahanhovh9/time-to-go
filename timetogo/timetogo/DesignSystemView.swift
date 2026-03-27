@@ -24,8 +24,8 @@ struct DesignSystemView: View {
                 Text("Design System Showcase")
                     .h1Style()
                     .foregroundColor(Color.black)
-                .padding(.horizontal)
-                .padding(.top, 20)
+                .padding(.horizontal, 24)
+                .padding(.top, 48)
                 
                 // Typography Section
                 typographySection
@@ -38,7 +38,7 @@ struct DesignSystemView: View {
                 
                 Spacer(minLength: 40)
             }
-            .padding(.bottom, 40)
+            .padding(.bottom, 24)
         }
         .background(Color.white)
     }
@@ -49,7 +49,7 @@ struct DesignSystemView: View {
             Text("Typography")
                 .h2Style()
                 .foregroundColor(Color.black)
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
             
             VStack(alignment: .leading, spacing: 32) {
                 Text("Time")
@@ -64,7 +64,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -81,7 +81,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -98,7 +98,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -115,7 +115,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -132,7 +132,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -149,7 +149,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -166,7 +166,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -183,7 +183,7 @@ struct DesignSystemView: View {
                     .bodySmallStyle()
                     .foregroundColor(Color.grey30)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -195,7 +195,7 @@ struct DesignSystemView: View {
             Text("Color Palette")
                 .h2Style()
                 .foregroundColor(Color.black)
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
             
             VStack(spacing: 16) {
                 ColorCard(name: "White", hex: "#FFFFFF", color: Color.white, textColor: Color.black)
@@ -204,7 +204,7 @@ struct DesignSystemView: View {
                 ColorCard(name: "Grey 50", hex: "#3E3E3E", color: Color.grey50, textColor: Color.white)
                 ColorCard(name: "Black", hex: "#000000", color: Color.black, textColor: Color.white)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
         }
     }
     
@@ -214,7 +214,7 @@ struct DesignSystemView: View {
             Text("Components")
                 .h2Style()
                 .foregroundColor(Color.black)
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
             
             // Title Home
             VStack(alignment: .leading, spacing: 16) {
@@ -227,7 +227,7 @@ struct DesignSystemView: View {
                     subtitle: "A simple vibe coded app designed to help you ARRIVING ON TIME"
                 )
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             
             // Onboarding Header
             VStack(alignment: .leading, spacing: 16) {
@@ -243,11 +243,11 @@ struct DesignSystemView: View {
                     OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome all set up!")
                 }
                 .padding(.vertical, 16)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .background(Color.grey10)
                 .cornerRadius(8)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             
             // Time Display
             VStack(alignment: .leading, spacing: 16) {
@@ -257,7 +257,7 @@ struct DesignSystemView: View {
                 
                 TimeDisplay(day: "Today at", time: "12:59 AM")
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             
             // Info Card
             VStack(alignment: .leading, spacing: 16) {
@@ -273,7 +273,7 @@ struct DesignSystemView: View {
                     ]
                 )
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             
             // Checkmark
             VStack(alignment: .leading, spacing: 16) {
@@ -297,11 +297,11 @@ struct DesignSystemView: View {
                     }
                 }
                 .padding(.vertical, 16)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .background(Color.grey10)
                 .cornerRadius(8)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             
             // Dropdown
             VStack(alignment: .leading, spacing: 16) {
@@ -315,7 +315,7 @@ struct DesignSystemView: View {
                     selectedItem: $selectedLine
                 )
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             
             // Buttons
             VStack(alignment: .leading, spacing: 16) {
@@ -333,7 +333,7 @@ struct DesignSystemView: View {
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
             
             // Day Picker
             VStack(alignment: .leading, spacing: 16) {
@@ -349,7 +349,7 @@ struct DesignSystemView: View {
                     DayPicker(day: "Friday", isSelected: $friday)
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
         }
     }
 }

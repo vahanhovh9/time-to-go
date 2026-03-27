@@ -32,8 +32,8 @@ struct Onboarding3View: View {
                 showsBackButton: true,
                 onBack: onBack
             )
-            .padding(.horizontal, 20)
-            .padding(.top, 68)
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
             
             // Content
             ScrollView {
@@ -45,7 +45,7 @@ struct Onboarding3View: View {
                         label: "Arrival time",
                         selectedTime: $arrivalTime
                     )
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 24)
                     
                     // Day pickers in 2-column grid (Monday-Friday only)
                     LazyVGrid(columns: [
@@ -66,7 +66,7 @@ struct Onboarding3View: View {
                         Color.clear
                             .frame(height: 56)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 24)
                     .padding(.top, 24)
                     
                     Spacer(minLength: 40)
@@ -81,9 +81,9 @@ struct Onboarding3View: View {
                 VStack(spacing: 16) {
                     CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .padding(.top, 20)
-                .padding(.bottom, 56)
+                .padding(.bottom, 24)
             }
             .background(Color.white)
         }

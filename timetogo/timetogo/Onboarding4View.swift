@@ -32,8 +32,8 @@ struct Onboarding4View: View {
                 showsBackButton: true,
                 onBack: onBack
             )
-            .padding(.horizontal, 20)
-            .padding(.top, 68)
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
             
             // Content
             ScrollView {
@@ -46,7 +46,7 @@ struct Onboarding4View: View {
                         selectedTime: $notificationTime,
                         maximumTime: maxNotificationTime
                     )
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 24)
                     
                     Spacer(minLength: 40)
                 }
@@ -62,9 +62,9 @@ struct Onboarding4View: View {
                         onComplete()
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .padding(.top, 20)
-                .padding(.bottom, 56)
+                .padding(.bottom, 24)
             }
             .background(Color.white)
         }
