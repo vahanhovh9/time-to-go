@@ -13,4 +13,11 @@ protocol TFLServiceProtocol {
 
     /// Returns current service status for the given line IDs.
     func fetchLineStatus(for lineIds: [String]) async throws -> [TFLLine]
+
+    /// Searches all tube stations by name query.
+    func searchStations(query: String) async throws -> [TFLStopPoint]
+
+    /// Batch-fetches line information for up to 20 stop points by NaPTAN ID.
+    /// The /StopPoint/Search endpoint doesn't include lines; this fills the gap.
+    func fetchStopPointLines(naptanIds: [String]) async throws -> [String: [TFLLineRef]]
 }

@@ -21,15 +21,11 @@ struct ContentView: View {
     // MARK: - Onboarding state (persists when navigating between steps)
 
     // Step 1 — Home
-    @State private var homeLineId = ""
-    @State private var homeStationId = ""
-    @State private var homeStationName = ""
+    @State private var homeStation: TFLStopPoint = .placeholder
     @State private var homeWalkTime = "Choose"
 
     // Step 2 — Office
-    @State private var officeLineId = ""
-    @State private var officeStationId = ""
-    @State private var officeStationName = ""
+    @State private var officeStation: TFLStopPoint = .placeholder
     @State private var officeWalkTime = "Choose"
 
     // Step 3 — Schedule
@@ -116,9 +112,7 @@ struct ContentView: View {
         switch currentOnboardingStep {
         case .step1:
             Onboarding1View(
-                selectedLineId: $homeLineId,
-                selectedStationId: $homeStationId,
-                selectedStationName: $homeStationName,
+                selectedStation: $homeStation,
                 selectedWalkTime: $homeWalkTime,
                 onNext: { withAnimation { currentOnboardingStep = .step2 } }
             )
@@ -126,9 +120,7 @@ struct ContentView: View {
 
         case .step2:
             Onboarding2View(
-                selectedLineId: $officeLineId,
-                selectedStationId: $officeStationId,
-                selectedStationName: $officeStationName,
+                selectedStation: $officeStation,
                 selectedWalkTime: $officeWalkTime,
                 onNext: { withAnimation { currentOnboardingStep = .step3 } },
                 onBack: { withAnimation { currentOnboardingStep = .step1 } }
@@ -200,15 +192,11 @@ struct ContentView: View {
     private func prefillFromSavedSettings() {
         guard let s = appState.settings else { return }
 
-        homeLineId      = s.homeLineId
-        homeStationId   = s.homeStationId
-        homeStationName = s.homeStationName
-        homeWalkTime    = s.walkingMinutesToStation > 0 ? "\(s.walkingMinutesToStation) min" : "Choose"
+        homeStation  = TFLStopPoint(naptanId: s.homeStationId, commonName: s.homeStationName, lines: s.homeStationLines)
+        homeWalkTime = s.walkingMinutesToStation > 0 ? "\(s.walkingMinutesToStation) min" : "Choose"
 
-        officeLineId      = s.officeLineId
-        officeStationId   = s.officeStationId
-        officeStationName = s.officeStationName
-        officeWalkTime    = s.walkingMinutesToOffice > 0 ? "\(s.walkingMinutesToOffice) min" : "Choose"
+        officeStation  = TFLStopPoint(naptanId: s.officeStationId, commonName: s.officeStationName, lines: s.officeStationLines)
+        officeWalkTime = s.walkingMinutesToOffice > 0 ? "\(s.walkingMinutesToOffice) min" : "Choose"
 
         arrivalTime      = s.arrivalTime
         notificationTime = s.notificationTime
@@ -223,13 +211,13 @@ struct ContentView: View {
 
     private func buildUserSettings() -> UserSettings {
         var s = UserSettings()
-        s.homeLineId             = homeLineId
-        s.homeStationId          = homeStationId
-        s.homeStationName        = homeStationName
+        s.homeStationId          = homeStation.naptanId
+        s.homeStationName        = homeStation.commonName
+        s.homeStationLines       = homeStation.lines
         s.walkingMinutesToStation = parseMinutes(homeWalkTime)
-        s.officeLineId           = officeLineId
-        s.officeStationId        = officeStationId
-        s.officeStationName      = officeStationName
+        s.officeStationId        = officeStation.naptanId
+        s.officeStationName      = officeStation.commonName
+        s.officeStationLines     = officeStation.lines
         s.walkingMinutesToOffice  = parseMinutes(officeWalkTime)
         s.arrivalTime            = arrivalTime
         s.officeDays             = selectedDays

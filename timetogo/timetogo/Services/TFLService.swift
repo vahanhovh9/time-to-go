@@ -56,6 +56,26 @@ final class TFLService: TFLServiceProtocol {
         return journey
     }
 
+    // MARK: - Station Search
+
+    func searchStations(query: String) async throws -> [TFLStopPoint] {
+        guard !query.isEmpty else { return [] }
+
+        // Let URLComponents handle percent-encoding of the path component
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host   = "api.tfl.gov.uk"
+        components.path   = "/StopPoint/Search/\(query)"
+        components.queryItems = [
+            URLQueryItem(name: "modes",      value: "tube"),
+            URLQueryItem(name: "maxResults", value: "20")
+        ]
+        guard let url = components.url else { throw TFLError.invalidURL }
+        let data = try await get(url)
+        let response = try decode(TFLStopPointSearchResponse.self, from: data)
+        return response.matches.map { $0.asStopPoint }
+    }
+
     // MARK: - Line Status
 
     func fetchLineStatus(for lineIds: [String]) async throws -> [TFLLine] {
@@ -64,6 +84,27 @@ final class TFLService: TFLServiceProtocol {
         let url = try buildURL(path: "/Line/\(ids)/Status")
         let data = try await get(url)
         return try decode([TFLLine].self, from: data)
+    }
+
+    func fetchStopPointLines(naptanIds: [String]) async throws -> [String: [TFLLineRef]] {
+        guard !naptanIds.isEmpty else { return [:] }
+        let ids = naptanIds.prefix(20).joined(separator: ",")
+        let url = try buildURL(path: "/StopPoint/\(ids)")
+        let data = try await get(url)
+
+        // TFL returns a single object for one ID, an array for many
+        var details: [StopPointLinesDetail] = []
+        if let array = try? decode([StopPointLinesDetail].self, from: data) {
+            details = array
+        } else if let single = try? decode(StopPointLinesDetail.self, from: data) {
+            details = [single]
+        }
+
+        return Dictionary(
+            uniqueKeysWithValues: details.compactMap { d in
+                d.naptanId.isEmpty ? nil : (d.naptanId, d.lines.filter { !$0.id.isEmpty })
+            }
+        )
     }
 
     // MARK: - Helpers
@@ -97,6 +138,22 @@ final class TFLService: TFLServiceProtocol {
         f.timeZone = TimeZone(identifier: "Europe/London")
         return f
     }()
+}
+
+// MARK: - Internal helpers
+
+/// Minimal StopPoint shape used only to extract lines from /StopPoint/{ids}
+private struct StopPointLinesDetail: Decodable {
+    let naptanId: String
+    let lines: [TFLLineRef]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        naptanId = (try? c.decode(String.self, forKey: .naptanId)) ?? ""
+        lines    = (try? c.decode([TFLLineRef].self, forKey: .lines)) ?? []
+    }
+
+    enum CodingKeys: String, CodingKey { case naptanId, lines }
 }
 
 // MARK: - Errors
@@ -150,5 +207,43 @@ final class MockTFLService: TFLServiceProtocol {
 
     func fetchLineStatus(for lineIds: [String]) async throws -> [TFLLine] {
         try await fetchLines()
+    }
+
+    func fetchStopPointLines(naptanIds: [String]) async throws -> [String: [TFLLineRef]] {
+        var result: [String: [TFLLineRef]] = [:]
+        if naptanIds.contains("940GZZLUWSP") {
+            result["940GZZLUWSP"] = [TFLLineRef(id: "jubilee", name: "Jubilee")]
+        }
+        if naptanIds.contains("940GZZLUBST") {
+            result["940GZZLUBST"] = [
+                TFLLineRef(id: "bakerloo",         name: "Bakerloo"),
+                TFLLineRef(id: "circle",           name: "Circle"),
+                TFLLineRef(id: "hammersmith-city", name: "Hammersmith & City"),
+                TFLLineRef(id: "jubilee",          name: "Jubilee"),
+                TFLLineRef(id: "metropolitan",     name: "Metropolitan")
+            ]
+        }
+        return result
+    }
+
+    func searchStations(query: String) async throws -> [TFLStopPoint] {
+        [
+            TFLStopPoint(
+                naptanId: "940GZZLUWSP",
+                commonName: "West Hampstead Underground Station",
+                lines: [TFLLineRef(id: "jubilee", name: "Jubilee")]
+            ),
+            TFLStopPoint(
+                naptanId: "940GZZLUBST",
+                commonName: "Baker Street Underground Station",
+                lines: [
+                    TFLLineRef(id: "bakerloo",            name: "Bakerloo"),
+                    TFLLineRef(id: "circle",              name: "Circle"),
+                    TFLLineRef(id: "hammersmith-city",    name: "Hammersmith & City"),
+                    TFLLineRef(id: "jubilee",             name: "Jubilee"),
+                    TFLLineRef(id: "metropolitan",        name: "Metropolitan")
+                ]
+            )
+        ].filter { $0.displayName.localizedCaseInsensitiveContains(query) }
     }
 }

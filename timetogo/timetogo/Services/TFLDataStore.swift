@@ -12,14 +12,17 @@ final class TFLDataStore: ObservableObject {
     @Published var loadingLineIds: Set<String> = []
     @Published var error: String?
 
+    // MARK: - Station search
+
+    @Published var stationSearchResults: [TFLStopPoint] = []
+    @Published var isSearchingStations = false
+
     private let service: TFLServiceProtocol
 
-    /// Production init — uses the live TFL service.
     init() {
         self.service = TFLService()
     }
 
-    /// Injectable init for previews and unit tests.
     init(service: TFLServiceProtocol) {
         self.service = service
     }
@@ -41,7 +44,7 @@ final class TFLDataStore: ObservableObject {
         }
     }
 
-    // MARK: - Stations
+    // MARK: - Stations (by line, used for legacy lookups)
 
     func loadStations(for lineId: String) {
         guard stationsCache[lineId] == nil, !loadingLineIds.contains(lineId) else { return }
@@ -63,6 +66,44 @@ final class TFLDataStore: ObservableObject {
 
     func isLoadingStations(for lineId: String) -> Bool {
         loadingLineIds.contains(lineId)
+    }
+
+    // MARK: - Station search
+
+    func searchStations(query: String) {
+        guard query.count >= 2 else {
+            stationSearchResults = []
+            return
+        }
+        Task {
+            isSearchingStations = true
+            do {
+                var results = try await service.searchStations(query: query)
+
+                // The search endpoint doesn't return line info — enrich via batch lookup
+                if !results.isEmpty {
+                    let ids = results.map { $0.naptanId }
+                    let lineMap = (try? await service.fetchStopPointLines(naptanIds: ids)) ?? [:]
+                    if !lineMap.isEmpty {
+                        results = results.map { station in
+                            guard let lines = lineMap[station.naptanId], !lines.isEmpty else {
+                                return station
+                            }
+                            return TFLStopPoint(naptanId: station.naptanId, commonName: station.commonName, lines: lines)
+                        }
+                    }
+                }
+
+                stationSearchResults = results
+            } catch {
+                stationSearchResults = []
+            }
+            isSearchingStations = false
+        }
+    }
+
+    func clearStationSearch() {
+        stationSearchResults = []
     }
 
     // MARK: - Lookup helpers
