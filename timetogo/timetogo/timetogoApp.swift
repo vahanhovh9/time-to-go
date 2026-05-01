@@ -16,14 +16,15 @@ struct timetogoApp: App {
     // delegate setup (both must complete before didFinishLaunching returns).
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    // Global app state: holds onboarding flag + loaded UserSettings.
+    // Created once; ContentView reads hasCompletedOnboarding to decide the root view.
+    @StateObject private var appState = AppState()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
-                // App is light-only: force light color scheme so system sheets, pickers,
-                // and navigation chrome match (device Dark Mode must not tint menus).
                 .preferredColorScheme(.light)
-                // Inject NotificationService so ContentView can observe
-                // pendingDeepLink for notification-tap routing (§11.8).
+                .environmentObject(appState)
                 .environmentObject(NotificationService.shared)
         }
     }

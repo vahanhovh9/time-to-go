@@ -5,18 +5,20 @@ enum OnboardingStep {
 }
 
 struct ContentView: View {
-    // §11.8: Observes notification taps → routes to MainView.
-    // No business logic here; all routing decisions are made in NotificationService.
+    @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var notificationService: NotificationService
 
     @StateObject private var store = TFLDataStore()
 
     @State private var showDesignSystem = false
-    @State private var showMain = false
     @State private var currentOnboardingStep: OnboardingStep = .step1
     @State private var mainViewModel: MainViewModel?
+    /// Bumped each time the user enters settings-edit mode.
+    /// Forces SwiftUI to recreate onboarding views so their internal @State
+    /// (selectedLine, selectedStation) gets re-derived from the bindings.
+    @State private var onboardingSessionId = UUID()
 
-    // MARK: - Onboarding state (persists when navigating back)
+    // MARK: - Onboarding state (persists when navigating between steps)
 
     // Step 1 — Home
     @State private var homeLineId = ""
@@ -47,15 +49,11 @@ struct ContentView: View {
         ZStack(alignment: .topTrailing) {
             if showDesignSystem {
                 DesignSystemView()
-            } else if showMain, let vm = mainViewModel {
-                MainView(viewModel: vm, onChangeSettings: {
-                    withAnimation {
-                        showMain = false
-                        currentOnboardingStep = .step1
-                    }
-                })
+            } else if appState.hasCompletedOnboarding {
+                mainView
             } else {
                 onboardingView
+                    .id(onboardingSessionId)
             }
 
             Button {
@@ -82,12 +80,32 @@ struct ContentView: View {
             .padding(.trailing, 24)
             .zIndex(1000)
         }
-        // §11.8: Route notification taps to the main screen.
-        // All routing decisions (forceRefresh) are made in NotificationService — not here.
         .onChange(of: notificationService.pendingDeepLink) {
             guard let action = notificationService.pendingDeepLink else { return }
             handleDeepLink(action)
-            notificationService.pendingDeepLink = nil   // consume so it doesn't retrigger
+            notificationService.pendingDeepLink = nil
+        }
+        .onAppear {
+            ensureMainViewModelIfNeeded()
+        }
+    }
+
+    // MARK: - Main view (post-onboarding)
+
+    @ViewBuilder
+    private var mainView: some View {
+        if let vm = mainViewModel {
+            MainView(viewModel: vm, onChangeSettings: {
+                prefillFromSavedSettings()
+                onboardingSessionId = UUID()   // force fresh view identity
+                withAnimation {
+                    appState.enterSettingsEditMode()
+                    currentOnboardingStep = .step1
+                }
+            })
+        } else {
+            ProgressView()
+                .onAppear { ensureMainViewModelIfNeeded() }
         }
     }
 
@@ -141,13 +159,15 @@ struct ContentView: View {
             OnboardingSuccessView(
                 onAllDone: {
                     let settings = buildUserSettings()
-                    settings.save()
+                    if appState.isEditingSettings {
+                        appState.finishSettingsEdit(with: settings)
+                    } else {
+                        appState.completeOnboarding(with: settings)
+                    }
                     mainViewModel = MainViewModel(settings: settings)
-                    withAnimation { showMain = true }
                 },
                 onChangeSettings: {
                     withAnimation {
-                        showMain = false
                         currentOnboardingStep = .step1
                     }
                 }
@@ -155,44 +175,65 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - §11.8 Deep link routing (navigation only — no business logic)
+    // MARK: - §11.8 Deep link routing
 
     private func handleDeepLink(_ action: DeepLinkAction) {
         switch action {
         case .openMain(let forceRefresh):
-            // Ensure we have a ViewModel to show. If the user hasn't completed
-            // onboarding yet, UserSettings.load() will return nil and we skip routing.
-            if mainViewModel == nil, let settings = UserSettings.load() {
-                mainViewModel = MainViewModel(settings: settings)
-            }
+            ensureMainViewModelIfNeeded()
             guard let vm = mainViewModel else { return }
-
-            withAnimation { showMain = true }
-
             if forceRefresh {
-                // Case B tap (§11.8): no active cache → force immediate recalculation.
                 vm.loadCommute(forceRefresh: true)
             }
-            // Case A tap: active cache exists; MainView will display it via loadCommute()
-            // called in its .onAppear without recalculating (forceRefresh defaults to false).
         }
     }
 
-    // MARK: - Assemble UserSettings from collected state
+    // MARK: - Helpers
+
+    private func ensureMainViewModelIfNeeded() {
+        guard mainViewModel == nil, let settings = appState.settings else { return }
+        mainViewModel = MainViewModel(settings: settings)
+    }
+
+    /// Populates all onboarding @State fields from the saved UserSettings
+    /// so the user sees their current choices pre-filled when editing.
+    private func prefillFromSavedSettings() {
+        guard let s = appState.settings else { return }
+
+        homeLineId      = s.homeLineId
+        homeStationId   = s.homeStationId
+        homeStationName = s.homeStationName
+        homeWalkTime    = s.walkingMinutesToStation > 0 ? "\(s.walkingMinutesToStation) min" : "Choose"
+
+        officeLineId      = s.officeLineId
+        officeStationId   = s.officeStationId
+        officeStationName = s.officeStationName
+        officeWalkTime    = s.walkingMinutesToOffice > 0 ? "\(s.walkingMinutesToOffice) min" : "Choose"
+
+        arrivalTime      = s.arrivalTime
+        notificationTime = s.notificationTime
+
+        let days = Set(s.officeDays)
+        monday    = days.contains(.monday)
+        tuesday   = days.contains(.tuesday)
+        wednesday = days.contains(.wednesday)
+        thursday  = days.contains(.thursday)
+        friday    = days.contains(.friday)
+    }
 
     private func buildUserSettings() -> UserSettings {
         var s = UserSettings()
-        s.homeLineId            = homeLineId
-        s.homeStationId         = homeStationId
-        s.homeStationName       = homeStationName
+        s.homeLineId             = homeLineId
+        s.homeStationId          = homeStationId
+        s.homeStationName        = homeStationName
         s.walkingMinutesToStation = parseMinutes(homeWalkTime)
-        s.officeLineId          = officeLineId
-        s.officeStationId       = officeStationId
-        s.officeStationName     = officeStationName
-        s.walkingMinutesToOffice = parseMinutes(officeWalkTime)
-        s.arrivalTime           = arrivalTime
-        s.officeDays            = selectedDays
-        s.notificationTime      = notificationTime
+        s.officeLineId           = officeLineId
+        s.officeStationId        = officeStationId
+        s.officeStationName      = officeStationName
+        s.walkingMinutesToOffice  = parseMinutes(officeWalkTime)
+        s.arrivalTime            = arrivalTime
+        s.officeDays             = selectedDays
+        s.notificationTime       = notificationTime
         return s
     }
 
@@ -213,4 +254,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AppState())
+        .environmentObject(NotificationService.shared)
 }

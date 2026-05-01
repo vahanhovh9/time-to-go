@@ -187,3 +187,179 @@ Show:
     - API status changes
 - All time calculations must use user’s locale and timezone
 - No hardcoded times inside Views
+
+---
+
+## **11. Notification & Background Execution Logic**
+
+
+
+11. Notification & Background Execution Logic
+
+11.1 Purpose
+
+Notifications are the primary delivery mechanism of TimeToGo.
+
+The system must:
+	•	Deliver accurate commute information when possible.
+	•	Never send stale or potentially misleading leave times.
+	•	Degrade gracefully if background execution fails.
+
+Trust and accuracy take priority over autonomy.
+
+⸻
+
+11.2 Permission Handling
+
+During onboarding completion:
+	•	Request notification permission using UNUserNotificationCenter.
+	•	If denied:
+	•	Show a non-blocking explanation.
+	•	Provide guidance to enable notifications in Settings.
+	•	The app must remain stable even if permission is denied.
+
+Notifications are required for full agent functionality.
+
+⸻
+
+11.3 Scheduling Strategy
+
+After onboarding completion:
+	1.	Schedule repeating weekly placeholder notifications using:
+	•	notificationDays
+	•	notificationTime
+	2.	Register and schedule background refresh using BGTaskScheduler.
+	3.	Background task must:
+	•	Execute before notification time (earliestBeginDate set well in advance, e.g. ~2 hours earlier).
+	•	Recalculate commute.
+	•	Update cache.
+	•	Replace today’s placeholder notification with a one-shot notification containing real commute data.
+	•	Reschedule itself.
+
+Background refresh is opportunistic and not guaranteed.
+
+⸻
+
+11.4 Background Refresh Flow
+
+When the background task executes:
+	1.	Load user settings.
+	2.	Recalculate commute using CommuteCalculationService(forceRefresh: true).
+	3.	Save result to CommuteCacheManager.
+	4.	Replace today’s repeating notification with a one-shot notification containing:
+	•	leaveHomeTime
+	•	line service status
+	5.	Schedule next background refresh task.
+
+⸻
+
+11.5 Trust-First Notification Policy
+
+At notification time:
+
+Case A — Fresh Same-Day Cache Exists
+
+If a valid cached commute result exists for the same commute day:
+
+Send notification:
+
+Leave home at 8:24 AM. Northern line service is good.
+
+When tapped:
+	•	Open main screen.
+	•	Display the exact cached result.
+	•	Do NOT automatically recalculate.
+
+⸻
+
+Case B — No Fresh Cache Exists
+
+If background refresh did not run or failed:
+
+Send notification:
+
+Open TimeToGo to calculate your commute.
+
+When tapped:
+	•	Open main screen.
+	•	Force immediate commute recalculation.
+
+The system must NEVER send stale leave times.
+
+⸻
+
+11.6 Cache Rules
+
+Cache must store:
+	•	leaveHomeTime
+	•	trainArrivalTime
+	•	journeyDuration
+	•	serviceStatus
+	•	commuteDate
+	•	timestamp
+
+Cache validity:
+	•	Same commute date
+	•	Not older than 24 hours
+
+If cache exists but is outdated:
+	•	It must NOT be used for notification content.
+	•	It may optionally be displayed inside the app with a clear staleness indicator.
+
+⸻
+
+11.7 Consistency Rule
+
+If a notification delivers a leave time:
+	•	That exact value must be marked as the active commute result.
+	•	When user opens the app during the same commute day:
+	•	The app must display the same leave time.
+	•	No automatic recalculation.
+	•	Recalculation is allowed only if:
+	•	User manually refreshes.
+	•	Date changes.
+	•	Settings change.
+
+⸻
+
+11.8 Deep Linking Behavior
+
+All notifications must include payload:
+
+{
+  "action": "openMain"
+}
+
+When a notification is tapped:
+	1.	Open the main screen.
+	2.	If active same-day cache exists → display it.
+	3.	If no active cache exists → trigger forced recalculation immediately.
+
+⸻
+
+11.9 Rescheduling Rule
+
+If user updates:
+	•	Arrival time
+	•	Notification time
+	•	Notification days
+	•	Home or office station
+	•	Walking durations
+
+Then:
+	•	Cancel all scheduled notifications.
+	•	Cancel all pending background tasks.
+	•	Reschedule notifications and background refresh.
+
+⸻
+
+11.10 iOS Constraints Acknowledgment
+
+The system must account for the following:
+	•	Background tasks are opportunistic and not guaranteed.
+	•	Low Power Mode may suppress background execution.
+	•	Force-quit prevents background scheduling.
+	•	Placeholder notification ensures delivery even if refresh fails.
+	•	Trust-first policy prevents incorrect commute times from being sent.
+
+⸻
