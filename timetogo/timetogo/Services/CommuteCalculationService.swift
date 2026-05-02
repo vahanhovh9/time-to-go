@@ -61,6 +61,40 @@ final class CommuteCalculationService {
         }
     }
 
+    /// Calculate the outbound commute result (office → home) for the user's next office day.
+    func calculateOutbound(for settings: UserSettings, forceRefresh: Bool = false) async throws -> CommuteResult {
+        let commuteDate = nextCommuteDate(from: settings)
+
+        let trainArrivalTarget = applyTime(settings.homeArrivalTime, to: commuteDate)
+            .addingTimeInterval(TimeInterval(-settings.walkingMinutesToStation * 60))
+
+        let journey = try await tflService.fetchJourney(
+            from:       settings.officeStationId,
+            to:         settings.homeStationId,
+            arrivingBy: trainArrivalTarget
+        )
+
+        let trainDeparture = Self.parseTFLDate(journey.startDateTime)   ?? trainArrivalTarget
+        let trainArrival   = Self.parseTFLDate(journey.arrivalDateTime) ?? trainArrivalTarget
+        let numberOfStops  = journey.legs.reduce(0) { $0 + ($1.path?.stopPoints.count ?? 0) }
+
+        let leaveOfficeTime = trainDeparture
+            .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToOffice + safetyBufferMinutes) * 60))
+
+        let lineIds      = [settings.homeLineId, settings.officeLineId].filter { !$0.isEmpty }
+        let lineStatuses = try await tflService.fetchLineStatus(for: lineIds)
+
+        return CommuteResult(
+            leaveHomeTime:               leaveOfficeTime,
+            trainDepartureAtHomeStation: trainDeparture,
+            trainArrivalAtOfficeStation: trainArrival,
+            journeyDurationMinutes:      journey.durationMinutes,
+            numberOfStops:               numberOfStops,
+            serviceStatus:               resolveServiceStatus(from: lineStatuses),
+            dayLabel:                    dayLabel(for: commuteDate)
+        )
+    }
+
     // MARK: - Helpers
 
     /// Returns the soonest upcoming date that falls on one of the user's office days

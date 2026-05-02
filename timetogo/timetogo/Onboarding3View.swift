@@ -9,12 +9,13 @@ import SwiftUI
 
 struct Onboarding3View: View {
     @Binding var arrivalTime: Date
+    @Binding var homeArrivalTime: Date
     @Binding var monday: Bool
     @Binding var tuesday: Bool
     @Binding var wednesday: Bool
     @Binding var thursday: Bool
     @Binding var friday: Bool
-    
+
     var onNext: () -> Void
     var onBack: () -> Void
     
@@ -28,7 +29,7 @@ struct Onboarding3View: View {
             OnboardingHeader(
                 step: 3,
                 totalSteps: 4,
-                title: "When at office?",
+                title: "When do you arrive?",
                 showsBackButton: true,
                 onBack: onBack
             )
@@ -40,10 +41,15 @@ struct Onboarding3View: View {
                 VStack(alignment: .leading, spacing: 24) {
                     Spacer(minLength: 40)
                     
-                    // Arrival time picker
                     ArrivalTimePicker(
-                        label: "Arrival time",
+                        label: "Office",
                         selectedTime: $arrivalTime
+                    )
+                    .padding(.horizontal, 24)
+
+                    ArrivalTimePicker(
+                        label: "Home",
+                        selectedTime: $homeArrivalTime
                     )
                     .padding(.horizontal, 24)
                     
@@ -94,15 +100,17 @@ struct Onboarding3View: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+        @State private var homeArrivalTime: Date = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
         @State private var monday = false
         @State private var tuesday = true
         @State private var wednesday = false
         @State private var thursday = true
         @State private var friday = false
-        
+
         var body: some View {
             Onboarding3View(
                 arrivalTime: $arrivalTime,
+                homeArrivalTime: $homeArrivalTime,
                 monday: $monday,
                 tuesday: $tuesday,
                 wednesday: $wednesday,

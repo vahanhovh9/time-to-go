@@ -9,19 +9,27 @@ import SwiftUI
 
 struct Onboarding4View: View {
     @Binding var notificationTime: Date
-    /// The arrival time from step 3 — notification must be at most 30 min before it.
+    @Binding var homeNotificationTime: Date
+    /// The office arrival time from step 3 — office notification must be at most 30 min before it.
     var arrivalTime: Date
+    /// The home arrival time from step 3 — home notification must be at most 30 min before it.
+    var homeArrivalTime: Date
 
     var onComplete: () -> Void
     var onBack: () -> Void
 
-    /// Latest allowed notification time = arrivalTime − 30 min, expressed as today's date.
     private var maxNotificationTime: Date {
         let cal = Calendar.current
         let comps = cal.dateComponents([.hour, .minute], from: arrivalTime.addingTimeInterval(-30 * 60))
         return cal.date(bySettingHour: comps.hour ?? 8, minute: comps.minute ?? 30, second: 0, of: Date()) ?? Date()
     }
-    
+
+    private var maxHomeNotificationTime: Date {
+        let cal = Calendar.current
+        let comps = cal.dateComponents([.hour, .minute], from: homeArrivalTime.addingTimeInterval(-30 * 60))
+        return cal.date(bySettingHour: comps.hour ?? 17, minute: comps.minute ?? 30, second: 0, of: Date()) ?? Date()
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -34,20 +42,26 @@ struct Onboarding4View: View {
             )
             .padding(.horizontal, 24)
             .padding(.top, 48)
-            
+
             // Content
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Spacer(minLength: 40)
-                    
-                    // Pick a time picker (same component as Onboarding 3 for consistency)
+
                     ArrivalTimePicker(
-                        label: "Pick a time",
+                        label: "For office",
                         selectedTime: $notificationTime,
                         maximumTime: maxNotificationTime
                     )
                     .padding(.horizontal, 24)
-                    
+
+                    ArrivalTimePicker(
+                        label: "For home",
+                        selectedTime: $homeNotificationTime,
+                        maximumTime: maxHomeNotificationTime
+                    )
+                    .padding(.horizontal, 24)
+
                     Spacer(minLength: 40)
                 }
             }
@@ -75,16 +89,19 @@ struct Onboarding4View: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
-        
+        @State private var homeNotificationTime: Date = Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
+
         var body: some View {
             Onboarding4View(
                 notificationTime: $notificationTime,
+                homeNotificationTime: $homeNotificationTime,
                 arrivalTime: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date(),
+                homeArrivalTime: Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date(),
                 onComplete: { print("Onboarding completed") },
                 onBack: { print("Back tapped") }
             )
         }
     }
-    
+
     return PreviewWrapper()
 }

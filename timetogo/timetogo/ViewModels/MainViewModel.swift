@@ -10,6 +10,10 @@ final class MainViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
+    @Published var outboundResult: CommuteResult?
+    @Published var isLoadingOutbound: Bool = false
+    @Published var outboundErrorMessage: String?
+
     // MARK: - Dependencies
 
     private let calculationService: CommuteCalculationService
@@ -50,6 +54,22 @@ final class MainViewModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
             isLoading = false
+        }
+    }
+
+    func loadOutbound(forceRefresh: Bool = false) {
+        Task {
+            isLoadingOutbound = true
+            outboundErrorMessage = nil
+            do {
+                outboundResult = try await calculationService.calculateOutbound(
+                    for: settings,
+                    forceRefresh: forceRefresh
+                )
+            } catch {
+                outboundErrorMessage = error.localizedDescription
+            }
+            isLoadingOutbound = false
         }
     }
 
@@ -98,6 +118,38 @@ final class MainViewModel: ObservableObject {
         guard let result = commuteResult else { return "-- stops" }
         return "\(result.numberOfStops) stops"
     }
+
+    // MARK: - Outbound display values (office → home)
+
+    var leaveOfficeTimeText: String {
+        guard let result = outboundResult else { return "--:--" }
+        return timeFormatter.string(from: result.leaveHomeTime)
+    }
+
+    var outboundServiceStatusText: String {
+        outboundResult?.serviceStatus.displayText ?? "Service status: Checking…"
+    }
+
+    var outboundTrainDepartureText: String {
+        guard let result = outboundResult else { return "--:--" }
+        return timeFormatter.string(from: result.trainDepartureAtHomeStation)
+    }
+
+    var homeArrivalTimeText: String {
+        timeFormatter.string(from: settings.homeArrivalTime)
+    }
+
+    var outboundJourneyDurationText: String {
+        guard let result = outboundResult else { return "-- min" }
+        return "\(result.journeyDurationMinutes) min"
+    }
+
+    var outboundNumberOfStopsText: String {
+        guard let result = outboundResult else { return "-- stops" }
+        return "\(result.numberOfStops) stops"
+    }
+
+    // MARK: -
 
     /// §11.6: True when the displayed result was reconstructed from cache (stale indicator).
     var isShowingCachedResult: Bool { commuteResult?.isFromCache ?? false }

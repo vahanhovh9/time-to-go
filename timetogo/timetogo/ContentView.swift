@@ -30,14 +30,16 @@ struct ContentView: View {
 
     // Step 3 — Schedule
     @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var homeArrivalTime: Date = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var monday = false
     @State private var tuesday = true
     @State private var wednesday = false
     @State private var thursday = true
     @State private var friday = false
 
-    // Step 4 — Notification
+    // Step 4 — Notifications
     @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
+    @State private var homeNotificationTime: Date = Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
 
     // MARK: - Body
 
@@ -130,6 +132,7 @@ struct ContentView: View {
         case .step3:
             Onboarding3View(
                 arrivalTime: $arrivalTime,
+                homeArrivalTime: $homeArrivalTime,
                 monday: $monday,
                 tuesday: $tuesday,
                 wednesday: $wednesday,
@@ -142,7 +145,9 @@ struct ContentView: View {
         case .step4:
             Onboarding4View(
                 notificationTime: $notificationTime,
+                homeNotificationTime: $homeNotificationTime,
                 arrivalTime: arrivalTime,
+                homeArrivalTime: homeArrivalTime,
                 onComplete: { withAnimation { currentOnboardingStep = .success } },
                 onBack: { withAnimation { currentOnboardingStep = .step3 } }
             )
@@ -198,8 +203,10 @@ struct ContentView: View {
         officeStation  = TFLStopPoint(naptanId: s.officeStationId, commonName: s.officeStationName, lines: s.officeStationLines)
         officeWalkTime = s.walkingMinutesToOffice > 0 ? "\(s.walkingMinutesToOffice) min" : "Choose"
 
-        arrivalTime      = s.arrivalTime
-        notificationTime = s.notificationTime
+        arrivalTime          = s.arrivalTime
+        homeArrivalTime      = s.homeArrivalTime
+        notificationTime     = s.notificationTime
+        homeNotificationTime = s.homeNotificationTime
 
         let days = Set(s.officeDays)
         monday    = days.contains(.monday)
@@ -220,8 +227,10 @@ struct ContentView: View {
         s.officeStationLines     = officeStation.lines
         s.walkingMinutesToOffice  = parseMinutes(officeWalkTime)
         s.arrivalTime            = arrivalTime
+        s.homeArrivalTime        = homeArrivalTime
         s.officeDays             = selectedDays
         s.notificationTime       = notificationTime
+        s.homeNotificationTime   = homeNotificationTime
         return s
     }
 

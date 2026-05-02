@@ -45,6 +45,11 @@ struct UserSettings: Codable {
         Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     }()
 
+    /// Target arrival time at home for the evening commute (only hour/minute components are used).
+    var homeArrivalTime: Date = {
+        Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
+    }()
+
     /// Days of the week the user commutes.
     var officeDays: [Weekday] = []
 
@@ -55,13 +60,18 @@ struct UserSettings: Codable {
         Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
     }()
 
+    /// Time at which the "leave office" push notification should fire.
+    var homeNotificationTime: Date = {
+        Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
+    }()
+
     // MARK: - Codable
     // Custom implementation to handle migration from the legacy single-lineId format.
 
     enum CodingKeys: String, CodingKey {
         case homeStationId, homeStationName, homeStationLines, walkingMinutesToStation
         case officeStationId, officeStationName, officeStationLines, walkingMinutesToOffice
-        case arrivalTime, officeDays, notificationTime
+        case arrivalTime, homeArrivalTime, officeDays, notificationTime, homeNotificationTime
         // Legacy keys present in settings saved before this version
         case legacyHomeLineId   = "homeLineId"
         case legacyOfficeLineId = "officeLineId"
@@ -97,9 +107,11 @@ struct UserSettings: Codable {
             officeStationLines = []
         }
 
-        arrivalTime      = (try? c.decode(Date.self,      forKey: .arrivalTime))      ?? Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-        officeDays       = (try? c.decode([Weekday].self, forKey: .officeDays))       ?? []
-        notificationTime = (try? c.decode(Date.self,      forKey: .notificationTime)) ?? Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
+        arrivalTime          = (try? c.decode(Date.self,      forKey: .arrivalTime))          ?? Calendar.current.date(bySettingHour: 9,  minute: 0,  second: 0, of: Date()) ?? Date()
+        homeArrivalTime      = (try? c.decode(Date.self,      forKey: .homeArrivalTime))      ?? Calendar.current.date(bySettingHour: 18, minute: 0,  second: 0, of: Date()) ?? Date()
+        officeDays           = (try? c.decode([Weekday].self, forKey: .officeDays))           ?? []
+        notificationTime     = (try? c.decode(Date.self,      forKey: .notificationTime))     ?? Calendar.current.date(bySettingHour: 7,  minute: 30, second: 0, of: Date()) ?? Date()
+        homeNotificationTime = (try? c.decode(Date.self,      forKey: .homeNotificationTime)) ?? Calendar.current.date(bySettingHour: 16, minute: 0,  second: 0, of: Date()) ?? Date()
     }
 
     func encode(to encoder: Encoder) throws {
@@ -113,8 +125,10 @@ struct UserSettings: Codable {
         try c.encode(officeStationLines,      forKey: .officeStationLines)
         try c.encode(walkingMinutesToOffice,  forKey: .walkingMinutesToOffice)
         try c.encode(arrivalTime,             forKey: .arrivalTime)
+        try c.encode(homeArrivalTime,         forKey: .homeArrivalTime)
         try c.encode(officeDays,              forKey: .officeDays)
         try c.encode(notificationTime,        forKey: .notificationTime)
+        try c.encode(homeNotificationTime,    forKey: .homeNotificationTime)
     }
 
     // MARK: - Persistence
