@@ -10,7 +10,7 @@ struct ContentView: View {
 
     @StateObject private var store = TFLDataStore()
 
-    @State private var showDesignSystem = false
+    @State private var showDevMenu = false
     @State private var currentOnboardingStep: OnboardingStep = .step1
     @State private var mainViewModel: MainViewModel?
     /// Bumped each time the user enters settings-edit mode.
@@ -45,8 +45,8 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            if showDesignSystem {
-                DesignSystemView()
+            if showDevMenu {
+                DevMenuView(onDismiss: { withAnimation { showDevMenu = false } })
             } else if appState.hasCompletedOnboarding {
                 mainView
             } else {
@@ -54,29 +54,27 @@ struct ContentView: View {
                     .id(onboardingSessionId)
             }
 
-            Button {
-                withAnimation { showDesignSystem.toggle() }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: showDesignSystem ? "app.fill" : "paintpalette.fill")
-                        .font(.system(size: 9, weight: .medium))
-                    Text(showDesignSystem ? "App" : "Design System")
+            if !showDevMenu {
+                Button {
+                    withAnimation { showDevMenu = true }
+                } label: {
+                    Text("DEV")
                         .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(Color.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color.white)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(Color.grey30, lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
                 }
-                .foregroundColor(Color.black)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(Color.white)
-                .cornerRadius(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(Color.grey30, lineWidth: 1)
-                )
-                .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
+                .padding(.top, 16)
+                .padding(.trailing, 24)
+                .zIndex(1000)
             }
-            .padding(.top, 16)
-            .padding(.trailing, 24)
-            .zIndex(1000)
         }
         .onChange(of: notificationService.pendingDeepLink) {
             guard let action = notificationService.pendingDeepLink else { return }
