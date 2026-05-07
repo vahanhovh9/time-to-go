@@ -363,3 +363,325 @@ The system must account for the following:
 	•	Trust-first policy prevents incorrect commute times from being sent.
 
 ⸻
+
+
+⸻
+
+12. Outbound Commute Logic
+
+12.1 Purpose
+
+TimeToGo currently supports inbound commute only:
+
+* Home → Office
+
+Outbound is introduced as an optional add-on flow:
+
+* Office → Home
+* Office → Other destination
+
+Outbound allows the user to determine when to leave the office in order to arrive at a destination at a specific required time.
+
+Example:
+
+User must be at nursery at 5:50 PM.
+
+⸻
+
+12.2 Bottom Navigation
+
+Bottom navigation always shows:
+
+Inbound
+Outbound
+Settings
+
+Inbound
+
+* Always available after initial onboarding.
+* Opens inbound commute screen.
+
+Outbound
+
+If outbound is not configured:
+
+* Opens outbound intro screen.
+
+If outbound is configured:
+
+* Opens outbound commute screen.
+
+Settings
+
+Before outbound is configured:
+
+* Show inbound settings only.
+
+After outbound is configured:
+
+* Show:
+    * Inbound settings
+    * Outbound settings
+
+Condition:
+
+outboundEnabled == true
+
+⸻
+
+12.3 Outbound Entry Flow
+
+When user taps Outbound (not configured):
+
+Show intro screen:
+
+Need to be back right on time?
+Use Outbound to know when you should leave the office.
+
+CTA:
+
+Let’s go
+
+On tap:
+
+* Start outbound onboarding.
+
+⸻
+
+12.4 Outbound Onboarding
+
+Step 1 — Destination Type
+
+Where are you going after work?
+
+Options:
+
+Home
+Other place
+
+⸻
+
+12.5 Option A — Home
+
+Reuse inbound home data:
+
+outboundDestinationLine = userHomeLine
+outboundDestinationStation = userHomeStation
+outboundWalkingTimeFromStation = userWalkingTimeToStation
+
+Ask:
+
+When do you need to be home?
+
+Store:
+
+outboundArrivalTime: Date
+
+Ask:
+
+When should we notify you?
+
+Store:
+
+outboundNotificationTime: Date
+outboundNotificationDays: [Weekday]
+
+⸻
+
+12.6 Option B — Other Place
+
+Step 1 — Destination Station
+
+* Fetch lines from TFL API
+* Sort alphabetically
+* Select line → fetch stations
+* Sort alphabetically
+* Select station
+
+Store:
+
+outboundDestinationLine: String
+outboundDestinationStation: String
+
+Step 2 — Walking Time
+
+outboundWalkingTimeFromStation: Int
+
+Step 3 — Arrival Time
+
+outboundArrivalTime: Date
+
+Step 4 — Notification
+
+outboundNotificationTime: Date
+outboundNotificationDays: [Weekday]
+
+⸻
+
+12.7 Stored Data
+
+outboundEnabled: Bool
+outboundDestinationType: OutboundDestinationType
+// home | otherPlace
+outboundDestinationLine: String
+outboundDestinationStation: String
+outboundWalkingTimeFromStation: Int
+outboundArrivalTime: Date
+outboundNotificationDays: [Weekday]
+outboundNotificationTime: Date
+
+⸻
+
+12.8 Completion Logic
+
+On outbound onboarding completion:
+
+1. Save all outbound data
+2. Set:
+
+outboundEnabled = true
+
+3. Calculate next notification date
+4. Schedule outbound notifications
+5. Schedule outbound background refresh
+6. Show success screen:
+
+Outbound is ready.
+We’ll tell you when to leave work.
+
+⸻
+
+12.9 Outbound Commute Calculation
+
+Direction:
+
+Office → Destination
+
+Steps:
+
+1. Determine next outbound commute day
+2. Retrieve:
+    * userOfficeStation
+    * outboundDestinationStation
+    * outboundArrivalTime
+    * outboundWalkingTimeFromStation
+    * userWalkingTimeToOffice
+3. Calculate:
+
+desiredTrainArrivalTime = outboundArrivalTime - outboundWalkingTimeFromStation
+
+4. Query TFL API:
+    * Journey from office → destination
+    * Must arrive ≤ desiredTrainArrivalTime
+5. From selected journey:
+
+leaveOfficeTime = trainDepartureTime - userWalkingTimeToOffice - safetyBufferMinutes
+
+6. Result:
+
+leaveOfficeTime
+
+⸻
+
+12.10 Notification & Background Logic (Outbound)
+
+Outbound follows the same trust-first notification policy as inbound.
+
+Scheduling
+
+* Schedule repeating weekly placeholder notifications using:
+    * outboundNotificationDays
+    * outboundNotificationTime
+* Register background refresh task:
+    * Runs before notification time
+    * Recalculates outbound commute
+    * Updates outbound cache
+    * Replaces placeholder with one-shot notification
+
+⸻
+
+Notification Behavior
+
+Case A — Fresh Cache Exists
+
+Send:
+
+Leave work at 5:12 PM. Central line service is good.
+
+On tap:
+
+* Open main screen
+* Show cached outbound result
+* Do NOT recalculate
+
+⸻
+
+Case B — No Fresh Cache
+
+Send:
+
+Open TimeToGo to calculate your commute.
+
+On tap:
+
+* Open main screen
+* Force outbound recalculation
+
+⸻
+
+12.11 Cache Rules
+
+Use separate cache:
+
+OutboundCommuteCache
+
+Store:
+
+leaveOfficeTime
+trainDepartureTime
+trainArrivalTime
+journeyDuration
+serviceStatus
+commuteDate
+timestamp
+
+Validity:
+
+* Same commute date
+* Not older than 24 hours
+
+⸻
+
+12.12 Settings Behavior
+
+If outboundEnabled:
+
+Show:
+
+Outbound destination
+Outbound arrival time
+Outbound notification days
+Outbound notification time
+Outbound walking time
+Reset outbound
+Disable outbound
+
+If outbound disabled:
+
+* Hide outbound settings
+* Cancel outbound notifications
+* Cancel outbound background tasks
+
+⸻
+
+12.13 Non-Negotiable Rules
+
+* Outbound must never affect inbound logic
+* Arrival must never be later than outboundArrivalTime
+* Outbound cache must be separate from inbound cache
+* Notifications must never send stale leave times
+* Outbound must follow trust-first policy
+* Updating outbound settings must reschedule outbound only
+* Updating inbound must not break outbound (except shared station data)
+
+⸻

@@ -17,7 +17,7 @@ final class MainViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let calculationService: CommuteCalculationService
-    private(set) var settings: UserSettings
+    @Published private(set) var settings: UserSettings
 
     // MARK: - Init
 
@@ -58,6 +58,7 @@ final class MainViewModel: ObservableObject {
     }
 
     func loadOutbound(forceRefresh: Bool = false) {
+        guard settings.outboundEnabled else { return }
         Task {
             isLoadingOutbound = true
             outboundErrorMessage = nil
@@ -136,7 +137,7 @@ final class MainViewModel: ObservableObject {
     }
 
     var homeArrivalTimeText: String {
-        timeFormatter.string(from: settings.homeArrivalTime)
+        timeFormatter.string(from: settings.outboundArrivalTime)
     }
 
     var outboundJourneyDurationText: String {
@@ -156,6 +157,7 @@ final class MainViewModel: ObservableObject {
 
     var homeStationDisplayName: String { cleanStationName(settings.homeStationName) }
     var officeStationDisplayName: String { cleanStationName(settings.officeStationName) }
+    var outboundDestinationDisplayName: String { cleanStationName(settings.outboundDestinationStationName) }
 
     private func cleanStationName(_ name: String) -> String {
         name

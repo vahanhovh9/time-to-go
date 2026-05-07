@@ -13,33 +13,20 @@ struct ContentView: View {
     @State private var showDevMenu = false
     @State private var currentOnboardingStep: OnboardingStep = .step1
     @State private var mainViewModel: MainViewModel?
-    /// Bumped each time the user enters settings-edit mode.
-    /// Forces SwiftUI to recreate onboarding views so their internal @State
-    /// (selectedLine, selectedStation) gets re-derived from the bindings.
-    @State private var onboardingSessionId = UUID()
 
-    // MARK: - Onboarding state (persists when navigating between steps)
+    // MARK: - Onboarding state
 
-    // Step 1 — Home
     @State private var homeStation: TFLStopPoint = .placeholder
     @State private var homeWalkTime = "Choose"
-
-    // Step 2 — Office
     @State private var officeStation: TFLStopPoint = .placeholder
     @State private var officeWalkTime = "Choose"
-
-    // Step 3 — Schedule
     @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-    @State private var homeArrivalTime: Date = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var monday = false
     @State private var tuesday = true
     @State private var wednesday = false
     @State private var thursday = true
     @State private var friday = false
-
-    // Step 4 — Notifications
     @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
-    @State private var homeNotificationTime: Date = Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
 
     // MARK: - Body
 
@@ -51,7 +38,6 @@ struct ContentView: View {
                 mainView
             } else {
                 onboardingView
-                    .id(onboardingSessionId)
             }
 
             if !showDevMenu {
@@ -86,19 +72,14 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Main view (post-onboarding)
+    // MARK: - Main view
 
     @ViewBuilder
     private var mainView: some View {
         if let vm = mainViewModel {
-            MainView(viewModel: vm, onChangeSettings: {
-                prefillFromSavedSettings()
-                onboardingSessionId = UUID()   // force fresh view identity
-                withAnimation {
-                    appState.enterSettingsEditMode()
-                    currentOnboardingStep = .step1
-                }
-            })
+            MainView(viewModel: vm)
+                .environmentObject(store)
+                .environmentObject(appState)
         } else {
             ProgressView()
                 .onAppear { ensureMainViewModelIfNeeded() }
@@ -130,7 +111,6 @@ struct ContentView: View {
         case .step3:
             Onboarding3View(
                 arrivalTime: $arrivalTime,
-                homeArrivalTime: $homeArrivalTime,
                 monday: $monday,
                 tuesday: $tuesday,
                 wednesday: $wednesday,
@@ -143,9 +123,7 @@ struct ContentView: View {
         case .step4:
             Onboarding4View(
                 notificationTime: $notificationTime,
-                homeNotificationTime: $homeNotificationTime,
                 arrivalTime: arrivalTime,
-                homeArrivalTime: homeArrivalTime,
                 onComplete: { withAnimation { currentOnboardingStep = .success } },
                 onBack: { withAnimation { currentOnboardingStep = .step3 } }
             )
@@ -162,24 +140,20 @@ struct ContentView: View {
                     mainViewModel = MainViewModel(settings: settings)
                 },
                 onChangeSettings: {
-                    withAnimation {
-                        currentOnboardingStep = .step1
-                    }
+                    withAnimation { currentOnboardingStep = .step1 }
                 }
             )
         }
     }
 
-    // MARK: - §11.8 Deep link routing
+    // MARK: - Deep link routing
 
     private func handleDeepLink(_ action: DeepLinkAction) {
         switch action {
         case .openMain(let forceRefresh):
             ensureMainViewModelIfNeeded()
             guard let vm = mainViewModel else { return }
-            if forceRefresh {
-                vm.loadCommute(forceRefresh: true)
-            }
+            if forceRefresh { vm.loadCommute(forceRefresh: true) }
         }
     }
 
@@ -190,45 +164,19 @@ struct ContentView: View {
         mainViewModel = MainViewModel(settings: settings)
     }
 
-    /// Populates all onboarding @State fields from the saved UserSettings
-    /// so the user sees their current choices pre-filled when editing.
-    private func prefillFromSavedSettings() {
-        guard let s = appState.settings else { return }
-
-        homeStation  = TFLStopPoint(naptanId: s.homeStationId, commonName: s.homeStationName, lines: s.homeStationLines)
-        homeWalkTime = s.walkingMinutesToStation > 0 ? "\(s.walkingMinutesToStation) min" : "Choose"
-
-        officeStation  = TFLStopPoint(naptanId: s.officeStationId, commonName: s.officeStationName, lines: s.officeStationLines)
-        officeWalkTime = s.walkingMinutesToOffice > 0 ? "\(s.walkingMinutesToOffice) min" : "Choose"
-
-        arrivalTime          = s.arrivalTime
-        homeArrivalTime      = s.homeArrivalTime
-        notificationTime     = s.notificationTime
-        homeNotificationTime = s.homeNotificationTime
-
-        let days = Set(s.officeDays)
-        monday    = days.contains(.monday)
-        tuesday   = days.contains(.tuesday)
-        wednesday = days.contains(.wednesday)
-        thursday  = days.contains(.thursday)
-        friday    = days.contains(.friday)
-    }
-
     private func buildUserSettings() -> UserSettings {
         var s = UserSettings()
-        s.homeStationId          = homeStation.naptanId
-        s.homeStationName        = homeStation.commonName
-        s.homeStationLines       = homeStation.lines
+        s.homeStationId           = homeStation.naptanId
+        s.homeStationName         = homeStation.commonName
+        s.homeStationLines        = homeStation.lines
         s.walkingMinutesToStation = parseMinutes(homeWalkTime)
-        s.officeStationId        = officeStation.naptanId
-        s.officeStationName      = officeStation.commonName
-        s.officeStationLines     = officeStation.lines
+        s.officeStationId         = officeStation.naptanId
+        s.officeStationName       = officeStation.commonName
+        s.officeStationLines      = officeStation.lines
         s.walkingMinutesToOffice  = parseMinutes(officeWalkTime)
-        s.arrivalTime            = arrivalTime
-        s.homeArrivalTime        = homeArrivalTime
-        s.officeDays             = selectedDays
-        s.notificationTime       = notificationTime
-        s.homeNotificationTime   = homeNotificationTime
+        s.arrivalTime             = arrivalTime
+        s.officeDays              = selectedDays
+        s.notificationTime        = notificationTime
         return s
     }
 

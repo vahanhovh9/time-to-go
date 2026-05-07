@@ -5,22 +5,24 @@ enum MainTab {
 }
 
 struct MainView: View {
+    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var store: TFLDataStore
     @ObservedObject var viewModel: MainViewModel
-    var onChangeSettings: () -> Void
 
     @State private var selectedTab: MainTab = .inbound
+    @State private var showOutboundOnboarding = false
 
     var body: some View {
-        TabView(selection: tabBinding) {
+        TabView(selection: $selectedTab) {
             inboundView
                 .tabItem { Label("Inbound", systemImage: "building.2") }
                 .tag(MainTab.inbound)
 
-            outboundView
+            outboundTabContent
                 .tabItem { Label("Outbound", systemImage: "house") }
                 .tag(MainTab.outbound)
 
-            Color.clear
+            SettingsView(viewModel: viewModel)
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(MainTab.settings)
         }
@@ -28,20 +30,24 @@ struct MainView: View {
             applyTabBarAppearance()
             viewModel.loadCommute()
         }
+        .fullScreenCover(isPresented: $showOutboundOnboarding) {
+            OutboundOnboardingView(viewModel: viewModel) {
+                showOutboundOnboarding = false
+            }
+            .environmentObject(appState)
+            .environmentObject(store)
+        }
     }
 
-    // Intercepts Settings tap — never actually switches to that tab.
-    private var tabBinding: Binding<MainTab> {
-        Binding(
-            get: { selectedTab },
-            set: { newTab in
-                if newTab == .settings {
-                    onChangeSettings()
-                } else {
-                    selectedTab = newTab
-                }
-            }
-        )
+    // MARK: - Outbound tab
+
+    @ViewBuilder
+    private var outboundTabContent: some View {
+        if viewModel.settings.outboundEnabled {
+            outboundView
+        } else {
+            OutboundEmptyView { showOutboundOnboarding = true }
+        }
     }
 
     // MARK: - Inbound (home → office)
@@ -83,7 +89,7 @@ struct MainView: View {
         .background(tabBackground)
     }
 
-    // MARK: - Outbound (office → home)
+    // MARK: - Outbound (office → destination)
 
     private var outboundView: some View {
         ScrollView {
@@ -144,12 +150,23 @@ struct MainView: View {
     private func applyTabBarAppearance() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        // FFF9BE
+        // FFF9BE background
         appearance.backgroundColor = UIColor(red: 1.0, green: 249.0 / 255.0, blue: 190.0 / 255.0, alpha: 1.0)
         // Grey50 (#3E3E3E) as 1pt top border
         appearance.shadowColor = UIColor(red: 62.0 / 255.0, green: 62.0 / 255.0, blue: 62.0 / 255.0, alpha: 1.0)
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
+
+        let grey50 = UIColor(red: 62.0 / 255.0, green: 62.0 / 255.0, blue: 62.0 / 255.0, alpha: 1.0)
+        let item = UITabBarItemAppearance()
+        item.normal.iconColor   = grey50
+        item.normal.titleTextAttributes   = [.foregroundColor: grey50]
+        item.selected.iconColor = UIColor.black
+        item.selected.titleTextAttributes = [.foregroundColor: UIColor.black]
+        appearance.stackedLayoutAppearance      = item
+        appearance.inlineLayoutAppearance       = item
+        appearance.compactInlineLayoutAppearance = item
+
+        UITabBar.appearance().standardAppearance    = appearance
+        UITabBar.appearance().scrollEdgeAppearance  = appearance
     }
 
     // MARK: - InfoCard data
@@ -197,11 +214,11 @@ struct MainView: View {
                 iconName: "tram.fill"
             ),
             InfoItemData(
-                title: "Home",
-                subtitle: viewModel.homeStationDisplayName,
+                title: viewModel.settings.outboundDestinationType == .home ? "Home" : "Destination",
+                subtitle: viewModel.outboundDestinationDisplayName,
                 time: viewModel.homeArrivalTimeText,
                 iconColor: Color(red: 1.0, green: 0.689, blue: 0.689),
-                iconName: "house.fill"
+                iconName: viewModel.settings.outboundDestinationType == .home ? "house.fill" : "mappin.circle.fill"
             )
         ]
     }
@@ -213,5 +230,7 @@ struct MainView: View {
         settings: settings,
         calculationService: CommuteCalculationService(tflService: MockTFLService())
     )
-    return MainView(viewModel: vm, onChangeSettings: { print("Change settings") })
+    return MainView(viewModel: vm)
+        .environmentObject(AppState())
+        .environmentObject(TFLDataStore(service: MockTFLService()))
 }

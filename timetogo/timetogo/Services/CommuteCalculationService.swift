@@ -61,16 +61,22 @@ final class CommuteCalculationService {
         }
     }
 
-    /// Calculate the outbound commute result (office → home) for the user's next office day.
+    /// Calculate the outbound commute result (office → destination) per §12.9.
     func calculateOutbound(for settings: UserSettings, forceRefresh: Bool = false) async throws -> CommuteResult {
+        guard settings.outboundEnabled,
+              !settings.officeStationId.isEmpty,
+              !settings.outboundDestinationStationId.isEmpty else {
+            throw TFLError.noJourneyFound
+        }
+
         let commuteDate = nextCommuteDate(from: settings)
 
-        let trainArrivalTarget = applyTime(settings.homeArrivalTime, to: commuteDate)
-            .addingTimeInterval(TimeInterval(-settings.walkingMinutesToStation * 60))
+        let trainArrivalTarget = applyTime(settings.outboundArrivalTime, to: commuteDate)
+            .addingTimeInterval(TimeInterval(-settings.outboundWalkingTimeFromStation * 60))
 
         let journey = try await tflService.fetchJourney(
             from:       settings.officeStationId,
-            to:         settings.homeStationId,
+            to:         settings.outboundDestinationStationId,
             arrivingBy: trainArrivalTarget
         )
 
@@ -81,7 +87,7 @@ final class CommuteCalculationService {
         let leaveOfficeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToOffice + safetyBufferMinutes) * 60))
 
-        let lineIds      = [settings.homeLineId, settings.officeLineId].filter { !$0.isEmpty }
+        let lineIds      = settings.outboundLineIds.filter { !$0.isEmpty }
         let lineStatuses = try await tflService.fetchLineStatus(for: lineIds)
 
         return CommuteResult(

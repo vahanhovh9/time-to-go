@@ -76,6 +76,18 @@ final class AppState: ObservableObject {
         BackgroundTaskManager.shared.scheduleNextRefresh(for: newSettings)
     }
 
+    // MARK: - Settings update (from SettingsView)
+
+    func updateSettings(_ newSettings: UserSettings) {
+        newSettings.save()
+        UserDefaults.standard.set(true, forKey: Self.onboardingKey)
+        self.settings = newSettings
+        Task {
+            await NotificationService.shared.reschedule(for: newSettings)
+        }
+        BackgroundTaskManager.shared.scheduleNextRefresh(for: newSettings)
+    }
+
     // MARK: - Reset (for testing)
 
     /// Wipes all persisted data and returns to onboarding.
