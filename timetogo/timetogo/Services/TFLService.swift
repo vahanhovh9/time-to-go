@@ -180,6 +180,38 @@ final class TFLService: TFLServiceProtocol {
         )
     }
 
+    func resolveToTubeStopPoints(naptanIds: [String]) async throws -> [String: TFLStopPoint] {
+        guard !naptanIds.isEmpty else { return [:] }
+
+        let ids = naptanIds.prefix(20).joined(separator: ",")
+        let url = try buildURL(path: "/StopPoint/\(ids)")
+        let data = try await get(url)
+
+        var details: [StopPointLinesDetail] = []
+        if let array = try? decode([StopPointLinesDetail].self, from: data) {
+            details = array
+        } else if let single = try? decode(StopPointLinesDetail.self, from: data) {
+            details = [single]
+        }
+
+        var result: [String: TFLStopPoint] = [:]
+        for detail in details {
+            guard !detail.naptanId.isEmpty else { continue }
+            if let canonical = detail.canonicalTubeStop {
+                result[detail.naptanId] = TFLStopPoint(
+                    naptanId: canonical.naptanId,
+                    commonName: "",
+                    lines: canonical.lines.filter { !$0.id.isEmpty }
+                )
+            } else {
+                print("[TFLService] resolveToTubeStopPoints: no canonical tube child for \(detail.naptanId) — excluded")
+            }
+        }
+        // IDs absent from the response are simply not added — callers treat a missing key
+        // as "unresolvable" and must not persist that station.
+        return result
+    }
+
     // MARK: - Helpers
 
     private func buildURL(path: String) throws -> URL {
@@ -307,18 +339,56 @@ private struct TFLDisambiguationResponse: Decodable {
     }
 }
 
-/// Minimal StopPoint shape used only to extract lines from /StopPoint/{ids}
+/// StopPoint shape used by /StopPoint/{ids}.
+/// Captures children so composite/interchange NaPTANs can be resolved to
+/// their canonical tube-specific child stop (940GZZLU… prefix).
 private struct StopPointLinesDetail: Decodable {
     let naptanId: String
     let lines: [TFLLineRef]
+    let modes: [String]
+    let children: [StopPointChild]
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         naptanId = (try? c.decode(String.self, forKey: .naptanId)) ?? ""
         lines    = (try? c.decode([TFLLineRef].self, forKey: .lines)) ?? []
+        modes    = (try? c.decode([String].self,     forKey: .modes))  ?? []
+        children = (try? c.decode([StopPointChild].self, forKey: .children)) ?? []
     }
 
-    enum CodingKeys: String, CodingKey { case naptanId, lines }
+    enum CodingKeys: String, CodingKey { case naptanId, lines, modes, children }
+
+    /// Returns the canonical tube stop for this entry:
+    /// • already 940GZZLU → self
+    /// • otherwise → first child where naptanId starts with 940GZZLU and modes contains "tube"
+    /// Returns nil if no canonical tube stop exists (station is not on the Tube).
+    var canonicalTubeStop: StopPointChild? {
+        if naptanId.hasPrefix("940GZZLU") {
+            return StopPointChild(naptanId: naptanId, modes: modes, lines: lines)
+        }
+        return children.first { $0.naptanId.hasPrefix("940GZZLU") && $0.modes.contains("tube") }
+    }
+}
+
+private struct StopPointChild: Decodable {
+    let naptanId: String
+    let modes: [String]
+    let lines: [TFLLineRef]
+
+    init(naptanId: String, modes: [String], lines: [TFLLineRef]) {
+        self.naptanId = naptanId
+        self.modes    = modes
+        self.lines    = lines
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        naptanId = (try? c.decode(String.self,       forKey: .naptanId)) ?? ""
+        modes    = (try? c.decode([String].self,     forKey: .modes))    ?? []
+        lines    = (try? c.decode([TFLLineRef].self, forKey: .lines))    ?? []
+    }
+
+    enum CodingKeys: String, CodingKey { case naptanId, modes, lines }
 }
 
 // MARK: - Errors
@@ -393,6 +463,14 @@ final class MockTFLService: TFLServiceProtocol {
                 TFLLineRef(id: "jubilee",          name: "Jubilee"),
                 TFLLineRef(id: "metropolitan",     name: "Metropolitan")
             ]
+        }
+        return result
+    }
+
+    func resolveToTubeStopPoints(naptanIds: [String]) async throws -> [String: TFLStopPoint] {
+        var result: [String: TFLStopPoint] = [:]
+        for id in naptanIds {
+            result[id] = TFLStopPoint(naptanId: id, commonName: "", lines: [])
         }
         return result
     }

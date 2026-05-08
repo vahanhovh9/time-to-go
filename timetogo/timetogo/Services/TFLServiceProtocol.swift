@@ -20,4 +20,10 @@ protocol TFLServiceProtocol {
     /// Batch-fetches line information for up to 20 stop points by NaPTAN ID.
     /// The /StopPoint/Search endpoint doesn't include lines; this fills the gap.
     func fetchStopPointLines(naptanIds: [String]) async throws -> [String: [TFLLineRef]]
+
+    /// Resolves each NaPTAN to its canonical Tube stop point (940GZZLU…).
+    /// Hub/interchange NaPTANs (e.g. HUBOLD) are resolved to the tube-mode child stop.
+    /// IDs already in 940GZZLU format are kept as-is.
+    /// Returns a map of input NaPTAN → resolved TFLStopPoint (with canonical ID and lines).
+    func resolveToTubeStopPoints(naptanIds: [String]) async throws -> [String: TFLStopPoint]
 }

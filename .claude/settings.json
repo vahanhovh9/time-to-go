@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://api.tfl.gov.uk/StopPoint/HUBOLD\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s https://api.tfl.gov.uk/StopPoint/__TRACKED_VAR__)"
+    ]
+  }
+}

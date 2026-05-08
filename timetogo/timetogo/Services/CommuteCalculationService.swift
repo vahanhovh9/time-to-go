@@ -72,6 +72,12 @@ final class CommuteCalculationService {
 
         let commuteDate = nextCommuteDate(from: settings)
 
+        // Invariant guard: both IDs must be canonical tube NaPTANs before hitting the API.
+        for (label, id) in [("office", settings.officeStationId), ("outbound-destination", settings.outboundDestinationStationId)]
+        where !id.hasPrefix("940GZZLU") {
+            print("[CommuteCalculation] WARNING: non-canonical \(label) station ID: \(id)")
+        }
+
         let trainArrivalTarget = applyTime(settings.outboundArrivalTime, to: commuteDate)
             .addingTimeInterval(TimeInterval(-settings.outboundWalkingTimeFromStation * 60))
 
@@ -149,6 +155,12 @@ final class CommuteCalculationService {
     // MARK: - Private
 
     private func fetchFreshResult(for settings: UserSettings, on commuteDate: Date) async throws -> CommuteResult {
+        // Invariant guard: both IDs must be canonical tube NaPTANs before hitting the API.
+        for (label, id) in [("home", settings.homeStationId), ("office", settings.officeStationId)]
+        where !id.hasPrefix("940GZZLU") {
+            print("[CommuteCalculation] WARNING: non-canonical \(label) station ID: \(id)")
+        }
+
         // desiredTrainArrival = userArrivalTime − walkToOffice
         let trainArrivalTarget = applyTime(settings.arrivalTime, to: commuteDate)
             .addingTimeInterval(TimeInterval(-settings.walkingMinutesToOffice * 60))
