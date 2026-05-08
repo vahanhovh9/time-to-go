@@ -33,7 +33,11 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if showDevMenu {
-                DevMenuView(onDismiss: { withAnimation { showDevMenu = false } })
+                DevMenuView(
+                    onDismiss: { withAnimation { showDevMenu = false } },
+                    onClearCache: { mainViewModel?.loadCommute(forceRefresh: true) },
+                    journeyDebugInfo: mainViewModel?.journeyDebugInfo
+                )
             } else if appState.hasCompletedOnboarding {
                 mainView
             } else {

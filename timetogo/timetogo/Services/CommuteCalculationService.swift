@@ -43,8 +43,9 @@ final class CommuteCalculationService {
             cacheManager.save(result, for: commuteDate)   // §11.4
             return result
         } catch {
-            // §11.5 — API failed: use any same-day cache entry as fallback.
-            if let fallback = cacheManager.fallback(for: commuteDate) {
+            // §11.5 — During a forced refresh (settings change / manual pull) always surface
+            // the real error so the user sees what's wrong instead of silently seeing stale data.
+            if !forceRefresh, let fallback = cacheManager.fallback(for: commuteDate) {
                 let note = fallback.serviceStatusText + " (Using last available data)"
                 return CommuteResult(
                     leaveHomeTime:               fallback.leaveHomeTime,
@@ -57,7 +58,7 @@ final class CommuteCalculationService {
                     isFromCache:                 true
                 )
             }
-            throw error   // No cache available — surface the error.
+            throw error
         }
     }
 
@@ -88,7 +89,7 @@ final class CommuteCalculationService {
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToOffice + safetyBufferMinutes) * 60))
 
         let lineIds      = settings.outboundLineIds.filter { !$0.isEmpty }
-        let lineStatuses = try await tflService.fetchLineStatus(for: lineIds)
+        let lineStatuses = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
 
         return CommuteResult(
             leaveHomeTime:               leaveOfficeTime,
@@ -167,8 +168,10 @@ final class CommuteCalculationService {
         let leaveHomeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToStation + safetyBufferMinutes) * 60))
 
-        let lineIds     = [settings.homeLineId, settings.officeLineId].filter { !$0.isEmpty }
-        let lineStatuses = try await tflService.fetchLineStatus(for: lineIds)
+        // Deduplicate (same line for both stations is common) and treat status as best-effort:
+        // a failing status call must not abort an otherwise successful journey result.
+        let lineIds      = Array(Set([settings.homeLineId, settings.officeLineId])).filter { !$0.isEmpty }
+        let lineStatuses = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
 
         return CommuteResult(
             leaveHomeTime:               leaveHomeTime,

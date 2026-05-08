@@ -135,8 +135,15 @@ struct TFLStopPointSearchMatch: Decodable {
 
 // MARK: - Journey Planning
 
-struct TFLJourneyResponse: Codable {
+struct TFLJourneyResponse: Decodable {
     let journeys: [TFLJourneyResult]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        journeys = (try? c.decode([TFLJourneyResult].self, forKey: .journeys)) ?? []
+    }
+
+    enum CodingKeys: String, CodingKey { case journeys }
 }
 
 struct TFLJourneyResult: Codable {

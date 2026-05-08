@@ -11,6 +11,23 @@ final class TFLService: TFLServiceProtocol {
         self.session = session
     }
 
+    // MARK: - Debug state (written per-request, read by DevMenu via MainViewModel)
+
+    static var debugJourneyCount: Int = 0
+    static var debugJourneyDurations: [Int] = []
+    static var debugDisambiguated: Bool = false
+    static var debugResolvedFrom: String = ""
+    static var debugResolvedTo: String = ""
+
+    /// Resets debug state at the start of each fresh (non-retry) journey request.
+    private static func resetDebugState() {
+        debugJourneyCount = 0
+        debugJourneyDurations = []
+        debugDisambiguated = false
+        debugResolvedFrom = ""
+        debugResolvedTo = ""
+    }
+
     // MARK: - Lines
 
     func fetchLines() async throws -> [TFLLine] {
@@ -34,26 +51,82 @@ final class TFLService: TFLServiceProtocol {
 
     func fetchJourney(from fromId: String, to toId: String, arrivingBy: Date) async throws -> TFLJourneyResult {
         let timeStr = timeFormatter.string(from: arrivingBy)
-        let path = "/Journey/JourneyResults/\(fromId)/to/\(toId)"
+        let dateStr = dateFormatter.string(from: arrivingBy)
+        return try await performJourneyRequest(from: fromId, to: toId, timeStr: timeStr, dateStr: dateStr, isRetry: false)
+    }
 
+    // TFL returns HTTP 300 when the station ID is ambiguous (e.g. a hub NaPTAN covering
+    // multiple stops).  The 300 body contains disambiguated NaPTAN IDs — extract the best
+    // match for each end of the journey and retry once with the resolved IDs.
+    private func performJourneyRequest(
+        from fromId: String,
+        to toId: String,
+        timeStr: String,
+        dateStr: String,
+        isRetry: Bool
+    ) async throws -> TFLJourneyResult {
+        if !isRetry { Self.resetDebugState() }
+        let path = "/Journey/JourneyResults/\(fromId)/to/\(toId)"
         var components = URLComponents(string: baseURL + path)!
         components.queryItems = [
+            // Both date AND time are required — without date TFL assumes "today", which
+            // causes 400 errors when the planned commute is on a future date (e.g. tomorrow).
+            URLQueryItem(name: "date",              value: dateStr),
             URLQueryItem(name: "time",              value: timeStr),
             URLQueryItem(name: "timeIs",            value: "Arriving"),
             URLQueryItem(name: "mode",              value: "tube"),
             URLQueryItem(name: "journeyPreference", value: "LeastTime"),
             URLQueryItem(name: "nationalSearch",    value: "false")
         ]
-
         guard let url = components.url else { throw TFLError.invalidURL }
-        let data = try await get(url)
-        let response = try decode(TFLJourneyResponse.self, from: data)
 
-        // timeIs=Arriving guarantees every journey in the response arrives by arrivingBy.
-        // TFL sorts them earliest-departure first, so .last gives the latest viable departure —
-        // the one that maximises the user's time at home.
-        guard let journey = response.journeys.last else { throw TFLError.noJourneyFound }
-        return journey
+        let (data, status) = try await getRaw(url)
+
+        switch status {
+        case 200:
+            let response = try decode(TFLJourneyResponse.self, from: data)
+            guard !response.journeys.isEmpty else { throw TFLError.noJourneyFound }
+
+            // Persist diagnostic info so DevMenu can display it without changing
+            // the public API surface.
+            TFLService.debugJourneyCount = response.journeys.count
+            TFLService.debugJourneyDurations = response.journeys.map { $0.durationMinutes }
+
+            // With timeIs=Arriving, we want the train departing as late as possible
+            // so the user maximises home time. TFL's sort order varies by request
+            // parameters and cannot be relied upon — sort explicitly.
+            let best = response.journeys.max { a, b in
+                Self.parseLocalDate(a.startDateTime) < Self.parseLocalDate(b.startDateTime)
+            } ?? response.journeys[0]
+            return best
+
+        case 300 where !isRetry:
+            // Resolve disambiguation and retry exactly once.
+            // A 940GZZLU NaPTAN is already tube-specific — never "resolve" it via
+            // disambiguation, which risks silently swapping it for the wrong station.
+            let disambig = try? decode(TFLDisambiguationResponse.self, from: data)
+            let resolvedFrom = fromId.hasPrefix("940GZZLU") ? fromId :
+                (disambig?.fromLocationDisambiguation?.bestTubeNaptanId ?? fromId)
+            let resolvedTo = toId.hasPrefix("940GZZLU") ? toId :
+                (disambig?.toLocationDisambiguation?.bestTubeNaptanId ?? toId)
+
+            TFLService.debugDisambiguated = true
+            TFLService.debugResolvedFrom  = resolvedFrom
+            TFLService.debugResolvedTo    = resolvedTo
+
+            // If neither ID actually changed, retrying would return the same wrong result.
+            guard resolvedFrom != fromId || resolvedTo != toId else {
+                throw TFLError.badResponse(300)
+            }
+            return try await performJourneyRequest(
+                from: resolvedFrom, to: resolvedTo,
+                timeStr: timeStr, dateStr: dateStr,
+                isRetry: true
+            )
+
+        default:
+            throw TFLError.badResponse(status)
+        }
     }
 
     // MARK: - Station Search
@@ -114,11 +187,15 @@ final class TFLService: TFLServiceProtocol {
         return url
     }
 
-    private func get(_ url: URL) async throws -> Data {
+    private func getRaw(_ url: URL) async throws -> (Data, Int) {
         let (data, response) = try await session.data(from: url)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw TFLError.badResponse
-        }
+        guard let http = response as? HTTPURLResponse else { throw TFLError.badResponse(0) }
+        return (data, http.statusCode)
+    }
+
+    private func get(_ url: URL) async throws -> Data {
+        let (data, status) = try await getRaw(url)
+        guard status == 200 else { throw TFLError.badResponse(status) }
         return data
     }
 
@@ -130,17 +207,105 @@ final class TFLService: TFLServiceProtocol {
         }
     }
 
-    // TFL operates in London — the time parameter must always be in Europe/London,
-    // regardless of where the user's device is physically located.
+    // TFL operates in London — both formatters must always use Europe/London.
     private let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HHmm"
         f.timeZone = TimeZone(identifier: "Europe/London")
         return f
     }()
+
+    private let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd"
+        f.timeZone = TimeZone(identifier: "Europe/London")
+        return f
+    }()
+
+    // Used when sorting journeys by departure time. TFL returns dates as London-local
+    // strings without a timezone offset, e.g. "2026-05-08T08:15:00".
+    private static func parseLocalDate(_ string: String) -> Date {
+        let f = DateFormatter()
+        f.locale   = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Europe/London")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        return f.date(from: string)
+            ?? ISO8601DateFormatter().date(from: string)
+            ?? .distantPast
+    }
 }
 
 // MARK: - Internal helpers
+
+/// TFL Journey Planner HTTP 300 disambiguation response.
+/// Returned when a station ID matches multiple stops — the body contains the best match.
+private struct TFLDisambiguationResponse: Decodable {
+    let fromLocationDisambiguation: Group?
+    let toLocationDisambiguation: Group?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        fromLocationDisambiguation = try? c.decode(Group.self, forKey: .fromLocationDisambiguation)
+        toLocationDisambiguation   = try? c.decode(Group.self, forKey: .toLocationDisambiguation)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case fromLocationDisambiguation, toLocationDisambiguation
+    }
+
+    struct Group: Decodable {
+        let disambiguationOptions: [Option]
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            disambiguationOptions = (try? c.decode([Option].self, forKey: .disambiguationOptions)) ?? []
+        }
+
+        enum CodingKeys: String, CodingKey { case disambiguationOptions }
+
+        // Only resolve to tube-format NaPTANs (940GZZLU…). A non-tube NaPTAN would cause
+        // TFL to route via a distant/wrong stop, producing absurd journey times.
+        var bestTubeNaptanId: String? {
+            disambiguationOptions
+                .filter { $0.tubeNaptanId != nil }
+                .max(by: { $0.matchQuality < $1.matchQuality })?
+                .tubeNaptanId
+        }
+    }
+
+    struct Option: Decodable {
+        // parameterValue is TFL's recommended NaPTAN for re-use in the journey planner URL —
+        // more reliable than place.naptanId for disambiguation.
+        let parameterValue: String
+        let place: Place
+        let matchQuality: Int
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            parameterValue = (try? c.decode(String.self, forKey: .parameterValue)) ?? ""
+            place          = (try? c.decode(Place.self,  forKey: .place))          ?? Place(naptanId: "")
+            matchQuality   = (try? c.decode(Int.self,    forKey: .matchQuality))   ?? 0
+        }
+
+        enum CodingKeys: String, CodingKey { case parameterValue, place, matchQuality }
+
+        // Prefer parameterValue; fall back to place.naptanId. Returns nil if neither is a tube NaPTAN.
+        var tubeNaptanId: String? {
+            let candidates = [parameterValue, place.naptanId]
+            return candidates.first { $0.hasPrefix("940GZZLU") }
+        }
+    }
+
+    struct Place: Decodable {
+        let naptanId: String
+        init(naptanId: String) { self.naptanId = naptanId }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            naptanId = (try? c.decode(String.self, forKey: .naptanId)) ?? ""
+        }
+        enum CodingKeys: String, CodingKey { case naptanId }
+    }
+}
 
 /// Minimal StopPoint shape used only to extract lines from /StopPoint/{ids}
 private struct StopPointLinesDetail: Decodable {
@@ -160,16 +325,22 @@ private struct StopPointLinesDetail: Decodable {
 
 enum TFLError: LocalizedError {
     case invalidURL
-    case badResponse
+    case badResponse(Int)
     case noJourneyFound
     case decodingFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL:              return "Invalid TFL API URL."
-        case .badResponse:             return "TFL API returned an unexpected response."
-        case .noJourneyFound:          return "No journey found for the given route and time."
-        case .decodingFailed(let msg): return "Failed to parse TFL response: \(msg)"
+        case .invalidURL:
+            return "Invalid TFL API URL."
+        case .badResponse(let code) where code == 0:
+            return "TFL API returned an unexpected response."
+        case .badResponse(let code):
+            return "TFL API error (HTTP \(code)). Check station IDs and try again."
+        case .noJourneyFound:
+            return "No journey found for the given route and time."
+        case .decodingFailed(let msg):
+            return "Failed to parse TFL response: \(msg)"
         }
     }
 }

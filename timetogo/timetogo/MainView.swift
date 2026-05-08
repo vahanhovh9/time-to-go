@@ -86,6 +86,7 @@ struct MainView: View {
             }
             .frame(maxWidth: .infinity)
         }
+        .refreshable { await viewModel.refreshInbound() }
         .background(tabBackground)
     }
 
@@ -125,6 +126,7 @@ struct MainView: View {
             }
             .frame(maxWidth: .infinity)
         }
+        .refreshable { await viewModel.refreshOutbound() }
         .background(tabBackground)
         .onAppear {
             if viewModel.outboundResult == nil {

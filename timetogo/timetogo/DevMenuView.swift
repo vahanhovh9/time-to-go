@@ -3,6 +3,8 @@ import SwiftUI
 struct DevMenuView: View {
     @EnvironmentObject private var appState: AppState
     var onDismiss: () -> Void
+    var onClearCache: (() -> Void)? = nil
+    var journeyDebugInfo: String? = nil
 
     @State private var showDesignSystem = false
     @State private var showResetAlert = false
@@ -49,6 +51,45 @@ struct DevMenuView: View {
             }
 
             Divider().padding(.leading, 24)
+
+            menuRow(title: "Clear commute cache") {
+                CommuteCacheManager().clear()
+                onClearCache?()
+                onDismiss()
+            }
+
+            Divider().padding(.leading, 24)
+
+            if let debug = journeyDebugInfo {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Journey diagnostics")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color.grey30)
+                    Text(debug)
+                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .foregroundColor(.black)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+
+                Divider().padding(.leading, 24)
+            } else if let s = appState.settings {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Station NaPTANs (load inbound first)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color.grey30)
+                    Text("Home:   \(s.homeStationId.isEmpty ? "(none)" : s.homeStationId)")
+                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .foregroundColor(.black)
+                    Text("Office: \(s.officeStationId.isEmpty ? "(none)" : s.officeStationId)")
+                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .foregroundColor(.black)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+
+                Divider().padding(.leading, 24)
+            }
 
             menuRow(title: "Reset app settings", destructive: true) {
                 showResetAlert = true

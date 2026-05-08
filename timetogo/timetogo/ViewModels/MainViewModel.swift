@@ -14,6 +14,9 @@ final class MainViewModel: ObservableObject {
     @Published var isLoadingOutbound: Bool = false
     @Published var outboundErrorMessage: String?
 
+    /// Populated after every inbound load — read by DevMenu to show effective request values.
+    @Published var journeyDebugInfo: String?
+
     // MARK: - Dependencies
 
     private let calculationService: CommuteCalculationService
@@ -50,8 +53,10 @@ final class MainViewModel: ObservableObject {
                     for: settings,
                     forceRefresh: forceRefresh
                 )
+                journeyDebugInfo = buildJourneyDebugInfo()
             } catch {
                 errorMessage = error.localizedDescription
+                journeyDebugInfo = buildJourneyDebugInfo(error: error)
             }
             isLoading = false
         }
@@ -77,7 +82,34 @@ final class MainViewModel: ObservableObject {
     func updateSettings(_ newSettings: UserSettings) {
         settings = newSettings
         settings.save()
-        loadCommute(forceRefresh: true)   // Settings changed → §11.9 mandates fresh data
+        loadCommute(forceRefresh: true)
+        loadOutbound(forceRefresh: true)
+    }
+
+    /// Awaitable versions for pull-to-refresh — keeps the spinner visible until the request completes.
+    func refreshInbound() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            commuteResult = try await calculationService.calculate(for: settings, forceRefresh: true)
+            journeyDebugInfo = buildJourneyDebugInfo()
+        } catch {
+            errorMessage = error.localizedDescription
+            journeyDebugInfo = buildJourneyDebugInfo(error: error)
+        }
+        isLoading = false
+    }
+
+    func refreshOutbound() async {
+        guard settings.outboundEnabled else { return }
+        isLoadingOutbound = true
+        outboundErrorMessage = nil
+        do {
+            outboundResult = try await calculationService.calculateOutbound(for: settings, forceRefresh: true)
+        } catch {
+            outboundErrorMessage = error.localizedDescription
+        }
+        isLoadingOutbound = false
     }
 
     // MARK: - Formatted display values
@@ -174,4 +206,34 @@ final class MainViewModel: ObservableObject {
         f.dateFormat = "h:mm a"
         return f
     }()
+
+    private func buildJourneyDebugInfo(error: Error? = nil) -> String {
+        var lines: [String] = []
+        lines.append("─── Stored IDs ───")
+        lines.append("Home:   \(settings.homeStationId.isEmpty ? "(empty)" : settings.homeStationId)")
+        lines.append("Office: \(settings.officeStationId.isEmpty ? "(empty)" : settings.officeStationId)")
+        lines.append("IsTube? Home=\(settings.homeStationId.hasPrefix("940GZZLU"))  Office=\(settings.officeStationId.hasPrefix("940GZZLU"))")
+        lines.append("─── TFL Request ───")
+        lines.append("Disambig ran: \(TFLService.debugDisambiguated)")
+        if TFLService.debugDisambiguated {
+            lines.append("Resolved from: \(TFLService.debugResolvedFrom.isEmpty ? "unchanged" : TFLService.debugResolvedFrom)")
+            lines.append("Resolved to:   \(TFLService.debugResolvedTo.isEmpty   ? "unchanged" : TFLService.debugResolvedTo)")
+        }
+        lines.append("Journey count: \(TFLService.debugJourneyCount)")
+        if !TFLService.debugJourneyDurations.isEmpty {
+            lines.append("Durations: \(TFLService.debugJourneyDurations.map { "\($0)m" }.joined(separator: ", "))")
+        }
+        lines.append("─── Result ───")
+        if let e = error {
+            lines.append("Error: \(e.localizedDescription)")
+        } else if let r = commuteResult {
+            lines.append("Selected: \(r.journeyDurationMinutes) min")
+            lines.append("Depart: \(timeFormatter.string(from: r.trainDepartureAtHomeStation))")
+            lines.append("Arrive: \(timeFormatter.string(from: r.trainArrivalAtOfficeStation))")
+            lines.append("Cached: \(r.isFromCache)")
+        } else {
+            lines.append("(no result)")
+        }
+        return lines.joined(separator: "\n")
+    }
 }
