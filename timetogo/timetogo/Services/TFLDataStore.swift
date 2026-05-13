@@ -55,7 +55,7 @@ final class TFLDataStore: ObservableObject {
                 // The /Line/{id}/StopPoints endpoint can return non-canonical IDs
                 // (e.g. 940GZZBPSUST on Northern). Filter to tube-canonical IDs only.
                 let canonical = fetched.filter { station in
-                    if station.naptanId.hasPrefix("940GZZLU") { return true }
+                    if station.naptanId.hasPrefix("940GZZ") { return true }
                     print("[TFLDataStore] loadStations(\(lineId)): dropping \(station.naptanId) — not a canonical tube ID")
                     return false
                 }

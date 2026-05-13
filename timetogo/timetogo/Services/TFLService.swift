@@ -359,14 +359,15 @@ private struct StopPointLinesDetail: Decodable {
     enum CodingKeys: String, CodingKey { case naptanId, lines, modes, children }
 
     /// Returns the canonical tube stop for this entry:
-    /// • already 940GZZLU → self
-    /// • otherwise → first child where naptanId starts with 940GZZLU and modes contains "tube"
+    /// • 940GZZ prefix + tube mode → already canonical (covers 940GZZLU traditional lines
+    ///   and 940GZZB/940GZZN etc. Northern line extension stations)
+    /// • otherwise (hub/composite) → first child with 940GZZ prefix and tube mode
     /// Returns nil if no canonical tube stop exists (station is not on the Tube).
     var canonicalTubeStop: StopPointChild? {
-        if naptanId.hasPrefix("940GZZLU") {
+        if naptanId.hasPrefix("940GZZ") && modes.contains("tube") {
             return StopPointChild(naptanId: naptanId, modes: modes, lines: lines)
         }
-        return children.first { $0.naptanId.hasPrefix("940GZZLU") && $0.modes.contains("tube") }
+        return children.first { $0.naptanId.hasPrefix("940GZZ") && $0.modes.contains("tube") }
     }
 }
 

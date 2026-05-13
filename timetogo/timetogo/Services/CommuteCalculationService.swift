@@ -74,7 +74,7 @@ final class CommuteCalculationService {
 
         // Invariant guard: both IDs must be canonical tube NaPTANs before hitting the API.
         for (label, id) in [("office", settings.officeStationId), ("outbound-destination", settings.outboundDestinationStationId)]
-        where !id.hasPrefix("940GZZLU") {
+        where !id.hasPrefix("940GZZ") {
             print("[CommuteCalculation] WARNING: non-canonical \(label) station ID: \(id)")
         }
 
@@ -157,7 +157,7 @@ final class CommuteCalculationService {
     private func fetchFreshResult(for settings: UserSettings, on commuteDate: Date) async throws -> CommuteResult {
         // Invariant guard: both IDs must be canonical tube NaPTANs before hitting the API.
         for (label, id) in [("home", settings.homeStationId), ("office", settings.officeStationId)]
-        where !id.hasPrefix("940GZZLU") {
+        where !id.hasPrefix("940GZZ") {
             print("[CommuteCalculation] WARNING: non-canonical \(label) station ID: \(id)")
         }
 

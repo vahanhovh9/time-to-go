@@ -172,7 +172,7 @@ struct UserSettings: Codable {
         // Invariant: all non-empty station IDs must be canonical tube NaPTANs.
         // A non-canonical ID here means normalization failed upstream.
         for (label, id) in [("home", homeStationId), ("office", officeStationId), ("outbound", outboundDestinationStationId)]
-        where !id.isEmpty && !id.hasPrefix("940GZZLU") {
+        where !id.isEmpty && !id.hasPrefix("940GZZ") {
             assertionFailure("[UserSettings] Non-canonical station ID for \(label): \(id)")
             print("[UserSettings] WARNING: persisting non-canonical \(label) station ID: \(id)")
         }
