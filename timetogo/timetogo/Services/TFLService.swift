@@ -149,6 +149,20 @@ final class TFLService: TFLServiceProtocol {
         return response.matches.map { $0.asStopPoint }
     }
 
+    // MARK: - Arrivals
+
+    func fetchArrivals(stopId: String) async throws -> [TFLArrivalPrediction] {
+        let url = try buildURL(path: "/StopPoint/\(stopId)/Arrivals")
+        let data = try await get(url)
+        return try decode([TFLArrivalPrediction].self, from: data)
+    }
+
+    func fetchLineArrivals(lineId: String, stopId: String) async throws -> [TFLArrivalPrediction] {
+        let url = try buildURL(path: "/Line/\(lineId)/Arrivals/\(stopId)")
+        let data = try await get(url)
+        return try decode([TFLArrivalPrediction].self, from: data)
+    }
+
     // MARK: - Line Status
 
     func fetchLineStatus(for lineIds: [String]) async throws -> [TFLLine] {
@@ -496,4 +510,7 @@ final class MockTFLService: TFLServiceProtocol {
             )
         ].filter { $0.displayName.localizedCaseInsensitiveContains(query) }
     }
+
+    func fetchArrivals(stopId: String) async throws -> [TFLArrivalPrediction] { [] }
+    func fetchLineArrivals(lineId: String, stopId: String) async throws -> [TFLArrivalPrediction] { [] }
 }

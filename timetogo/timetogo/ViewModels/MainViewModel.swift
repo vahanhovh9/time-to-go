@@ -189,7 +189,37 @@ final class MainViewModel: ObservableObject {
 
     var homeStationDisplayName: String { cleanStationName(settings.homeStationName) }
     var officeStationDisplayName: String { cleanStationName(settings.officeStationName) }
-    var outboundDestinationDisplayName: String { cleanStationName(settings.outboundDestinationStationName) }
+    var outboundDestinationDisplayName: String { cleanStationName(settings.effectiveOutboundDestinationName) }
+
+    // MARK: - Schedule review contexts
+
+    var inboundScheduleContext: ScheduleReviewContext? {
+        guard commuteResult != nil,
+              !settings.homeStationId.isEmpty,
+              !settings.officeStationId.isEmpty,
+              !settings.homeLineId.isEmpty else { return nil }
+        return ScheduleReviewContext(
+            stopId: settings.homeStationId,
+            lineId: settings.homeLineId,
+            homeStopId: settings.homeStationId,
+            destinationStopId: settings.officeStationId,
+            destinationStationName: officeStationDisplayName
+        )
+    }
+
+    var outboundScheduleContext: ScheduleReviewContext? {
+        guard outboundResult != nil,
+              !settings.officeStationId.isEmpty,
+              !settings.homeStationId.isEmpty,
+              !settings.homeLineId.isEmpty else { return nil }
+        return ScheduleReviewContext(
+            stopId: settings.officeStationId,
+            lineId: settings.homeLineId,
+            homeStopId: settings.officeStationId,
+            destinationStopId: settings.homeStationId,
+            destinationStationName: homeStationDisplayName
+        )
+    }
 
     private func cleanStationName(_ name: String) -> String {
         name

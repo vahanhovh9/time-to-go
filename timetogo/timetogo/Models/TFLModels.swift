@@ -179,3 +179,37 @@ struct TFLPath: Codable {
 struct TFLPathStopPoint: Codable {
     let name: String
 }
+
+// MARK: - Arrival Predictions
+
+struct TFLArrivalPrediction: Identifiable, Codable {
+    let id: String
+    let lineId: String
+    let lineName: String
+    let platformName: String
+    let direction: String?
+    let towards: String?
+    let destinationNaptanId: String?
+    let destinationName: String?
+    let expectedArrival: String
+    let timeToStation: Int
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id                  = (try? c.decode(String.self, forKey: .id))               ?? UUID().uuidString
+        lineId              = (try? c.decode(String.self, forKey: .lineId))            ?? ""
+        lineName            = (try? c.decode(String.self, forKey: .lineName))          ?? ""
+        platformName        = (try? c.decode(String.self, forKey: .platformName))      ?? ""
+        direction           = try? c.decode(String.self, forKey: .direction)
+        towards             = try? c.decode(String.self, forKey: .towards)
+        destinationNaptanId = try? c.decode(String.self, forKey: .destinationNaptanId)
+        destinationName     = try? c.decode(String.self, forKey: .destinationName)
+        expectedArrival     = (try? c.decode(String.self, forKey: .expectedArrival))   ?? ""
+        timeToStation       = (try? c.decode(Int.self,   forKey: .timeToStation))      ?? 0
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, lineId, lineName, platformName, direction, towards
+        case destinationNaptanId, destinationName, expectedArrival, timeToStation
+    }
+}

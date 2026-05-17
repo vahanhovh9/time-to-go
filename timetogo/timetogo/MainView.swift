@@ -11,6 +11,8 @@ struct MainView: View {
 
     @State private var selectedTab: MainTab = .inbound
     @State private var showOutboundOnboarding = false
+    @State private var showInboundSchedule = false
+    @State private var showOutboundSchedule = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -83,11 +85,26 @@ struct MainView: View {
 
                 InfoCard(items: inboundInfoItems)
                     .padding(.horizontal, 24)
+
+                if viewModel.inboundScheduleContext != nil {
+                    Button("Review Schedule") { showInboundSchedule = true }
+                        .labelStyle()
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.white.opacity(0.5))
+                        .cornerRadius(10)
+                }
             }
             .frame(maxWidth: .infinity)
         }
         .refreshable { await viewModel.refreshInbound() }
         .background(tabBackground)
+        .sheet(isPresented: $showInboundSchedule) {
+            if let ctx = viewModel.inboundScheduleContext {
+                ScheduleReviewSheet(context: ctx)
+            }
+        }
     }
 
     // MARK: - Outbound (office → destination)
@@ -123,11 +140,26 @@ struct MainView: View {
 
                 InfoCard(items: outboundInfoItems)
                     .padding(.horizontal, 24)
+
+                if viewModel.outboundScheduleContext != nil {
+                    Button("Review Schedule") { showOutboundSchedule = true }
+                        .labelStyle()
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.white.opacity(0.5))
+                        .cornerRadius(10)
+                }
             }
             .frame(maxWidth: .infinity)
         }
         .refreshable { await viewModel.refreshOutbound() }
         .background(tabBackground)
+        .sheet(isPresented: $showOutboundSchedule) {
+            if let ctx = viewModel.outboundScheduleContext {
+                ScheduleReviewSheet(context: ctx)
+            }
+        }
         .onAppear {
             if viewModel.outboundResult == nil {
                 viewModel.loadOutbound()

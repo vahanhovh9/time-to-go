@@ -26,4 +26,11 @@ protocol TFLServiceProtocol {
     /// IDs already in 940GZZLU format are kept as-is.
     /// Returns a map of input NaPTAN → resolved TFLStopPoint (with canonical ID and lines).
     func resolveToTubeStopPoints(naptanIds: [String]) async throws -> [String: TFLStopPoint]
+
+    /// Returns live arrival predictions for all trains at a given stop point.
+    func fetchArrivals(stopId: String) async throws -> [TFLArrivalPrediction]
+
+    /// Returns live arrival predictions for a specific line at a given stop.
+    /// Preferred over fetchArrivals when the line is known — the server filters by line.
+    func fetchLineArrivals(lineId: String, stopId: String) async throws -> [TFLArrivalPrediction]
 }

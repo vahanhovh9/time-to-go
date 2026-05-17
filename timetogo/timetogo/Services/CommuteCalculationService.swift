@@ -64,26 +64,27 @@ final class CommuteCalculationService {
 
     /// Calculate the outbound commute result (office → destination) per §12.9.
     func calculateOutbound(for settings: UserSettings, forceRefresh: Bool = false) async throws -> CommuteResult {
+        let destinationId = settings.effectiveOutboundDestinationId
         guard settings.outboundEnabled,
               !settings.officeStationId.isEmpty,
-              !settings.outboundDestinationStationId.isEmpty else {
+              !destinationId.isEmpty else {
             throw TFLError.noJourneyFound
         }
 
         let commuteDate = nextCommuteDate(from: settings)
 
         // Invariant guard: both IDs must be canonical tube NaPTANs before hitting the API.
-        for (label, id) in [("office", settings.officeStationId), ("outbound-destination", settings.outboundDestinationStationId)]
+        for (label, id) in [("office", settings.officeStationId), ("outbound-destination", destinationId)]
         where !id.hasPrefix("940GZZ") {
             print("[CommuteCalculation] WARNING: non-canonical \(label) station ID: \(id)")
         }
 
         let trainArrivalTarget = applyTime(settings.outboundArrivalTime, to: commuteDate)
-            .addingTimeInterval(TimeInterval(-settings.outboundWalkingTimeFromStation * 60))
+            .addingTimeInterval(TimeInterval(-settings.effectiveOutboundWalkingTime * 60))
 
         let journey = try await tflService.fetchJourney(
             from:       settings.officeStationId,
-            to:         settings.outboundDestinationStationId,
+            to:         destinationId,
             arrivingBy: trainArrivalTarget
         )
 

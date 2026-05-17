@@ -70,8 +70,28 @@ struct UserSettings: Codable {
 
     // MARK: - Computed outbound helpers
 
+    /// The station the user is travelling to after work.
+    /// When outboundDestinationType == .home this resolves to the home station,
+    /// so updating the Home Station in settings automatically affects both directions.
+    var effectiveOutboundDestinationId: String {
+        outboundDestinationType == .home ? homeStationId : outboundDestinationStationId
+    }
+
+    var effectiveOutboundDestinationName: String {
+        outboundDestinationType == .home ? homeStationName : outboundDestinationStationName
+    }
+
+    var effectiveOutboundDestinationLines: [TFLLineRef] {
+        outboundDestinationType == .home ? homeStationLines : outboundDestinationStationLines
+    }
+
+    /// Walk time from the effective destination station to the final destination.
+    var effectiveOutboundWalkingTime: Int {
+        outboundDestinationType == .home ? walkingMinutesToStation : outboundWalkingTimeFromStation
+    }
+
     var outboundLineIds: [String] {
-        let dest = outboundDestinationStationLines.map { $0.id }
+        let dest = effectiveOutboundDestinationLines.map { $0.id }
         let office = officeStationLines.map { $0.id }
         return Array(Set(dest + office))
     }
