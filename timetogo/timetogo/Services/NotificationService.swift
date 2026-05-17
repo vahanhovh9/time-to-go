@@ -54,8 +54,8 @@ final class NotificationService: NSObject, ObservableObject {
     // MARK: - Constants
 
     /// §11.8: Payload key present in every notification.
-    private static let actionKey   = "action"
-    private static let actionValue = "openMain"
+    nonisolated private static let actionKey   = "action"
+    nonisolated private static let actionValue = "openMain"
 
     // MARK: - Init
 

@@ -43,8 +43,9 @@ final class CommuteCalculationService {
             cacheManager.save(result, for: commuteDate)   // §11.4
             return result
         } catch {
-            // §11.5 — API failed: use any same-day cache entry as fallback.
-            if let fallback = cacheManager.fallback(for: commuteDate) {
+            // §11.5 — During a forced refresh (settings change / manual pull) always surface
+            // the real error so the user sees what's wrong instead of silently seeing stale data.
+            if !forceRefresh, let fallback = cacheManager.fallback(for: commuteDate) {
                 let note = fallback.serviceStatusText + " (Using last available data)"
                 return CommuteResult(
                     leaveHomeTime:               fallback.leaveHomeTime,
@@ -57,8 +58,55 @@ final class CommuteCalculationService {
                     isFromCache:                 true
                 )
             }
-            throw error   // No cache available — surface the error.
+            throw error
         }
+    }
+
+    /// Calculate the outbound commute result (office → destination) per §12.9.
+    func calculateOutbound(for settings: UserSettings, forceRefresh: Bool = false) async throws -> CommuteResult {
+        let destinationId = settings.effectiveOutboundDestinationId
+        guard settings.outboundEnabled,
+              !settings.officeStationId.isEmpty,
+              !destinationId.isEmpty else {
+            throw TFLError.noJourneyFound
+        }
+
+        let commuteDate = nextCommuteDate(from: settings)
+
+        // Invariant guard: both IDs must be canonical tube NaPTANs before hitting the API.
+        for (label, id) in [("office", settings.officeStationId), ("outbound-destination", destinationId)]
+        where !id.hasPrefix("940GZZ") {
+            print("[CommuteCalculation] WARNING: non-canonical \(label) station ID: \(id)")
+        }
+
+        let trainArrivalTarget = applyTime(settings.outboundArrivalTime, to: commuteDate)
+            .addingTimeInterval(TimeInterval(-settings.effectiveOutboundWalkingTime * 60))
+
+        let journey = try await tflService.fetchJourney(
+            from:       settings.officeStationId,
+            to:         destinationId,
+            arrivingBy: trainArrivalTarget
+        )
+
+        let trainDeparture = Self.parseTFLDate(journey.startDateTime)   ?? trainArrivalTarget
+        let trainArrival   = Self.parseTFLDate(journey.arrivalDateTime) ?? trainArrivalTarget
+        let numberOfStops  = journey.legs.reduce(0) { $0 + ($1.path?.stopPoints.count ?? 0) }
+
+        let leaveOfficeTime = trainDeparture
+            .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToOffice + safetyBufferMinutes) * 60))
+
+        let lineIds      = settings.outboundLineIds.filter { !$0.isEmpty }
+        let lineStatuses = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
+
+        return CommuteResult(
+            leaveHomeTime:               leaveOfficeTime,
+            trainDepartureAtHomeStation: trainDeparture,
+            trainArrivalAtOfficeStation: trainArrival,
+            journeyDurationMinutes:      journey.durationMinutes,
+            numberOfStops:               numberOfStops,
+            serviceStatus:               resolveServiceStatus(from: lineStatuses),
+            dayLabel:                    dayLabel(for: commuteDate)
+        )
     }
 
     // MARK: - Helpers
@@ -108,6 +156,12 @@ final class CommuteCalculationService {
     // MARK: - Private
 
     private func fetchFreshResult(for settings: UserSettings, on commuteDate: Date) async throws -> CommuteResult {
+        // Invariant guard: both IDs must be canonical tube NaPTANs before hitting the API.
+        for (label, id) in [("home", settings.homeStationId), ("office", settings.officeStationId)]
+        where !id.hasPrefix("940GZZ") {
+            print("[CommuteCalculation] WARNING: non-canonical \(label) station ID: \(id)")
+        }
+
         // desiredTrainArrival = userArrivalTime − walkToOffice
         let trainArrivalTarget = applyTime(settings.arrivalTime, to: commuteDate)
             .addingTimeInterval(TimeInterval(-settings.walkingMinutesToOffice * 60))
@@ -127,8 +181,10 @@ final class CommuteCalculationService {
         let leaveHomeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToStation + safetyBufferMinutes) * 60))
 
-        let lineIds     = [settings.homeLineId, settings.officeLineId].filter { !$0.isEmpty }
-        let lineStatuses = try await tflService.fetchLineStatus(for: lineIds)
+        // Deduplicate (same line for both stations is common) and treat status as best-effort:
+        // a failing status call must not abort an otherwise successful journey result.
+        let lineIds      = Array(Set([settings.homeLineId, settings.officeLineId])).filter { !$0.isEmpty }
+        let lineStatuses = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
 
         return CommuteResult(
             leaveHomeTime:               leaveHomeTime,

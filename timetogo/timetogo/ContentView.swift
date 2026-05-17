@@ -5,89 +5,88 @@ enum OnboardingStep {
 }
 
 struct ContentView: View {
-    // §11.8: Observes notification taps → routes to MainView.
-    // No business logic here; all routing decisions are made in NotificationService.
+    @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var notificationService: NotificationService
 
     @StateObject private var store = TFLDataStore()
 
-    @State private var showDesignSystem = false
-    @State private var showMain = false
+    @State private var showDevMenu = false
     @State private var currentOnboardingStep: OnboardingStep = .step1
     @State private var mainViewModel: MainViewModel?
 
-    // MARK: - Onboarding state (persists when navigating back)
+    // MARK: - Onboarding state
 
-    // Step 1 — Home
-    @State private var homeLineId = ""
-    @State private var homeStationId = ""
-    @State private var homeStationName = ""
+    @State private var homeStation: TFLStopPoint = .placeholder
     @State private var homeWalkTime = "Choose"
-
-    // Step 2 — Office
-    @State private var officeLineId = ""
-    @State private var officeStationId = ""
-    @State private var officeStationName = ""
+    @State private var officeStation: TFLStopPoint = .placeholder
     @State private var officeWalkTime = "Choose"
-
-    // Step 3 — Schedule
     @State private var arrivalTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var monday = false
     @State private var tuesday = true
     @State private var wednesday = false
     @State private var thursday = true
     @State private var friday = false
-
-    // Step 4 — Notification
     @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
 
     // MARK: - Body
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            if showDesignSystem {
-                DesignSystemView()
-            } else if showMain, let vm = mainViewModel {
-                MainView(viewModel: vm, onChangeSettings: {
-                    withAnimation {
-                        showMain = false
-                        currentOnboardingStep = .step1
-                    }
-                })
+            if showDevMenu {
+                DevMenuView(
+                    onDismiss: { withAnimation { showDevMenu = false } },
+                    onClearCache: { mainViewModel?.loadCommute(forceRefresh: true) },
+                    journeyDebugInfo: mainViewModel?.journeyDebugInfo
+                )
+            } else if appState.hasCompletedOnboarding {
+                mainView
             } else {
                 onboardingView
             }
 
-            Button {
-                withAnimation { showDesignSystem.toggle() }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: showDesignSystem ? "app.fill" : "paintpalette.fill")
-                        .font(.system(size: 9, weight: .medium))
-                    Text(showDesignSystem ? "App" : "Design System")
+            if !showDevMenu {
+                Button {
+                    withAnimation { showDevMenu = true }
+                } label: {
+                    Text("DEV")
                         .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(Color.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color.white)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(Color.grey30, lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
                 }
-                .foregroundColor(Color.black)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(Color.white)
-                .cornerRadius(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(Color.grey30, lineWidth: 1)
-                )
-                .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
+                .padding(.top, 16)
+                .padding(.trailing, 24)
+                .zIndex(1000)
             }
-            .padding(.top, 16)
-            .padding(.trailing, 24)
-            .zIndex(1000)
         }
-        // §11.8: Route notification taps to the main screen.
-        // All routing decisions (forceRefresh) are made in NotificationService — not here.
         .onChange(of: notificationService.pendingDeepLink) {
             guard let action = notificationService.pendingDeepLink else { return }
             handleDeepLink(action)
-            notificationService.pendingDeepLink = nil   // consume so it doesn't retrigger
+            notificationService.pendingDeepLink = nil
+        }
+        .onAppear {
+            ensureMainViewModelIfNeeded()
+        }
+    }
+
+    // MARK: - Main view
+
+    @ViewBuilder
+    private var mainView: some View {
+        if let vm = mainViewModel {
+            MainView(viewModel: vm)
+                .environmentObject(store)
+                .environmentObject(appState)
+        } else {
+            ProgressView()
+                .onAppear { ensureMainViewModelIfNeeded() }
         }
     }
 
@@ -98,9 +97,7 @@ struct ContentView: View {
         switch currentOnboardingStep {
         case .step1:
             Onboarding1View(
-                selectedLineId: $homeLineId,
-                selectedStationId: $homeStationId,
-                selectedStationName: $homeStationName,
+                selectedStation: $homeStation,
                 selectedWalkTime: $homeWalkTime,
                 onNext: { withAnimation { currentOnboardingStep = .step2 } }
             )
@@ -108,9 +105,7 @@ struct ContentView: View {
 
         case .step2:
             Onboarding2View(
-                selectedLineId: $officeLineId,
-                selectedStationId: $officeStationId,
-                selectedStationName: $officeStationName,
+                selectedStation: $officeStation,
                 selectedWalkTime: $officeWalkTime,
                 onNext: { withAnimation { currentOnboardingStep = .step3 } },
                 onBack: { withAnimation { currentOnboardingStep = .step1 } }
@@ -141,58 +136,51 @@ struct ContentView: View {
             OnboardingSuccessView(
                 onAllDone: {
                     let settings = buildUserSettings()
-                    settings.save()
+                    if appState.isEditingSettings {
+                        appState.finishSettingsEdit(with: settings)
+                    } else {
+                        appState.completeOnboarding(with: settings)
+                    }
                     mainViewModel = MainViewModel(settings: settings)
-                    withAnimation { showMain = true }
                 },
                 onChangeSettings: {
-                    withAnimation {
-                        showMain = false
-                        currentOnboardingStep = .step1
-                    }
+                    withAnimation { currentOnboardingStep = .step1 }
                 }
             )
         }
     }
 
-    // MARK: - §11.8 Deep link routing (navigation only — no business logic)
+    // MARK: - Deep link routing
 
     private func handleDeepLink(_ action: DeepLinkAction) {
         switch action {
         case .openMain(let forceRefresh):
-            // Ensure we have a ViewModel to show. If the user hasn't completed
-            // onboarding yet, UserSettings.load() will return nil and we skip routing.
-            if mainViewModel == nil, let settings = UserSettings.load() {
-                mainViewModel = MainViewModel(settings: settings)
-            }
+            ensureMainViewModelIfNeeded()
             guard let vm = mainViewModel else { return }
-
-            withAnimation { showMain = true }
-
-            if forceRefresh {
-                // Case B tap (§11.8): no active cache → force immediate recalculation.
-                vm.loadCommute(forceRefresh: true)
-            }
-            // Case A tap: active cache exists; MainView will display it via loadCommute()
-            // called in its .onAppear without recalculating (forceRefresh defaults to false).
+            if forceRefresh { vm.loadCommute(forceRefresh: true) }
         }
     }
 
-    // MARK: - Assemble UserSettings from collected state
+    // MARK: - Helpers
+
+    private func ensureMainViewModelIfNeeded() {
+        guard mainViewModel == nil, let settings = appState.settings else { return }
+        mainViewModel = MainViewModel(settings: settings)
+    }
 
     private func buildUserSettings() -> UserSettings {
         var s = UserSettings()
-        s.homeLineId            = homeLineId
-        s.homeStationId         = homeStationId
-        s.homeStationName       = homeStationName
+        s.homeStationId           = homeStation.naptanId
+        s.homeStationName         = homeStation.commonName
+        s.homeStationLines        = homeStation.lines
         s.walkingMinutesToStation = parseMinutes(homeWalkTime)
-        s.officeLineId          = officeLineId
-        s.officeStationId       = officeStationId
-        s.officeStationName     = officeStationName
-        s.walkingMinutesToOffice = parseMinutes(officeWalkTime)
-        s.arrivalTime           = arrivalTime
-        s.officeDays            = selectedDays
-        s.notificationTime      = notificationTime
+        s.officeStationId         = officeStation.naptanId
+        s.officeStationName       = officeStation.commonName
+        s.officeStationLines      = officeStation.lines
+        s.walkingMinutesToOffice  = parseMinutes(officeWalkTime)
+        s.arrivalTime             = arrivalTime
+        s.officeDays              = selectedDays
+        s.notificationTime        = notificationTime
         return s
     }
 
@@ -213,4 +201,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AppState())
+        .environmentObject(NotificationService.shared)
 }

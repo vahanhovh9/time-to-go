@@ -10,10 +10,17 @@ final class MainViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
+    @Published var outboundResult: CommuteResult?
+    @Published var isLoadingOutbound: Bool = false
+    @Published var outboundErrorMessage: String?
+
+    /// Populated after every inbound load — read by DevMenu to show effective request values.
+    @Published var journeyDebugInfo: String?
+
     // MARK: - Dependencies
 
     private let calculationService: CommuteCalculationService
-    private(set) var settings: UserSettings
+    @Published private(set) var settings: UserSettings
 
     // MARK: - Init
 
@@ -46,17 +53,63 @@ final class MainViewModel: ObservableObject {
                     for: settings,
                     forceRefresh: forceRefresh
                 )
+                journeyDebugInfo = buildJourneyDebugInfo()
             } catch {
                 errorMessage = error.localizedDescription
+                journeyDebugInfo = buildJourneyDebugInfo(error: error)
             }
             isLoading = false
+        }
+    }
+
+    func loadOutbound(forceRefresh: Bool = false) {
+        guard settings.outboundEnabled else { return }
+        Task {
+            isLoadingOutbound = true
+            outboundErrorMessage = nil
+            do {
+                outboundResult = try await calculationService.calculateOutbound(
+                    for: settings,
+                    forceRefresh: forceRefresh
+                )
+            } catch {
+                outboundErrorMessage = error.localizedDescription
+            }
+            isLoadingOutbound = false
         }
     }
 
     func updateSettings(_ newSettings: UserSettings) {
         settings = newSettings
         settings.save()
-        loadCommute(forceRefresh: true)   // Settings changed → §11.9 mandates fresh data
+        loadCommute(forceRefresh: true)
+        loadOutbound(forceRefresh: true)
+    }
+
+    /// Awaitable versions for pull-to-refresh — keeps the spinner visible until the request completes.
+    func refreshInbound() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            commuteResult = try await calculationService.calculate(for: settings, forceRefresh: true)
+            journeyDebugInfo = buildJourneyDebugInfo()
+        } catch {
+            errorMessage = error.localizedDescription
+            journeyDebugInfo = buildJourneyDebugInfo(error: error)
+        }
+        isLoading = false
+    }
+
+    func refreshOutbound() async {
+        guard settings.outboundEnabled else { return }
+        isLoadingOutbound = true
+        outboundErrorMessage = nil
+        do {
+            outboundResult = try await calculationService.calculateOutbound(for: settings, forceRefresh: true)
+        } catch {
+            outboundErrorMessage = error.localizedDescription
+        }
+        isLoadingOutbound = false
     }
 
     // MARK: - Formatted display values
@@ -99,11 +152,74 @@ final class MainViewModel: ObservableObject {
         return "\(result.numberOfStops) stops"
     }
 
+    // MARK: - Outbound display values (office → home)
+
+    var leaveOfficeTimeText: String {
+        guard let result = outboundResult else { return "--:--" }
+        return timeFormatter.string(from: result.leaveHomeTime)
+    }
+
+    var outboundServiceStatusText: String {
+        outboundResult?.serviceStatus.displayText ?? "Service status: Checking…"
+    }
+
+    var outboundTrainDepartureText: String {
+        guard let result = outboundResult else { return "--:--" }
+        return timeFormatter.string(from: result.trainDepartureAtHomeStation)
+    }
+
+    var homeArrivalTimeText: String {
+        timeFormatter.string(from: settings.outboundArrivalTime)
+    }
+
+    var outboundJourneyDurationText: String {
+        guard let result = outboundResult else { return "-- min" }
+        return "\(result.journeyDurationMinutes) min"
+    }
+
+    var outboundNumberOfStopsText: String {
+        guard let result = outboundResult else { return "-- stops" }
+        return "\(result.numberOfStops) stops"
+    }
+
+    // MARK: -
+
     /// §11.6: True when the displayed result was reconstructed from cache (stale indicator).
     var isShowingCachedResult: Bool { commuteResult?.isFromCache ?? false }
 
     var homeStationDisplayName: String { cleanStationName(settings.homeStationName) }
     var officeStationDisplayName: String { cleanStationName(settings.officeStationName) }
+    var outboundDestinationDisplayName: String { cleanStationName(settings.effectiveOutboundDestinationName) }
+
+    // MARK: - Schedule review contexts
+
+    var inboundScheduleContext: ScheduleReviewContext? {
+        guard commuteResult != nil,
+              !settings.homeStationId.isEmpty,
+              !settings.officeStationId.isEmpty,
+              !settings.homeLineId.isEmpty else { return nil }
+        return ScheduleReviewContext(
+            stopId: settings.homeStationId,
+            lineId: settings.homeLineId,
+            homeStopId: settings.homeStationId,
+            destinationStopId: settings.officeStationId,
+            destinationStationName: officeStationDisplayName
+        )
+    }
+
+    var outboundScheduleContext: ScheduleReviewContext? {
+        guard outboundResult != nil,
+              !settings.officeStationId.isEmpty,
+              !settings.homeStationId.isEmpty,
+              !settings.homeLineId.isEmpty else { return nil }
+        return ScheduleReviewContext(
+            stopId: settings.officeStationId,
+            lineId: settings.homeLineId,
+            homeStopId: settings.officeStationId,
+            destinationStopId: settings.homeStationId,
+            destinationStationName: homeStationDisplayName
+        )
+    }
 
     private func cleanStationName(_ name: String) -> String {
         name
@@ -120,4 +236,34 @@ final class MainViewModel: ObservableObject {
         f.dateFormat = "h:mm a"
         return f
     }()
+
+    private func buildJourneyDebugInfo(error: Error? = nil) -> String {
+        var lines: [String] = []
+        lines.append("─── Stored IDs ───")
+        lines.append("Home:   \(settings.homeStationId.isEmpty ? "(empty)" : settings.homeStationId)")
+        lines.append("Office: \(settings.officeStationId.isEmpty ? "(empty)" : settings.officeStationId)")
+        lines.append("IsTube? Home=\(settings.homeStationId.hasPrefix("940GZZLU"))  Office=\(settings.officeStationId.hasPrefix("940GZZLU"))")
+        lines.append("─── TFL Request ───")
+        lines.append("Disambig ran: \(TFLService.debugDisambiguated)")
+        if TFLService.debugDisambiguated {
+            lines.append("Resolved from: \(TFLService.debugResolvedFrom.isEmpty ? "unchanged" : TFLService.debugResolvedFrom)")
+            lines.append("Resolved to:   \(TFLService.debugResolvedTo.isEmpty   ? "unchanged" : TFLService.debugResolvedTo)")
+        }
+        lines.append("Journey count: \(TFLService.debugJourneyCount)")
+        if !TFLService.debugJourneyDurations.isEmpty {
+            lines.append("Durations: \(TFLService.debugJourneyDurations.map { "\($0)m" }.joined(separator: ", "))")
+        }
+        lines.append("─── Result ───")
+        if let e = error {
+            lines.append("Error: \(e.localizedDescription)")
+        } else if let r = commuteResult {
+            lines.append("Selected: \(r.journeyDurationMinutes) min")
+            lines.append("Depart: \(timeFormatter.string(from: r.trainDepartureAtHomeStation))")
+            lines.append("Arrive: \(timeFormatter.string(from: r.trainArrivalAtOfficeStation))")
+            lines.append("Cached: \(r.isFromCache)")
+        } else {
+            lines.append("(no result)")
+        }
+        return lines.joined(separator: "\n")
+    }
 }

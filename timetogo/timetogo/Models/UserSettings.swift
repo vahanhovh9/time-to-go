@@ -1,47 +1,183 @@
 import Foundation
 
+enum OutboundDestinationType: String, Codable {
+    case home
+    case otherPlace
+}
+
 /// All user preferences collected during onboarding.
 /// Stored to and loaded from UserDefaults as JSON.
 struct UserSettings: Codable {
 
     // MARK: - Home
 
-    /// TFL line ID, e.g. "northern"
-    var homeLineId: String = ""
-    /// naptanId of the home station, e.g. "940GZZLUWSP"
     var homeStationId: String = ""
-    /// Human-readable name shown in the UI, e.g. "Woodside Park Underground Station"
     var homeStationName: String = ""
-    /// Walking time from home to the station, in minutes.
+    var homeStationLines: [TFLLineRef] = []
     var walkingMinutesToStation: Int = 5
 
     // MARK: - Office
 
-    /// TFL line ID, e.g. "northern"
-    var officeLineId: String = ""
-    /// naptanId of the office station
     var officeStationId: String = ""
-    /// Human-readable name shown in the UI
     var officeStationName: String = ""
-    /// Walking time from the office station to the office, in minutes.
+    var officeStationLines: [TFLLineRef] = []
     var walkingMinutesToOffice: Int = 5
 
-    // MARK: - Schedule
+    // MARK: - Computed line helpers
 
-    /// Target arrival time at the office (only hour/minute components are used).
+    var homeLineId: String { homeStationLines.first?.id ?? "" }
+    var homeLineIds: [String] { homeStationLines.map { $0.id } }
+    var officeLineId: String { officeStationLines.first?.id ?? "" }
+    var officeLineIds: [String] { officeStationLines.map { $0.id } }
+
+    // MARK: - Inbound schedule
+
     var arrivalTime: Date = {
         Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     }()
 
-    /// Days of the week the user commutes.
     var officeDays: [Weekday] = []
 
-    // MARK: - Notifications
+    // MARK: - Inbound notification
 
-    /// Time at which the "leave home" push notification should fire.
     var notificationTime: Date = {
         Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
     }()
+
+    // MARK: - Outbound (§12.7)
+
+    var outboundEnabled: Bool = false
+    var outboundDestinationType: OutboundDestinationType = .home
+
+    /// Station the user is travelling to after work.
+    var outboundDestinationStationId: String = ""
+    var outboundDestinationStationName: String = ""
+    var outboundDestinationStationLines: [TFLLineRef] = []
+
+    /// Walk time from the destination station to the destination, in minutes.
+    var outboundWalkingTimeFromStation: Int = 5
+
+    /// When the user needs to arrive at the outbound destination.
+    var outboundArrivalTime: Date = {
+        Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
+    }()
+
+    var outboundNotificationDays: [Weekday] = []
+
+    var outboundNotificationTime: Date = {
+        Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
+    }()
+
+    // MARK: - Computed outbound helpers
+
+    /// The station the user is travelling to after work.
+    /// When outboundDestinationType == .home this resolves to the home station,
+    /// so updating the Home Station in settings automatically affects both directions.
+    var effectiveOutboundDestinationId: String {
+        outboundDestinationType == .home ? homeStationId : outboundDestinationStationId
+    }
+
+    var effectiveOutboundDestinationName: String {
+        outboundDestinationType == .home ? homeStationName : outboundDestinationStationName
+    }
+
+    var effectiveOutboundDestinationLines: [TFLLineRef] {
+        outboundDestinationType == .home ? homeStationLines : outboundDestinationStationLines
+    }
+
+    /// Walk time from the effective destination station to the final destination.
+    var effectiveOutboundWalkingTime: Int {
+        outboundDestinationType == .home ? walkingMinutesToStation : outboundWalkingTimeFromStation
+    }
+
+    var outboundLineIds: [String] {
+        let dest = effectiveOutboundDestinationLines.map { $0.id }
+        let office = officeStationLines.map { $0.id }
+        return Array(Set(dest + office))
+    }
+
+    // MARK: - Codable
+
+    enum CodingKeys: String, CodingKey {
+        case homeStationId, homeStationName, homeStationLines, walkingMinutesToStation
+        case officeStationId, officeStationName, officeStationLines, walkingMinutesToOffice
+        case arrivalTime, officeDays, notificationTime
+        case outboundEnabled, outboundDestinationType
+        case outboundDestinationStationId, outboundDestinationStationName, outboundDestinationStationLines
+        case outboundWalkingTimeFromStation
+        case outboundArrivalTime, outboundNotificationDays, outboundNotificationTime
+        // Legacy keys (pre-outbound builds) — values ignored, keys kept to avoid decode errors
+        case legacyHomeLineId   = "homeLineId"
+        case legacyOfficeLineId = "officeLineId"
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+
+        homeStationId           = (try? c.decode(String.self,       forKey: .homeStationId))           ?? ""
+        homeStationName         = (try? c.decode(String.self,       forKey: .homeStationName))         ?? ""
+        walkingMinutesToStation = (try? c.decode(Int.self,          forKey: .walkingMinutesToStation)) ?? 5
+
+        officeStationId         = (try? c.decode(String.self,       forKey: .officeStationId))         ?? ""
+        officeStationName       = (try? c.decode(String.self,       forKey: .officeStationName))       ?? ""
+        walkingMinutesToOffice  = (try? c.decode(Int.self,          forKey: .walkingMinutesToOffice))  ?? 5
+
+        if let lines = try? c.decode([TFLLineRef].self, forKey: .homeStationLines), !lines.isEmpty {
+            homeStationLines = lines
+        } else if let oldId = try? c.decode(String.self, forKey: .legacyHomeLineId), !oldId.isEmpty {
+            homeStationLines = [TFLLineRef(id: oldId, name: oldId)]
+        } else {
+            homeStationLines = []
+        }
+
+        if let lines = try? c.decode([TFLLineRef].self, forKey: .officeStationLines), !lines.isEmpty {
+            officeStationLines = lines
+        } else if let oldId = try? c.decode(String.self, forKey: .legacyOfficeLineId), !oldId.isEmpty {
+            officeStationLines = [TFLLineRef(id: oldId, name: oldId)]
+        } else {
+            officeStationLines = []
+        }
+
+        arrivalTime      = (try? c.decode(Date.self,      forKey: .arrivalTime))      ?? Calendar.current.date(bySettingHour: 9,  minute: 0,  second: 0, of: Date()) ?? Date()
+        officeDays       = (try? c.decode([Weekday].self, forKey: .officeDays))       ?? []
+        notificationTime = (try? c.decode(Date.self,      forKey: .notificationTime)) ?? Calendar.current.date(bySettingHour: 7,  minute: 30, second: 0, of: Date()) ?? Date()
+
+        outboundEnabled             = (try? c.decode(Bool.self,                     forKey: .outboundEnabled))             ?? false
+        outboundDestinationType     = (try? c.decode(OutboundDestinationType.self,  forKey: .outboundDestinationType))     ?? .home
+        outboundDestinationStationId   = (try? c.decode(String.self,    forKey: .outboundDestinationStationId))   ?? ""
+        outboundDestinationStationName = (try? c.decode(String.self,    forKey: .outboundDestinationStationName)) ?? ""
+        outboundDestinationStationLines = (try? c.decode([TFLLineRef].self, forKey: .outboundDestinationStationLines)) ?? []
+        outboundWalkingTimeFromStation  = (try? c.decode(Int.self,      forKey: .outboundWalkingTimeFromStation))  ?? 5
+        outboundArrivalTime         = (try? c.decode(Date.self,         forKey: .outboundArrivalTime))         ?? Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
+        outboundNotificationDays    = (try? c.decode([Weekday].self,    forKey: .outboundNotificationDays))    ?? []
+        outboundNotificationTime    = (try? c.decode(Date.self,         forKey: .outboundNotificationTime))    ?? Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(homeStationId,            forKey: .homeStationId)
+        try c.encode(homeStationName,          forKey: .homeStationName)
+        try c.encode(homeStationLines,         forKey: .homeStationLines)
+        try c.encode(walkingMinutesToStation,  forKey: .walkingMinutesToStation)
+        try c.encode(officeStationId,          forKey: .officeStationId)
+        try c.encode(officeStationName,        forKey: .officeStationName)
+        try c.encode(officeStationLines,       forKey: .officeStationLines)
+        try c.encode(walkingMinutesToOffice,   forKey: .walkingMinutesToOffice)
+        try c.encode(arrivalTime,              forKey: .arrivalTime)
+        try c.encode(officeDays,               forKey: .officeDays)
+        try c.encode(notificationTime,         forKey: .notificationTime)
+        try c.encode(outboundEnabled,                  forKey: .outboundEnabled)
+        try c.encode(outboundDestinationType,          forKey: .outboundDestinationType)
+        try c.encode(outboundDestinationStationId,     forKey: .outboundDestinationStationId)
+        try c.encode(outboundDestinationStationName,   forKey: .outboundDestinationStationName)
+        try c.encode(outboundDestinationStationLines,  forKey: .outboundDestinationStationLines)
+        try c.encode(outboundWalkingTimeFromStation,   forKey: .outboundWalkingTimeFromStation)
+        try c.encode(outboundArrivalTime,              forKey: .outboundArrivalTime)
+        try c.encode(outboundNotificationDays,         forKey: .outboundNotificationDays)
+        try c.encode(outboundNotificationTime,         forKey: .outboundNotificationTime)
+    }
 
     // MARK: - Persistence
 
@@ -53,6 +189,13 @@ struct UserSettings: Codable {
     }
 
     func save() {
+        // Invariant: all non-empty station IDs must be canonical tube NaPTANs.
+        // A non-canonical ID here means normalization failed upstream.
+        for (label, id) in [("home", homeStationId), ("office", officeStationId), ("outbound", outboundDestinationStationId)]
+        where !id.isEmpty && !id.hasPrefix("940GZZ") {
+            assertionFailure("[UserSettings] Non-canonical station ID for \(label): \(id)")
+            print("[UserSettings] WARNING: persisting non-canonical \(label) station ID: \(id)")
+        }
         guard let data = try? JSONEncoder().encode(self) else { return }
         UserDefaults.standard.set(data, forKey: Self.storageKey)
     }
