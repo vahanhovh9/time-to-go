@@ -685,3 +685,559 @@ If outbound disabled:
 * Updating inbound must not break outbound (except shared station data)
 
 ⸻
+---
+
+
+
+# 13. Review Schedule Logic
+
+## 13.1 Purpose
+
+Review Schedule allows the user to inspect the current live train arrivals for the station where they will board the first train of the active commute journey.
+
+It is available for both:
+
+- Inbound: Home → Office
+- Outbound: Office → Destination
+
+The feature is informational only.
+
+It must NOT:
+
+- Recalculate the commute
+- Modify active commute results
+- Affect notifications
+- Affect cache state
+- Trigger background refresh
+- Change leave times
+- Modify onboarding data
+- Persist temporary schedule filtering state
+
+The purpose of Review Schedule is to display the real live train board for the boarding station, filtered to only trains travelling toward the commute destination.
+
+The feature must behave similarly to how a real passenger thinks on the Underground.
+
+Example:
+
+If a user is travelling:
+
+Highgate → Old Street
+
+the schedule should display trains travelling toward:
+
+- Morden via Bank
+- Morden via Charing Cross
+- Battersea Power Station
+
+It must NOT display trains travelling toward:
+
+- High Barnet
+- Mill Hill East
+- Edgware
+
+The feature should primarily reason about train destinations and terminal directions, not only geographic northbound/southbound labels.
+
+---
+
+# 13.2 Entry Point
+
+Both Inbound and Outbound commute screens must display a text button below the commute information block:
+
+Review the schedule
+
+The button must be visible always.
+
+A valid commute result requires:
+
+- A successful journey calculation
+- A valid boarding train time
+- A valid origin station
+- A valid first-leg lineId
+- A valid first-leg stopId
+- A valid first-leg destination/towards value
+
+If the app cannot determine the correct train direction for the journey, Review Schedule should not open rather than showing potentially incorrect trains.
+
+Correctness is more important than completeness.
+
+---
+
+# 13.3 Core Direction Philosophy
+
+Review Schedule exists to answer one question:
+
+Which trains currently arriving at this station move the user toward their destination?
+
+The system must primarily determine direction using:
+
+- train destination
+- towards value
+- terminal station
+
+rather than relying only on:
+
+- northbound
+- southbound
+- eastbound
+- westbound
+
+Reason:
+
+TfL passengers typically navigate using train destinations.
+
+Example:
+
+A passenger at Woodside Park travelling toward central London thinks:
+
+"I need a Morden train."
+
+not:
+
+"I need a southbound train."
+
+Terminal-based filtering is therefore the preferred direction model.
+
+Cardinal platform direction text should be treated as supporting or fallback information.
+
+---
+
+# 13.4 Inbound Schedule Review
+
+Inbound schedule review always uses inbound commute data only.
+
+Direction:
+
+Home → Office
+
+Origin station:
+
+userHomeStation
+
+Origin stopId:
+
+userHomeStationStopId
+
+Destination station:
+
+userOfficeStation
+
+Reference line:
+
+inboundFirstLegLineId
+
+Reference towards value:
+
+inboundFirstLegTowards
+
+Reference direction:
+
+inboundFirstLegDirection
+
+Reference boarding train time:
+
+inboundBoardingTrainArrivalTimeAtHomeStation
+
+When the user taps Review the schedule:
+
+1. Open the schedule screen or bottom sheet
+
+2. Fetch live arrivals using:
+
+/StopPoint/{userHomeStationStopId}/Arrivals
+
+3. Keep only arrivals matching:
+
+inboundFirstLegLineId
+
+4. Determine which train destinations move toward the office station
+
+5. Keep only arrivals whose:
+
+- towards
+- destinationName
+- platformName direction text
+
+match the active inbound journey direction
+
+6. Remove arrivals where:
+
+- expectedArrival is missing
+- expectedArrival is already in the past
+
+7. Sort remaining arrivals by expectedArrival ascending
+
+8. Return the next 20 valid arrivals
+
+Example:
+
+If the user travels:
+
+Totteridge & Whetstone → Battersea Power Station
+
+valid trains include:
+
+- Morden via Bank
+- Morden via Charing Cross
+- Battersea Power Station
+
+invalid trains include:
+
+- High Barnet
+- Edgware
+- Mill Hill East
+
+Only trains travelling toward the office must be displayed.
+
+---
+
+# 13.5 Outbound Schedule Review
+
+Outbound schedule review always uses outbound commute data only.
+
+Direction:
+
+Office → Destination
+
+Origin station:
+
+userOfficeStation
+
+Origin stopId:
+
+userOfficeStationStopId
+
+Destination station:
+
+outboundDestinationStation
+
+Reference line:
+
+outboundFirstLegLineId
+
+Reference towards value:
+
+outboundFirstLegTowards
+
+Reference direction:
+
+outboundFirstLegDirection
+
+Reference boarding train time:
+
+outboundBoardingTrainArrivalTimeAtOfficeStation
+
+When the user taps Review the schedule:
+
+1. Open the schedule screen or bottom sheet
+
+2. Fetch live arrivals using:
+
+/StopPoint/{userOfficeStationStopId}/Arrivals
+
+3. Keep only arrivals matching:
+
+outboundFirstLegLineId
+
+4. Determine which train destinations move toward the outbound destination
+
+5. Keep only arrivals whose:
+
+- towards
+- destinationName
+- platformName direction text
+
+match the active outbound journey direction
+
+6. Remove arrivals where:
+
+- expectedArrival is missing
+- expectedArrival is already in the past
+
+7. Sort remaining arrivals by expectedArrival ascending
+
+8. Return the next 20 valid arrivals
+
+Outbound schedule review must remain fully isolated from inbound schedule review.
+
+Outbound direction must always be based on:
+
+Office → Destination
+
+never:
+
+Home → Office
+
+---
+
+# 13.6 TFL API Usage
+
+Review Schedule must use only the live arrivals endpoint:
+
+/StopPoint/{stopId}/Arrivals
+
+Example:
+
+/StopPoint/940GZZLUTTW/Arrivals
+
+Review Schedule must NOT use:
+
+- Journey Planner recalculation
+- Timetable endpoints
+- Cached train boards
+- Static schedules
+- Synthetic train generation
+
+The feature exists purely to display the current live station board filtered to trains moving toward the user’s destination.
+
+---
+
+# 13.7 Filtering Pipeline
+
+Filtering logic must exist only inside:
+
+- ScheduleReviewService
+or
+- ScheduleReviewViewModel
+
+SwiftUI Views must never contain filtering or business logic.
+
+Views must render already-computed schedule state only.
+
+The filtering pipeline must execute in this order:
+
+1. Fetch live arrivals for the selected stopId
+
+2. Remove arrivals with missing expectedArrival
+
+3. Remove arrivals whose expectedArrival is already in the past
+
+4. Keep only arrivals matching the selected lineId
+
+5. Determine the valid journey direction using:
+   - towards value
+   - destination station
+   - terminal station
+   - fallback cardinal direction if required
+
+6. Keep only arrivals travelling toward the destination
+
+7. Remove arrivals travelling in the opposite direction
+
+8. Sort ascending by expectedArrival
+
+9. Return the next 20 arrivals
+
+Direction filtering is mandatory.
+
+Line filtering alone is never sufficient.
+
+If reliable direction matching cannot be established, the service should prefer excluding uncertain arrivals rather than displaying opposite-direction trains.
+
+Showing fewer trains is preferable to showing incorrect trains.
+
+---
+
+# 13.8 Review Schedule Rule
+
+The Review Schedule button shows live trains from the user’s current relevant station, filtered to the direction of the active commute.
+
+It must answer one question:
+
+“Which trains arriving soon are actually going toward my destination?”
+
+Must do
+
+* Use only TfL live arrivals:
+    /StopPoint/{stopId}/Arrivals
+* Use the correct commute context:
+    * inbound: Home → Office
+    * outbound: Office → Destination
+* Filter arrivals by:
+    * matching lineId
+    * matching journey direction
+* Direction must mainly be based on:
+    * destinationName
+    * towards
+    * terminal station
+* Remove trains:
+    * with no expectedArrival
+    * that already passed
+    * going the wrong way
+* Sort by soonest arrival
+* Show up to 20 trains
+
+Must not do
+
+* Do not recalculate the commute
+* Do not use timetable endpoints
+* Do not generate fake trains
+* Do not rely on lineId alone
+* Do not show opposite-direction trains
+* Do not mix inbound and outbound schedule state
+* Do not put filtering logic inside SwiftUI Views
+
+If direction is unclear
+
+Do not open the schedule, or show an empty/error state.
+
+Correctness matters more than showing lots of trains.
+
+Simple example
+
+If the commute is toward Morden, show:
+
+* Morden
+* Morden via Bank
+* Morden via Charing Cross
+* Battersea Power Station, if relevant
+
+Do not show:
+
+* High Barnet
+* Edgware
+* Mill Hill East
+
+---
+
+# 13.9 Matching the Active Commute Train
+
+The schedule may visually highlight the train currently used by the active commute calculation.
+
+Matching is optional.
+
+Review Schedule must continue functioning normally even if no matching train is found.
+
+A train may be considered a match when:
+
+- lineId matches the active commute line
+- direction matches the active journey direction
+- expectedArrival is within ±2 minutes of the calculated boarding train time
+- destinationName or towards value is reasonably similar
+
+Matching affects visual presentation only.
+
+It must NOT:
+
+- Recalculate commute results
+- Change leave times
+- Trigger refresh logic
+- Affect notifications
+- Affect caching
+- Modify commute state
+
+---
+
+# 13.10 Display Requirements
+
+Each schedule row should display when available:
+
+- Expected arrival time
+- Minutes until arrival
+- Destination name
+- Towards value
+- Platform name
+- Line name
+
+Rows must be sorted by nearest arriving train first.
+
+If a train matches the active commute train, it may be visually highlighted.
+
+Opposite-direction trains must never be rendered.
+
+Views must display already-filtered schedule state only.
+
+---
+
+# 13.11 Empty & Error States
+
+If no valid arrivals remain after filtering:
+
+Show:
+
+No upcoming trains found in your direction right now.
+
+If the API request fails:
+
+Show:
+
+Couldn’t load current trains. Pull to refresh or try again.
+
+If the user is offline:
+
+Show:
+
+You appear to be offline.
+
+Empty and error states must never affect commute state.
+
+---
+
+# 13.12 Data Isolation Rules
+
+Inbound schedule review must use inbound commute data only.
+
+Outbound schedule review must use outbound commute data only.
+
+Inbound and outbound schedule state must remain fully isolated.
+
+Outbound must never reuse:
+
+- inbound station IDs
+- inbound direction filtering
+- inbound line filtering
+- inbound schedule state
+
+Inbound must never reuse:
+
+- outbound station IDs
+- outbound direction filtering
+- outbound line filtering
+- outbound schedule state
+
+Shared UI components are allowed.
+
+Shared commute filtering state is not allowed.
+
+---
+
+# 13.13 Architecture Rules
+
+All TfL API access must remain inside TFLService.
+
+All schedule filtering, direction logic, destination matching, and train matching logic must remain inside:
+
+- ScheduleReviewService
+or
+- ScheduleReviewViewModel
+
+Business logic must never exist inside SwiftUI Views.
+
+Views must render computed state only.
+
+No hardcoded train times may exist inside Views.
+
+All displayed times must use:
+
+- user locale
+- user timezone
+- device calendar settings
+
+---
+
+# 13.14 Non-Negotiable Rules
+
+- Review Schedule must use live arrivals only
+- Review Schedule must filter by both line and journey direction
+- Line filtering alone is never sufficient
+- Opposite-direction trains must never be shown intentionally
+- Destination-terminal matching is preferred over simple cardinal direction matching
+- Review Schedule must never recalculate commutes
+- Review Schedule must never affect active commute results
+- Review Schedule must never affect notifications
+- Review Schedule must never affect cache state
+- Review Schedule must never trigger background tasks
+- Inbound and outbound schedule state must remain isolated
+- Views must render computed state only
+- TfL integration must remain isolated inside TFLService
+- Showing fewer trains is preferable to showing incorrect trains
+- Direction correctness has priority over completeness
