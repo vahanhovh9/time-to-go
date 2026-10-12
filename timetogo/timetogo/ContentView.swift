@@ -1,12 +1,11 @@
 import SwiftUI
 
 enum OnboardingStep {
-    case step1, step2, step3, step4, success
+    case step1, step2, step3, success
 }
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var notificationService: NotificationService
 
     @StateObject private var store = TFLDataStore()
 
@@ -26,7 +25,6 @@ struct ContentView: View {
     @State private var wednesday = false
     @State private var thursday = true
     @State private var friday = false
-    @State private var notificationTime: Date = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
 
     // MARK: - Body
 
@@ -65,11 +63,6 @@ struct ContentView: View {
                 .padding(.trailing, 24)
                 .zIndex(1000)
             }
-        }
-        .onChange(of: notificationService.pendingDeepLink) {
-            guard let action = notificationService.pendingDeepLink else { return }
-            handleDeepLink(action)
-            notificationService.pendingDeepLink = nil
         }
         .onAppear {
             ensureMainViewModelIfNeeded()
@@ -120,16 +113,8 @@ struct ContentView: View {
                 wednesday: $wednesday,
                 thursday: $thursday,
                 friday: $friday,
-                onNext: { withAnimation { currentOnboardingStep = .step4 } },
+                onNext: { withAnimation { currentOnboardingStep = .success } },
                 onBack: { withAnimation { currentOnboardingStep = .step2 } }
-            )
-
-        case .step4:
-            Onboarding4View(
-                notificationTime: $notificationTime,
-                arrivalTime: arrivalTime,
-                onComplete: { withAnimation { currentOnboardingStep = .success } },
-                onBack: { withAnimation { currentOnboardingStep = .step3 } }
             )
 
         case .success:
@@ -147,17 +132,6 @@ struct ContentView: View {
                     withAnimation { currentOnboardingStep = .step1 }
                 }
             )
-        }
-    }
-
-    // MARK: - Deep link routing
-
-    private func handleDeepLink(_ action: DeepLinkAction) {
-        switch action {
-        case .openMain(let forceRefresh):
-            ensureMainViewModelIfNeeded()
-            guard let vm = mainViewModel else { return }
-            if forceRefresh { vm.loadCommute(forceRefresh: true) }
         }
     }
 
@@ -180,7 +154,6 @@ struct ContentView: View {
         s.walkingMinutesToOffice  = parseMinutes(officeWalkTime)
         s.arrivalTime             = arrivalTime
         s.officeDays              = selectedDays
-        s.notificationTime        = notificationTime
         return s
     }
 
@@ -202,5 +175,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environmentObject(AppState())
-        .environmentObject(NotificationService.shared)
 }

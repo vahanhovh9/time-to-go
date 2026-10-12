@@ -4,7 +4,6 @@ private enum OutboundStep {
     case destinationType
     case stationSetup       // Option B only
     case arrivalTime
-    case notificationTime
     case success
 }
 
@@ -26,9 +25,6 @@ struct OutboundOnboardingView: View {
     // Arrival
     @State private var arrivalTime: Date = Self.time(18, 0)
 
-    // Notification
-    @State private var notificationTime: Date = Self.time(16, 0)
-
     // MARK: - Body
 
     var body: some View {
@@ -36,7 +32,6 @@ struct OutboundOnboardingView: View {
         case .destinationType: destinationTypeStep
         case .stationSetup:    stationSetupStep
         case .arrivalTime:     arrivalTimeStep
-        case .notificationTime: notificationStep
         case .success:         successStep
         }
     }
@@ -47,7 +42,7 @@ struct OutboundOnboardingView: View {
         VStack(spacing: 0) {
             OnboardingHeader(
                 step: 1,
-                totalSteps: destinationType == .home ? 3 : 4,
+                totalSteps: destinationType == .home ? 2 : 3,
                 title: "Where are you going?",
                 showsBackButton: true,
                 onBack: onComplete
@@ -98,7 +93,7 @@ struct OutboundOnboardingView: View {
         VStack(spacing: 0) {
             OnboardingHeader(
                 step: 2,
-                totalSteps: 4,
+                totalSteps: 3,
                 title: "Where are you going?",
                 showsBackButton: true,
                 onBack: { withAnimation { currentStep = .destinationType } }
@@ -131,7 +126,7 @@ struct OutboundOnboardingView: View {
 
     private var arrivalTimeStep: some View {
         let stepNum = destinationType == .home ? 2 : 3
-        let totalSteps = destinationType == .home ? 3 : 4
+        let totalSteps = stepNum
         let prevStep: OutboundStep = destinationType == .home ? .destinationType : .stationSetup
 
         return VStack(spacing: 0) {
@@ -151,43 +146,6 @@ struct OutboundOnboardingView: View {
 
                     ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
                         .padding(.horizontal, 24)
-
-                    Spacer(minLength: 40)
-                }
-            }
-
-            footer { withAnimation { currentStep = .notificationTime } }
-        }
-        .background(Color.white)
-    }
-
-    // MARK: - Step 3/4: Notification
-
-    private var notificationStep: some View {
-        let stepNum = destinationType == .home ? 3 : 4
-        let totalSteps = stepNum
-
-        return VStack(spacing: 0) {
-            OnboardingHeader(
-                step: stepNum,
-                totalSteps: totalSteps,
-                title: "When get notified?",
-                showsBackButton: true,
-                onBack: { withAnimation { currentStep = .arrivalTime } }
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 48)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Spacer(minLength: 40)
-
-                    ArrivalTimePicker(
-                        label: "Pick a time",
-                        selectedTime: $notificationTime,
-                        maximumTime: maxNotificationTime
-                    )
-                    .padding(.horizontal, 24)
 
                     Spacer(minLength: 40)
                 }
@@ -226,7 +184,7 @@ struct OutboundOnboardingView: View {
                         .h3Style()
                         .foregroundColor(Color.black)
 
-                    Text("You shouldn't do anything.\nWe'll tell you when to leave work.")
+                    Text("Open TimeToGo whenever\nyou're heading out.")
                         .bodySmallStyle()
                         .foregroundColor(Color.grey50)
                         .multilineTextAlignment(.center)
@@ -318,12 +276,6 @@ struct OutboundOnboardingView: View {
         .background(Color.white)
     }
 
-    private var maxNotificationTime: Date {
-        let cal = Calendar.current
-        let comps = cal.dateComponents([.hour, .minute], from: arrivalTime.addingTimeInterval(-30 * 60))
-        return cal.date(bySettingHour: comps.hour ?? 17, minute: comps.minute ?? 30, second: 0, of: Date()) ?? Date()
-    }
-
     private var walkBinding: Binding<String> {
         Binding(
             get: { "\(walkMinutes) min" },
@@ -339,8 +291,6 @@ struct OutboundOnboardingView: View {
         s.outboundEnabled          = true
         s.outboundDestinationType  = destinationType
         s.outboundArrivalTime      = arrivalTime
-        s.outboundNotificationTime = notificationTime
-        s.outboundNotificationDays = s.officeDays   // always mirrors inbound days
 
         switch destinationType {
         case .home:

@@ -35,20 +35,13 @@ final class AppState: ObservableObject {
     // MARK: - Onboarding completion
 
     /// Called once when the user taps "All done" on the success screen.
-    /// Persists settings, sets the onboarding flag, schedules notifications
-    /// and background tasks — everything needed for autonomous operation.
+    /// Persists settings and sets the onboarding flag.
     func completeOnboarding(with settings: UserSettings) {
         settings.save()
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
 
         self.settings = settings
         self.hasCompletedOnboarding = true
-
-        Task {
-            await NotificationService.shared.requestPermission()
-            await NotificationService.shared.scheduleNotifications(for: settings)
-        }
-        BackgroundTaskManager.shared.scheduleNextRefresh(for: settings)
     }
 
     // MARK: - Settings editing ("Change your settings")
@@ -61,7 +54,7 @@ final class AppState: ObservableObject {
     }
 
     /// Called when the user finishes re-editing settings (taps "All done" again).
-    /// Persists updated settings and reschedules notifications + background tasks (§11.9).
+    /// Persists updated settings.
     func finishSettingsEdit(with newSettings: UserSettings) {
         newSettings.save()
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
@@ -69,11 +62,6 @@ final class AppState: ObservableObject {
         self.settings = newSettings
         self.isEditingSettings = false
         self.hasCompletedOnboarding = true
-
-        Task {
-            await NotificationService.shared.reschedule(for: newSettings)
-        }
-        BackgroundTaskManager.shared.scheduleNextRefresh(for: newSettings)
     }
 
     // MARK: - Settings update (from SettingsView)
@@ -82,10 +70,6 @@ final class AppState: ObservableObject {
         newSettings.save()
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
         self.settings = newSettings
-        Task {
-            await NotificationService.shared.reschedule(for: newSettings)
-        }
-        BackgroundTaskManager.shared.scheduleNextRefresh(for: newSettings)
     }
 
     // MARK: - Reset (for testing)
@@ -95,8 +79,6 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(false, forKey: Self.onboardingKey)
         UserSettings.clear()
         CommuteCacheManager().clear()
-        NotificationService.shared.cancelAllPendingNotifications()
-        BackgroundTaskManager.shared.cancelAllPendingRefreshes()
 
         self.settings = nil
         self.hasCompletedOnboarding = false

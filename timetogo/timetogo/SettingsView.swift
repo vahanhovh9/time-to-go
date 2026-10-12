@@ -40,7 +40,6 @@ struct SettingsView: View {
     @State private var wednesday = false
     @State private var thursday = true
     @State private var friday = false
-    @State private var notificationTime: Date = Self.time(7, 30)
 
     @State private var showHomeStationPicker = false
     @State private var showOfficeStationPicker = false
@@ -48,7 +47,6 @@ struct SettingsView: View {
     // MARK: - Outbound state
 
     @State private var outboundArrivalTime: Date = Self.time(18, 0)
-    @State private var outboundNotificationTime: Date = Self.time(16, 0)
     @State private var outboundWalkMinutes: Int = 5
     @State private var outboundDestStation: TFLStopPoint = .placeholder
     @State private var showOutboundDestPicker = false
@@ -83,7 +81,6 @@ struct SettingsView: View {
     private var outboundObserved: some View {
         inboundObserved
             .onChange(of: outboundArrivalTime)      { _, _ in autoSave() }
-            .onChange(of: outboundNotificationTime) { _, _ in autoSave() }
             .onChange(of: outboundWalkMinutes)      { _, _ in autoSave() }
             .onChange(of: outboundDestStation)      { _, _ in autoSave() }
     }
@@ -95,7 +92,6 @@ struct SettingsView: View {
             .onChange(of: wednesday)        { _, _ in autoSave() }
             .onChange(of: thursday)         { _, _ in autoSave() }
             .onChange(of: friday)           { _, _ in autoSave() }
-            .onChange(of: notificationTime) { _, _ in autoSave() }
     }
 
     private var baseView: some View {
@@ -117,7 +113,6 @@ struct SettingsView: View {
             homeSection
             officeSection
             scheduleSection
-            inboundNotificationSection
             outboundContent
         }
         .navigationTitle("Settings")
@@ -153,19 +148,12 @@ struct SettingsView: View {
         }
     }
 
-    private var inboundNotificationSection: some View {
-        Section("Notification") {
-            timePicker(label: "For office", time: $notificationTime)
-        }
-    }
-
     // MARK: - Outbound sections
 
     @ViewBuilder
     private var outboundContent: some View {
         if outboundEnabled {
             outboundScheduleSection     // includes the "Outbound" group header
-            outboundNotificationSection
         } else {
             outboundDisabledSection
         }
@@ -190,12 +178,6 @@ struct SettingsView: View {
             } header: {
                 GroupSectionHeader(groupTitle: "Outbound", sectionLabel: "Schedule")
             }
-        }
-    }
-
-    private var outboundNotificationSection: some View {
-        Section("Notification") {
-            timePicker(label: "Notification time", time: $outboundNotificationTime)
         }
     }
 
@@ -262,7 +244,6 @@ struct SettingsView: View {
         officeStation     = TFLStopPoint(naptanId: s.officeStationId, commonName: s.officeStationName, lines: s.officeStationLines)
         officeWalkMinutes = max(1, s.walkingMinutesToOffice)
         arrivalTime       = s.arrivalTime
-        notificationTime  = s.notificationTime
         let days = Set(s.officeDays)
         monday    = days.contains(.monday)
         tuesday   = days.contains(.tuesday)
@@ -270,7 +251,6 @@ struct SettingsView: View {
         thursday  = days.contains(.thursday)
         friday    = days.contains(.friday)
         outboundArrivalTime      = s.outboundArrivalTime
-        outboundNotificationTime = s.outboundNotificationTime
         outboundWalkMinutes      = max(1, s.outboundWalkingTimeFromStation)
         if s.outboundDestinationType == .otherPlace {
             outboundDestStation = TFLStopPoint(
@@ -293,7 +273,6 @@ struct SettingsView: View {
         s.officeStationLines      = officeStation.lines
         s.walkingMinutesToOffice  = officeWalkMinutes
         s.arrivalTime             = arrivalTime
-        s.notificationTime        = notificationTime
         var days: [Weekday] = []
         if monday    { days.append(.monday) }
         if tuesday   { days.append(.tuesday) }
@@ -303,8 +282,6 @@ struct SettingsView: View {
         s.officeDays = days
         if s.outboundEnabled {
             s.outboundArrivalTime      = outboundArrivalTime
-            s.outboundNotificationTime = outboundNotificationTime
-            s.outboundNotificationDays = days
             if s.outboundDestinationType == .otherPlace {
                 s.outboundWalkingTimeFromStation  = outboundWalkMinutes
                 s.outboundDestinationStationId    = outboundDestStation.naptanId

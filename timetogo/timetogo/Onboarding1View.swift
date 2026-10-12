@@ -16,7 +16,7 @@ struct Onboarding1View: View {
         VStack(spacing: 0) {
             OnboardingHeader(
                 step: 1,
-                totalSteps: 4,
+                totalSteps: 3,
                 title: "Where do you leave?"
             )
             .padding(.horizontal, 24)

@@ -38,12 +38,10 @@ final class MainViewModel: ObservableObject {
 
     /// Load commute result.
     ///
-    /// - Parameter forceRefresh: When `true`, bypasses the active-cache lock and forces a
-    ///   fresh API call. Use for:
-    ///     • Notification tap when no active cache exists (§11.8 Case B).
+    /// - Parameter forceRefresh: When `true`, surfaces fetch errors instead of falling
+    ///   back to stale cache. Use for:
     ///     • Manual pull-to-refresh.
     ///     • Date or settings change (§11.9).
-    ///   When `false` (default), the active-cache rule is respected per §11.7.
     func loadCommute(forceRefresh: Bool = false) {
         Task {
             isLoading = true

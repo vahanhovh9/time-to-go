@@ -8,7 +8,9 @@ The app calculates the exact time a user must leave home in order to arrive at t
 
 The user completes onboarding once.
 
-After that, the app automatically calculates commute timing and sends notifications without requiring the user to open external map apps.
+After that, whenever the user needs to know when to leave, they open TimeToGo and see the leave time immediately — no external map apps.
+
+The app sends no notifications and does no background work. Everything is calculated on demand when the app is opened.
 
 ---
 
@@ -37,8 +39,7 @@ userOfficeStation: String
 userWalkingTimeToOffice: Int (minutes)
 
 userArrivalTime: Date (time-only component)
-notificationDays: [Weekday]
-notificationTime: Date (time-only component)
+officeDays: [Weekday]
 ```
 
 ---
@@ -64,9 +65,7 @@ Same logic as Step 1
 - Store arrival time
 - Store selected weekdays
 
-### **Step 4 — Notification**
-
-- Store notification trigger time
+Onboarding has 3 steps. There is no notification step.
 
 ---
 
@@ -74,16 +73,12 @@ Same logic as Step 1
 
 When onboarding completes:
 
-1. Calculate next notification date:
-    - Based on selected weekdays
-    - Must be the closest future matching weekday
-2. Combine:
-    - nextNotificationWeekday
-    - notificationTime
-3. Display formatted result:
-    
-    Example: “Tuesday 3rd March at 7:30 AM”
-    
+1. Save settings.
+2. Show success screen:
+
+    “Open TimeToGo whenever you’re heading out.”
+
+3. On “All done” → open the main screen, which calculates the commute immediately.
 
 ---
 
@@ -93,7 +88,9 @@ When onboarding completes:
 
 Determine relative phrasing:
 
-If next notification day == tomorrow →
+Based on the next commute day:
+
+If next commute day == tomorrow →
 
 “Tomorrow at”
 
@@ -190,101 +187,38 @@ Show:
 
 ---
 
-## **11. Notification & Background Execution Logic**
-
-
-
-11. Notification & Background Execution Logic
+## **11. On-Demand Delivery & Cache Logic**
 
 11.1 Purpose
 
-Notifications are the primary delivery mechanism of TimeToGo.
+TimeToGo has no notifications and no background execution.
+
+The user opens the app whenever they need it; the app shows the current leave time.
 
 The system must:
-	•	Deliver accurate commute information when possible.
-	•	Never send stale or potentially misleading leave times.
-	•	Degrade gracefully if background execution fails.
-
-Trust and accuracy take priority over autonomy.
+	•	Calculate the commute when the app opens.
+	•	Never show stale leave times as if they were fresh.
 
 ⸻
 
-11.2 Permission Handling
+11.2 Removed Behaviour
 
-During onboarding completion:
-	•	Request notification permission using UNUserNotificationCenter.
-	•	If denied:
-	•	Show a non-blocking explanation.
-	•	Provide guidance to enable notifications in Settings.
-	•	The app must remain stable even if permission is denied.
+The following do NOT exist and must not be reintroduced without a spec change:
+	•	Notification permission requests
+	•	Scheduled / placeholder notifications
+	•	BGTaskScheduler background refresh
+	•	Notification deep links
+	•	Notification time / days settings
 
-Notifications are required for full agent functionality.
-
-⸻
-
-11.3 Scheduling Strategy
-
-After onboarding completion:
-	1.	Schedule repeating weekly placeholder notifications using:
-	•	notificationDays
-	•	notificationTime
-	2.	Register and schedule background refresh using BGTaskScheduler.
-	3.	Background task must:
-	•	Execute before notification time (earliestBeginDate set well in advance, e.g. ~2 hours earlier).
-	•	Recalculate commute.
-	•	Update cache.
-	•	Replace today’s placeholder notification with a one-shot notification containing real commute data.
-	•	Reschedule itself.
-
-Background refresh is opportunistic and not guaranteed.
+On launch the app clears any notifications left pending or delivered by older builds.
 
 ⸻
 
-11.4 Background Refresh Flow
+11.5 Fallback Policy
 
-When the background task executes:
-	1.	Load user settings.
-	2.	Recalculate commute using CommuteCalculationService(forceRefresh: true).
-	3.	Save result to CommuteCacheManager.
-	4.	Replace today’s repeating notification with a one-shot notification containing:
-	•	leaveHomeTime
-	•	line service status
-	5.	Schedule next background refresh task.
-
-⸻
-
-11.5 Trust-First Notification Policy
-
-At notification time:
-
-Case A — Fresh Same-Day Cache Exists
-
-If a valid cached commute result exists for the same commute day:
-
-Send notification:
-
-Leave home at 8:24 AM. Northern line service is good.
-
-When tapped:
-	•	Open main screen.
-	•	Display the exact cached result.
-	•	Do NOT automatically recalculate.
-
-⸻
-
-Case B — No Fresh Cache Exists
-
-If background refresh did not run or failed:
-
-Send notification:
-
-Open TimeToGo to calculate your commute.
-
-When tapped:
-	•	Open main screen.
-	•	Force immediate commute recalculation.
-
-The system must NEVER send stale leave times.
+If a fresh calculation fails:
+	•	Normal load → show the last same-day cached result with “(Using last available data)”.
+	•	Forced refresh (manual refresh, settings change) → surface the real error.
 
 ⸻
 
@@ -303,64 +237,21 @@ Cache validity:
 	•	Not older than 24 hours
 
 If cache exists but is outdated:
-	•	It must NOT be used for notification content.
-	•	It may optionally be displayed inside the app with a clear staleness indicator.
+	•	It may be displayed inside the app only with a clear staleness indicator.
 
 ⸻
 
-11.7 Consistency Rule
-
-If a notification delivers a leave time:
-	•	That exact value must be marked as the active commute result.
-	•	When user opens the app during the same commute day:
-	•	The app must display the same leave time.
-	•	No automatic recalculation.
-	•	Recalculation is allowed only if:
-	•	User manually refreshes.
-	•	Date changes.
-	•	Settings change.
-
-⸻
-
-11.8 Deep Linking Behavior
-
-All notifications must include payload:
-
-{
-  "action": "openMain"
-}
-
-When a notification is tapped:
-	1.	Open the main screen.
-	2.	If active same-day cache exists → display it.
-	3.	If no active cache exists → trigger forced recalculation immediately.
-
-⸻
-
-11.9 Rescheduling Rule
+11.9 Settings Change Rule
 
 If user updates:
 	•	Arrival time
-	•	Notification time
-	•	Notification days
+	•	Office days
 	•	Home or office station
 	•	Walking durations
 
 Then:
-	•	Cancel all scheduled notifications.
-	•	Cancel all pending background tasks.
-	•	Reschedule notifications and background refresh.
-
-⸻
-
-11.10 iOS Constraints Acknowledgment
-
-The system must account for the following:
-	•	Background tasks are opportunistic and not guaranteed.
-	•	Low Power Mode may suppress background execution.
-	•	Force-quit prevents background scheduling.
-	•	Placeholder notification ensures delivery even if refresh fails.
-	•	Trust-first policy prevents incorrect commute times from being sent.
+	•	Save settings.
+	•	Force a fresh commute calculation.
 
 ⸻
 
@@ -477,15 +368,6 @@ Store:
 
 outboundArrivalTime: Date
 
-Ask:
-
-When should we notify you?
-
-Store:
-
-outboundNotificationTime: Date
-outboundNotificationDays: [Weekday]
-
 ⸻
 
 12.6 Option B — Other Place
@@ -511,11 +393,6 @@ Step 3 — Arrival Time
 
 outboundArrivalTime: Date
 
-Step 4 — Notification
-
-outboundNotificationTime: Date
-outboundNotificationDays: [Weekday]
-
 ⸻
 
 12.7 Stored Data
@@ -527,8 +404,8 @@ outboundDestinationLine: String
 outboundDestinationStation: String
 outboundWalkingTimeFromStation: Int
 outboundArrivalTime: Date
-outboundNotificationDays: [Weekday]
-outboundNotificationTime: Date
+
+Outbound runs on the same officeDays as inbound.
 
 ⸻
 
@@ -541,13 +418,10 @@ On outbound onboarding completion:
 
 outboundEnabled = true
 
-3. Calculate next notification date
-4. Schedule outbound notifications
-5. Schedule outbound background refresh
-6. Show success screen:
+3. Show success screen:
 
-Outbound is ready.
-We’ll tell you when to leave work.
+Outbound is all set!
+Open TimeToGo whenever you’re heading out.
 
 ⸻
 
@@ -583,52 +457,6 @@ leaveOfficeTime
 
 ⸻
 
-12.10 Notification & Background Logic (Outbound)
-
-Outbound follows the same trust-first notification policy as inbound.
-
-Scheduling
-
-* Schedule repeating weekly placeholder notifications using:
-    * outboundNotificationDays
-    * outboundNotificationTime
-* Register background refresh task:
-    * Runs before notification time
-    * Recalculates outbound commute
-    * Updates outbound cache
-    * Replaces placeholder with one-shot notification
-
-⸻
-
-Notification Behavior
-
-Case A — Fresh Cache Exists
-
-Send:
-
-Leave work at 5:12 PM. Central line service is good.
-
-On tap:
-
-* Open main screen
-* Show cached outbound result
-* Do NOT recalculate
-
-⸻
-
-Case B — No Fresh Cache
-
-Send:
-
-Open TimeToGo to calculate your commute.
-
-On tap:
-
-* Open main screen
-* Force outbound recalculation
-
-⸻
-
 12.11 Cache Rules
 
 Use separate cache:
@@ -660,8 +488,6 @@ Show:
 
 Outbound destination
 Outbound arrival time
-Outbound notification days
-Outbound notification time
 Outbound walking time
 Reset outbound
 Disable outbound
@@ -669,8 +495,6 @@ Disable outbound
 If outbound disabled:
 
 * Hide outbound settings
-* Cancel outbound notifications
-* Cancel outbound background tasks
 
 ⸻
 
@@ -679,9 +503,8 @@ If outbound disabled:
 * Outbound must never affect inbound logic
 * Arrival must never be later than outboundArrivalTime
 * Outbound cache must be separate from inbound cache
-* Notifications must never send stale leave times
-* Outbound must follow trust-first policy
-* Updating outbound settings must reschedule outbound only
+* Stale leave times must never be shown as fresh
+* Updating outbound settings must recalculate outbound only
 * Updating inbound must not break outbound (except shared station data)
 
 ⸻
@@ -706,9 +529,7 @@ It must NOT:
 
 - Recalculate the commute
 - Modify active commute results
-- Affect notifications
 - Affect cache state
-- Trigger background refresh
 - Change leave times
 - Modify onboarding data
 - Persist temporary schedule filtering state
@@ -1121,7 +942,6 @@ It must NOT:
 - Recalculate commute results
 - Change leave times
 - Trigger refresh logic
-- Affect notifications
 - Affect caching
 - Modify commute state
 
@@ -1233,9 +1053,7 @@ All displayed times must use:
 - Destination-terminal matching is preferred over simple cardinal direction matching
 - Review Schedule must never recalculate commutes
 - Review Schedule must never affect active commute results
-- Review Schedule must never affect notifications
 - Review Schedule must never affect cache state
-- Review Schedule must never trigger background tasks
 - Inbound and outbound schedule state must remain isolated
 - Views must render computed state only
 - TfL integration must remain isolated inside TFLService
