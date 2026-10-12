@@ -16,9 +16,6 @@ struct CachedCommuteResult: Codable {
     let commuteDate: Date
     /// When CommuteCalculationService produced this result.
     let timestamp: Date
-    /// §11.7: Marked true when a real leave-time notification has been scheduled.
-    /// Prevents auto-recalculation while the user is in the same commute window.
-    var isActive: Bool
 }
 
 // MARK: - Manager
@@ -27,10 +24,8 @@ struct CachedCommuteResult: Codable {
 ///
 /// Trust-first contract (§11.5):
 ///   • `load(for:)` returns a result ONLY when it is both same-day AND within 24 h.
-///   • Notifications may ONLY use data obtained via `load(for:)`.
 ///   • `fallback(for:)` returns any same-day entry regardless of age and is reserved
-///     exclusively for in-app display with a staleness indicator. It MUST NOT be used
-///     to populate notification content.
+///     for in-app display with a staleness indicator.
 final class CommuteCacheManager {
 
     private let storageKey   = "com.timetogo.commuteCache"
@@ -49,8 +44,7 @@ final class CommuteCacheManager {
             serviceStatusText:           result.serviceStatus.displayText,
             dayLabel:                    result.dayLabel,
             commuteDate:                 Calendar.current.startOfDay(for: date),
-            timestamp:                   Date(),
-            isActive:                    false
+            timestamp:                   Date()
         )
         guard let data = try? JSONEncoder().encode(cached) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
@@ -60,38 +54,17 @@ final class CommuteCacheManager {
 
     /// Returns a validated cache entry for `date`.
     /// Returns nil if the entry is absent, belongs to a different day, or is older than 24 h.
-    /// This is the ONLY source for notification content (§11.5, §11.6).
     func load(for date: Date) -> CachedCommuteResult? {
         guard let cached = loadRaw(), isValid(cached, for: date) else { return nil }
         return cached
     }
 
-    // MARK: - §11.7 Active-result locking
-
-    /// Mark the current cache entry as the active commute result.
-    /// Call this immediately after scheduling a real leave-time notification (§11.7)
-    /// so that `hasActiveResult(for:)` returns true when the user opens the app.
-    func markAsActive() {
-        guard var cached = loadRaw() else { return }
-        cached.isActive = true
-        guard let data = try? JSONEncoder().encode(cached) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
-    }
-
-    /// §11.7: True when a real leave-time notification has been committed for `date`.
-    /// The main flow MUST NOT auto-recalculate while this is true.
-    /// Only a manual refresh, date change, or settings change may override.
-    func hasActiveResult(for date: Date) -> Bool {
-        guard let cached = loadRaw(), cached.isActive else { return false }
-        return Calendar.current.isDate(cached.commuteDate, inSameDayAs: date)
-    }
-
-    // MARK: - In-app staleness fallback (§11.6 — NOT for notifications)
+    // MARK: - In-app staleness fallback (§11.6)
 
     /// Returns any same-day cache entry regardless of age.
     ///
     /// Use ONLY for in-app display when you want to show the last known value
-    /// with a clear staleness indicator. NEVER use for notification content.
+    /// with a clear staleness indicator.
     func fallback(for date: Date) -> CachedCommuteResult? {
         guard let cached = loadRaw() else { return nil }
         guard Calendar.current.isDate(cached.commuteDate, inSameDayAs: date) else { return nil }

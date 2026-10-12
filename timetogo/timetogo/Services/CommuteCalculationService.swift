@@ -26,17 +26,10 @@ final class CommuteCalculationService {
 
     /// Calculate the commute result for the user's next office day.
     ///
-    /// - Parameter forceRefresh: When `true`, bypasses the active-cache rule.
-    ///   Use for manual refresh, date changes, or settings changes (§11.7).
+    /// - Parameter forceRefresh: When `true`, errors are surfaced instead of falling back
+    ///   to stale cache. Use for manual refresh, date changes, or settings changes.
     func calculate(for settings: UserSettings, forceRefresh: Bool = false) async throws -> CommuteResult {
         let commuteDate = nextCommuteDate(from: settings)
-
-        // §11.6 — Return active cache immediately unless a refresh is forced.
-        if !forceRefresh, cacheManager.hasActiveResult(for: commuteDate) {
-            if let cached = cacheManager.load(for: commuteDate) {
-                return CommuteResult(from: cached)
-            }
-        }
 
         do {
             let result = try await fetchFreshResult(for: settings, on: commuteDate)

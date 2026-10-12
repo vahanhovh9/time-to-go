@@ -1,28 +1,5 @@
 import SwiftUI
 
-// Concrete View type for group-label section headers — avoids @ViewBuilder type-inference overload.
-private struct GroupSectionHeader: View {
-    let groupTitle: String
-    let sectionLabel: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(groupTitle)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.primary)
-                .textCase(nil)
-            if let label = sectionLabel {
-                Text(label)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .textCase(.uppercase)
-                    .kerning(0.3)
-            }
-        }
-        .padding(.top, 12)
-    }
-}
-
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var store: TFLDataStore
@@ -40,7 +17,6 @@ struct SettingsView: View {
     @State private var wednesday = false
     @State private var thursday = true
     @State private var friday = false
-    @State private var notificationTime: Date = Self.time(7, 30)
 
     @State private var showHomeStationPicker = false
     @State private var showOfficeStationPicker = false
@@ -48,11 +24,12 @@ struct SettingsView: View {
     // MARK: - Outbound state
 
     @State private var outboundArrivalTime: Date = Self.time(18, 0)
-    @State private var outboundNotificationTime: Date = Self.time(16, 0)
     @State private var outboundWalkMinutes: Int = 5
     @State private var outboundDestStation: TFLStopPoint = .placeholder
     @State private var showOutboundDestPicker = false
 
+    /// Which time row currently has its wheel picker expanded.
+    @State private var expandedTimeRow: String?
     @State private var isLoaded = false
 
     private let walkOptions: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
@@ -83,7 +60,6 @@ struct SettingsView: View {
     private var outboundObserved: some View {
         inboundObserved
             .onChange(of: outboundArrivalTime)      { _, _ in autoSave() }
-            .onChange(of: outboundNotificationTime) { _, _ in autoSave() }
             .onChange(of: outboundWalkMinutes)      { _, _ in autoSave() }
             .onChange(of: outboundDestStation)      { _, _ in autoSave() }
     }
@@ -95,13 +71,10 @@ struct SettingsView: View {
             .onChange(of: wednesday)        { _, _ in autoSave() }
             .onChange(of: thursday)         { _, _ in autoSave() }
             .onChange(of: friday)           { _, _ in autoSave() }
-            .onChange(of: notificationTime) { _, _ in autoSave() }
     }
 
     private var baseView: some View {
-        NavigationView { mainForm }
-            .navigationViewStyle(.stack)
-            .tint(.black)
+        page
             .onAppear(perform: prefill)
             .onChange(of: homeStation)       { _, _ in autoSave() }
             .onChange(of: homeWalkMinutes)   { _, _ in autoSave() }
@@ -110,148 +83,187 @@ struct SettingsView: View {
             .onChange(of: arrivalTime)       { _, _ in autoSave() }
     }
 
-    // MARK: - Form
+    // MARK: - Page
 
-    private var mainForm: some View {
-        Form {
-            homeSection
-            officeSection
-            scheduleSection
-            inboundNotificationSection
-            outboundContent
-        }
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.large)
-    }
-
-    // MARK: - Inbound sections (each is a concrete Section — no @ViewBuilder needed)
-
-    private var homeSection: some View {
-        Section {
-            stationRow(label: "Station", station: homeStation, onTap: { showHomeStationPicker = true })
-            walkPicker(label: "Walk to station", minutes: $homeWalkMinutes)
-        } header: {
-            GroupSectionHeader(groupTitle: "Inbound", sectionLabel: "Home")
-        }
-    }
-
-    private var officeSection: some View {
-        Section("Office") {
-            stationRow(label: "Station", station: officeStation, onTap: { showOfficeStationPicker = true })
-            walkPicker(label: "Walk from station", minutes: $officeWalkMinutes)
-        }
-    }
-
-    private var scheduleSection: some View {
-        Section("Schedule") {
-            timePicker(label: "Office arrival", time: $arrivalTime)
-            Toggle("Monday",    isOn: $monday)
-            Toggle("Tuesday",   isOn: $tuesday)
-            Toggle("Wednesday", isOn: $wednesday)
-            Toggle("Thursday",  isOn: $thursday)
-            Toggle("Friday",    isOn: $friday)
-        }
-    }
-
-    private var inboundNotificationSection: some View {
-        Section("Notification") {
-            timePicker(label: "For office", time: $notificationTime)
-        }
-    }
-
-    // MARK: - Outbound sections
-
-    @ViewBuilder
-    private var outboundContent: some View {
-        if outboundEnabled {
-            outboundScheduleSection     // includes the "Outbound" group header
-            outboundNotificationSection
-        } else {
-            outboundDisabledSection
-        }
-    }
-
-    // Handles both destination-type layouts; always shows the "Outbound" group header.
-    @ViewBuilder
-    private var outboundScheduleSection: some View {
-        if outboundDestType == .otherPlace {
-            Section {
-                stationRow(label: "Station", station: outboundDestStation, onTap: { showOutboundDestPicker = true })
-                walkPicker(label: "Walk from station", minutes: $outboundWalkMinutes)
-            } header: {
-                GroupSectionHeader(groupTitle: "Outbound", sectionLabel: "Destination")
+    private var page: some View {
+        VStack(spacing: 0) {
+            header
+            ScrollView {
+                VStack(alignment: .leading, spacing: 32) {
+                    toOfficeGroup
+                    backHomeGroup
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+                .padding(.bottom, 32)
             }
-            Section("Schedule") {
-                timePicker(label: "Arrival time", time: $outboundArrivalTime)
+        }
+        .background(Color.white)
+    }
+
+    private var header: some View {
+        Text("Settings")
+            .font(.system(size: 40, weight: .bold))
+            .tracking(-2)
+            .foregroundColor(.black)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 26)
+            .padding(.top, 14)
+            .padding(.bottom, 20)
+    }
+
+    // MARK: - To office
+
+    private var toOfficeGroup: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            groupTitle("To office")
+
+            SettingsCard(title: "Home") {
+                stationRow(label: "Station", station: homeStation) { showHomeStationPicker = true }
+                walkRow(label: "Walk to station", minutes: $homeWalkMinutes)
             }
-        } else {
-            Section {
-                timePicker(label: "Arrival time", time: $outboundArrivalTime)
-            } header: {
-                GroupSectionHeader(groupTitle: "Outbound", sectionLabel: "Schedule")
+
+            SettingsCard(title: "Office") {
+                stationRow(label: "Station", station: officeStation) { showOfficeStationPicker = true }
+                walkRow(label: "Walk from station", minutes: $officeWalkMinutes)
+            }
+
+            SettingsCard(title: "Schedule") {
+                timeRow(id: "inboundArrival", label: "Office arrival", time: $arrivalTime)
+                daysRow
             }
         }
     }
 
-    private var outboundNotificationSection: some View {
-        Section("Notification") {
-            timePicker(label: "Notification time", time: $outboundNotificationTime)
-        }
-    }
+    // MARK: - Back home
 
-    private var outboundDisabledSection: some View {
-        Section {
-            Text("Set up outbound from the Outbound tab.")
-                .foregroundColor(.secondary)
-                .font(.subheadline)
-        } header: {
-            GroupSectionHeader(groupTitle: "Outbound", sectionLabel: nil)
-        }
-    }
+    private var backHomeGroup: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            groupTitle("Back home")
 
-    // MARK: - Row builders
-
-    @ViewBuilder
-    private func stationRow(label: String, station: TFLStopPoint, onTap: @escaping () -> Void) -> some View {
-        Button(action: onTap) {
-            HStack {
-                Text(label).foregroundColor(.primary)
-                Spacer()
-                if station.naptanId.isEmpty {
-                    Text("Choose").foregroundColor(.secondary)
-                } else {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(station.displayName)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                        if !station.lineDisplayText.isEmpty {
-                            Text(station.lineDisplayText)
-                                .font(.system(size: 11))
-                                .foregroundColor(Color(.tertiaryLabel))
-                                .lineLimit(1)
-                        }
+            if outboundEnabled {
+                if outboundDestType == .otherPlace {
+                    SettingsCard(title: "Destination") {
+                        stationRow(label: "Station", station: outboundDestStation) { showOutboundDestPicker = true }
+                        walkRow(label: "Walk from station", minutes: $outboundWalkMinutes)
                     }
                 }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(Color(.tertiaryLabel))
-            }
-        }
-        .foregroundColor(.primary)
-    }
-
-    private func timePicker(label: String, time: Binding<Date>) -> some View {
-        DatePicker(label, selection: time, displayedComponents: .hourAndMinute)
-            .tint(.black)
-    }
-
-    private func walkPicker(label: String, minutes: Binding<Int>) -> some View {
-        Picker(label, selection: minutes) {
-            ForEach(walkOptions, id: \.self) { m in
-                Text("\(m) min").tag(m)
+                SettingsCard(title: "Schedule") {
+                    timeRow(id: "outboundArrival", label: "Arrival time", time: $outboundArrivalTime)
+                }
+            } else {
+                SettingsCard(title: "Not set up yet", subtitle: "Set up your journey home from the Back home tab.") {
+                    EmptyView()
+                }
             }
         }
     }
+
+    private func groupTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 20, weight: .bold))
+            .tracking(-0.5)
+            .foregroundColor(.black)
+            .padding(.leading, 6)
+    }
+
+    // MARK: - Rows
+
+    private func stationRow(label: String, station: TFLStopPoint, onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            SettingsRow(label: label) {
+                HStack(spacing: 8) {
+                    if station.naptanId.isEmpty {
+                        Text("Choose")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.grey30)
+                    } else {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(station.displayName)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.black)
+                                .lineLimit(1)
+                            if !station.lineDisplayText.isEmpty {
+                                Text(station.lineDisplayText)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.grey30)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.grey30)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func walkRow(label: String, minutes: Binding<Int>) -> some View {
+        SettingsRow(label: label) {
+            Menu {
+                Picker(label, selection: minutes) {
+                    ForEach(walkOptions, id: \.self) { m in
+                        Text("\(m) min").tag(m)
+                    }
+                }
+            } label: {
+                ValueChip(text: "\(minutes.wrappedValue) min")
+            }
+        }
+    }
+
+    private func timeRow(id: String, label: String, time: Binding<Date>) -> some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    expandedTimeRow = expandedTimeRow == id ? nil : id
+                }
+            } label: {
+                SettingsRow(label: label) {
+                    ValueChip(text: Self.timeFormatter.string(from: time.wrappedValue),
+                              isActive: expandedTimeRow == id)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if expandedTimeRow == id {
+                DatePicker(label, selection: time, displayedComponents: .hourAndMinute)
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 12)
+            }
+        }
+    }
+
+    private var daysRow: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Office days")
+                .font(.system(size: 13, weight: .medium))
+                .tracking(-0.5)
+                .foregroundColor(.grey50)
+            HStack(spacing: 6) {
+                DayChip(title: "Mon", isOn: $monday)
+                DayChip(title: "Tue", isOn: $tuesday)
+                DayChip(title: "Wed", isOn: $wednesday)
+                DayChip(title: "Thu", isOn: $thursday)
+                DayChip(title: "Fri", isOn: $friday)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 20)
+        .overlay(alignment: .top) { Rectangle().fill(Color.grey10).frame(height: 1) }
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
+        return f
+    }()
 
     // MARK: - Prefill / Save
 
@@ -262,7 +274,6 @@ struct SettingsView: View {
         officeStation     = TFLStopPoint(naptanId: s.officeStationId, commonName: s.officeStationName, lines: s.officeStationLines)
         officeWalkMinutes = max(1, s.walkingMinutesToOffice)
         arrivalTime       = s.arrivalTime
-        notificationTime  = s.notificationTime
         let days = Set(s.officeDays)
         monday    = days.contains(.monday)
         tuesday   = days.contains(.tuesday)
@@ -270,7 +281,6 @@ struct SettingsView: View {
         thursday  = days.contains(.thursday)
         friday    = days.contains(.friday)
         outboundArrivalTime      = s.outboundArrivalTime
-        outboundNotificationTime = s.outboundNotificationTime
         outboundWalkMinutes      = max(1, s.outboundWalkingTimeFromStation)
         if s.outboundDestinationType == .otherPlace {
             outboundDestStation = TFLStopPoint(
@@ -293,7 +303,6 @@ struct SettingsView: View {
         s.officeStationLines      = officeStation.lines
         s.walkingMinutesToOffice  = officeWalkMinutes
         s.arrivalTime             = arrivalTime
-        s.notificationTime        = notificationTime
         var days: [Weekday] = []
         if monday    { days.append(.monday) }
         if tuesday   { days.append(.tuesday) }
@@ -303,8 +312,6 @@ struct SettingsView: View {
         s.officeDays = days
         if s.outboundEnabled {
             s.outboundArrivalTime      = outboundArrivalTime
-            s.outboundNotificationTime = outboundNotificationTime
-            s.outboundNotificationDays = days
             if s.outboundDestinationType == .otherPlace {
                 s.outboundWalkingTimeFromStation  = outboundWalkMinutes
                 s.outboundDestinationStationId    = outboundDestStation.naptanId
@@ -330,4 +337,96 @@ struct SettingsView: View {
     return SettingsView(viewModel: vm)
         .environmentObject(AppState())
         .environmentObject(TFLDataStore(service: MockTFLService()))
+}
+
+// MARK: - Building blocks (same card / row language as DepartureBoard)
+
+/// Bordered card with a 13pt title, optional footnote subtitle, and divided rows.
+private struct SettingsCard<Rows: View>: View {
+    var title: String
+    var subtitle: String? = nil
+    @ViewBuilder var rows: () -> Rows
+
+    var body: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .bold))
+                    .tracking(-0.5)
+                    .foregroundColor(.black)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundColor(.grey30)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(spacing: 0) { rows() }
+        }
+        .padding(.top, 16)
+        .padding(.bottom, subtitle == nil ? 0 : 16)
+        .padding(.horizontal, 12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.grey10, lineWidth: 1)
+        )
+    }
+}
+
+/// One divided row: grey label on the left, value on the right.
+private struct SettingsRow<Value: View>: View {
+    var label: String
+    @ViewBuilder var value: () -> Value
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .tracking(-0.5)
+                .foregroundColor(.grey30)
+                .frame(minHeight: 25)   // 1.8 line height at 14pt
+            Spacer(minLength: 8)
+            value()
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 20)
+        .contentShape(Rectangle())
+        .overlay(alignment: .top) { Rectangle().fill(Color.grey10).frame(height: 1) }
+    }
+}
+
+/// Right-hand value text ("5 min", "9:00 am"). Dims while its picker is open.
+private struct ValueChip: View {
+    var text: String
+    var isActive = false
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 14, weight: .medium))
+            .tracking(-0.5)
+            .foregroundColor(isActive ? .grey30 : .black)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .frame(minWidth: 63, minHeight: 20)
+    }
+}
+
+/// Weekday toggle: black when selected, grey10 otherwise.
+private struct DayChip: View {
+    var title: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button { isOn.toggle() } label: {
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(isOn ? .white : .grey50)
+                .frame(maxWidth: .infinity, minHeight: 36)
+                .background(isOn ? Color.black : Color.grey10)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
 }

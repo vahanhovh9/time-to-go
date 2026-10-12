@@ -19,7 +19,7 @@ struct Onboarding3View: View {
         VStack(spacing: 0) {
             OnboardingHeader(
                 step: 3,
-                totalSteps: 4,
+                totalSteps: 3,
                 title: "When do you arrive?",
                 showsBackButton: true,
                 onBack: onBack
@@ -54,7 +54,7 @@ struct Onboarding3View: View {
 
             VStack(spacing: 0) {
                 Divider().background(Color.grey10)
-                CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
+                CustomButton(title: "Complete", style: .filled, action: { onNext() }, isEnabled: isFormValid)
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 24)

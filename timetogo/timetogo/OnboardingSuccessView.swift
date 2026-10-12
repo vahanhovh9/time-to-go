@@ -4,38 +4,6 @@ struct OnboardingSuccessView: View {
     var onAllDone: () -> Void
     var onChangeSettings: () -> Void
 
-    private var nextUpdateDate: String {
-        let calendar = Calendar.current
-        let today = Date()
-        let components = calendar.dateComponents([.weekday], from: today)
-        let daysUntilTuesday = (3 - (components.weekday ?? 1) + 7) % 7
-        var nextTuesday = calendar.date(
-            byAdding: .day,
-            value: daysUntilTuesday == 0 ? 7 : daysUntilTuesday,
-            to: today
-        ) ?? today
-
-        var dc = calendar.dateComponents([.year, .month, .day], from: nextTuesday)
-        dc.hour = 7; dc.minute = 30
-        nextTuesday = calendar.date(from: dc) ?? nextTuesday
-
-        let dayName = DateFormatter().then { $0.dateFormat = "EEEE" }.string(from: nextTuesday)
-        let day     = calendar.component(.day, from: nextTuesday)
-        let month   = DateFormatter().then { $0.dateFormat = "MMMM" }.string(from: nextTuesday)
-        let time    = DateFormatter().then { $0.dateFormat = "h:mm a" }.string(from: nextTuesday)
-            .replacingOccurrences(of: " am", with: " AM", options: .caseInsensitive)
-            .replacingOccurrences(of: " pm", with: " PM", options: .caseInsensitive)
-
-        let suffix: String
-        switch day {
-        case 1, 21, 31: suffix = "st"
-        case 2, 22:     suffix = "nd"
-        case 3, 23:     suffix = "rd"
-        default:        suffix = "th"
-        }
-        return "\(dayName) \(day)\(suffix) \(month) at \(time)"
-    }
-
     var body: some View {
         // Use .background so the VStack respects the safe-area top exactly like every
         // other onboarding page. Children of a ZStack that carry .ignoresSafeArea()
@@ -66,19 +34,7 @@ struct OnboardingSuccessView: View {
                         .h3Style()
                         .foregroundColor(Color.black)
 
-                    Text("You shouldn't do anything.\nThe agent will send you a notification.")
-                        .bodySmallStyle()
-                        .foregroundColor(Color.grey50)
-                        .multilineTextAlignment(.center)
-                }
-
-                // Next update
-                VStack(spacing: 8) {
-                    Text("Next update")
-                        .bodySmallStyle()
-                        .foregroundColor(Color.black)
-
-                    Text(nextUpdateDate)
+                    Text("Open TimeToGo whenever\nyou're heading out.")
                         .bodySmallStyle()
                         .foregroundColor(Color.grey50)
                         .multilineTextAlignment(.center)
@@ -117,15 +73,6 @@ struct OnboardingSuccessView: View {
             }
             .ignoresSafeArea()
         }
-    }
-}
-
-// MARK: - DateFormatter helper
-
-private extension DateFormatter {
-    func then(_ configure: (DateFormatter) -> Void) -> DateFormatter {
-        configure(self)
-        return self
     }
 }
 

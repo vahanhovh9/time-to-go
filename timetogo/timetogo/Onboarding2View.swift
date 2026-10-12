@@ -17,7 +17,7 @@ struct Onboarding2View: View {
         VStack(spacing: 0) {
             OnboardingHeader(
                 step: 2,
-                totalSteps: 4,
+                totalSteps: 3,
                 title: "Where do you work?",
                 showsBackButton: true,
                 onBack: onBack

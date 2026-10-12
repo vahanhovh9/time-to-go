@@ -11,9 +11,7 @@ import SwiftUI
 struct timetogoApp: App {
 
     // Bridges UIApplicationDelegate into the SwiftUI lifecycle.
-    // AppDelegate.application(_:didFinishLaunchingWithOptions:) runs first,
-    // which is required for BGTaskScheduler registration and UNUserNotificationCenter
-    // delegate setup (both must complete before didFinishLaunching returns).
+    // Used to force light interface style on every UIWindow.
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     // Global app state: holds onboarding flag + loaded UserSettings.
@@ -25,7 +23,6 @@ struct timetogoApp: App {
             ContentView()
                 .preferredColorScheme(.light)
                 .environmentObject(appState)
-                .environmentObject(NotificationService.shared)
         }
     }
 }

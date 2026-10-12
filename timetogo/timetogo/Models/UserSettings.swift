@@ -38,12 +38,6 @@ struct UserSettings: Codable {
 
     var officeDays: [Weekday] = []
 
-    // MARK: - Inbound notification
-
-    var notificationTime: Date = {
-        Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date()) ?? Date()
-    }()
-
     // MARK: - Outbound (§12.7)
 
     var outboundEnabled: Bool = false
@@ -60,12 +54,6 @@ struct UserSettings: Codable {
     /// When the user needs to arrive at the outbound destination.
     var outboundArrivalTime: Date = {
         Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
-    }()
-
-    var outboundNotificationDays: [Weekday] = []
-
-    var outboundNotificationTime: Date = {
-        Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
     }()
 
     // MARK: - Computed outbound helpers
@@ -101,11 +89,11 @@ struct UserSettings: Codable {
     enum CodingKeys: String, CodingKey {
         case homeStationId, homeStationName, homeStationLines, walkingMinutesToStation
         case officeStationId, officeStationName, officeStationLines, walkingMinutesToOffice
-        case arrivalTime, officeDays, notificationTime
+        case arrivalTime, officeDays
         case outboundEnabled, outboundDestinationType
         case outboundDestinationStationId, outboundDestinationStationName, outboundDestinationStationLines
         case outboundWalkingTimeFromStation
-        case outboundArrivalTime, outboundNotificationDays, outboundNotificationTime
+        case outboundArrivalTime
         // Legacy keys (pre-outbound builds) — values ignored, keys kept to avoid decode errors
         case legacyHomeLineId   = "homeLineId"
         case legacyOfficeLineId = "officeLineId"
@@ -142,7 +130,6 @@ struct UserSettings: Codable {
 
         arrivalTime      = (try? c.decode(Date.self,      forKey: .arrivalTime))      ?? Calendar.current.date(bySettingHour: 9,  minute: 0,  second: 0, of: Date()) ?? Date()
         officeDays       = (try? c.decode([Weekday].self, forKey: .officeDays))       ?? []
-        notificationTime = (try? c.decode(Date.self,      forKey: .notificationTime)) ?? Calendar.current.date(bySettingHour: 7,  minute: 30, second: 0, of: Date()) ?? Date()
 
         outboundEnabled             = (try? c.decode(Bool.self,                     forKey: .outboundEnabled))             ?? false
         outboundDestinationType     = (try? c.decode(OutboundDestinationType.self,  forKey: .outboundDestinationType))     ?? .home
@@ -151,8 +138,6 @@ struct UserSettings: Codable {
         outboundDestinationStationLines = (try? c.decode([TFLLineRef].self, forKey: .outboundDestinationStationLines)) ?? []
         outboundWalkingTimeFromStation  = (try? c.decode(Int.self,      forKey: .outboundWalkingTimeFromStation))  ?? 5
         outboundArrivalTime         = (try? c.decode(Date.self,         forKey: .outboundArrivalTime))         ?? Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
-        outboundNotificationDays    = (try? c.decode([Weekday].self,    forKey: .outboundNotificationDays))    ?? []
-        outboundNotificationTime    = (try? c.decode(Date.self,         forKey: .outboundNotificationTime))    ?? Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
     }
 
     func encode(to encoder: Encoder) throws {
@@ -167,7 +152,6 @@ struct UserSettings: Codable {
         try c.encode(walkingMinutesToOffice,   forKey: .walkingMinutesToOffice)
         try c.encode(arrivalTime,              forKey: .arrivalTime)
         try c.encode(officeDays,               forKey: .officeDays)
-        try c.encode(notificationTime,         forKey: .notificationTime)
         try c.encode(outboundEnabled,                  forKey: .outboundEnabled)
         try c.encode(outboundDestinationType,          forKey: .outboundDestinationType)
         try c.encode(outboundDestinationStationId,     forKey: .outboundDestinationStationId)
@@ -175,8 +159,6 @@ struct UserSettings: Codable {
         try c.encode(outboundDestinationStationLines,  forKey: .outboundDestinationStationLines)
         try c.encode(outboundWalkingTimeFromStation,   forKey: .outboundWalkingTimeFromStation)
         try c.encode(outboundArrivalTime,              forKey: .outboundArrivalTime)
-        try c.encode(outboundNotificationDays,         forKey: .outboundNotificationDays)
-        try c.encode(outboundNotificationTime,         forKey: .outboundNotificationTime)
     }
 
     // MARK: - Persistence
