@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// Onboarding success (Figma "Success page"): illustrated yellow top, white panel with
+/// Success page (Figma "Success page"): illustrated yellow top, white panel with
 /// the confirmation, the next commute, and the two actions.
+/// Used at the end of onboarding and of the Back home setup.
 struct OnboardingSuccessView: View {
+    var title = "🎉 Awesome, all set up! 🎉"
+    var message = "Anytime you open TimeToGo it will display the next leaving time."
     /// The next office day the app will plan for.
     var nextCommute: Date
     /// The user's chosen office arrival time.
@@ -54,10 +57,10 @@ struct OnboardingSuccessView: View {
     private var panel: some View {
         VStack(spacing: 0) {
             VStack(spacing: 16) {
-                Text("🎉 Awesome, all set up! 🎉")
+                Text(title)
                     .typography(.title)
                     .foregroundColor(.black)
-                Text("Anytime you open TimeToGo it will display the next leaving time.")
+                Text(message)
                     .typography(.large)
                     .lineSpacing(14 * 0.8)   // 1.8 line height
                     .foregroundColor(.grey50)

@@ -103,6 +103,34 @@ extension JourneyIllustration {
             self.route = route
         }
 
+        /// Back home, other place: tube roundel (right) → destination pin (left).
+        /// Artwork 1410×981 @3x; same Figma "Vector 30" as step 2, drawn tube → pin
+        /// in this artwork, so it's used in its original order; it sits at (72, 39.5).
+        static let tubeToDestination = Journey(
+            imageName: "back-home-tube",
+            designSize: CGSize(width: 470, height: 327),
+            glowColor: Color(hex: "3ED3A7"),
+            glowCoreColor: Color(hex: "A6F0D9")
+        ) { p in
+            let o = CGPoint(x: 72, y: 39.5)
+            func q(_ x: CGFloat, _ y: CGFloat) -> CGPoint { p(x + o.x, y + o.y) }
+            var path = Path()
+            path.move(to: q(250, 1.00027))
+            path.addLine(to: q(159.344, 34.4843))
+            path.addCurve(to: q(155.058, 34.8352), control1: q(157.974, 34.9903), control2: q(156.492, 35.1116))
+            path.addLine(to: q(58.8095, 16.2814))
+            path.addCurve(to: q(56.8923, 16.3036), control1: q(58.1741, 16.1589), control2: q(57.5222, 16.1555))
+            path.addCurve(to: q(29, 30.7046), control1: q(44.7767, 19.1511), control2: q(29, 30.7046))
+            path.addLine(to: q(29, 57.0003))
+            return path
+        }
+
+        /// Back home empty state: walking home from the office (no route). Artwork 537×373pt.
+        static let walkingHome = Journey(
+            imageName: "back-home-empty",
+            designSize: CGSize(width: 537, height: 373)
+        )
+
         /// Step 3: at the desk (no route). Artwork 1191×690 @3x.
         static let atDesk = Journey(
             imageName: "onboarding-at-office",
