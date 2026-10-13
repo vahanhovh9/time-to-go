@@ -10,6 +10,8 @@ import SwiftUI
 enum ButtonStyle {
     case filled
     case outline
+    /// No background or border — secondary action under a filled button.
+    case text
 }
 
 struct CustomButton: View {
@@ -42,7 +44,7 @@ struct CustomButton: View {
     }
 
     private var background: Color {
-        guard isEnabled else { return .grey10 }
+        guard isEnabled else { return style == .text ? .clear : .grey10 }
         return style == .filled ? .black : .clear
     }
 }

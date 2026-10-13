@@ -119,6 +119,8 @@ struct ContentView: View {
 
         case .success:
             OnboardingSuccessView(
+                nextCommute: CommuteCalculationService().nextCommuteDate(from: buildUserSettings()),
+                arrivalTime: arrivalTime,
                 onAllDone: {
                     let settings = buildUserSettings()
                     if appState.isEditingSettings {
