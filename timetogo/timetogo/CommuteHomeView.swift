@@ -17,8 +17,8 @@ struct CommuteHomeView: View {
     /// True once the header has scrolled up under the status bar.
     @State private var isScrolled = false
 
-    /// Height of the header below the status bar (416pt design frame minus 47pt status bar).
-    private let headerHeight: CGFloat = 369
+    /// Space between the leave-time card and the bottom of the yellow header.
+    private let cardBottomGap: CGFloat = 50
 
     var body: some View {
         GeometryReader { geo in
@@ -103,9 +103,11 @@ struct CommuteHomeView: View {
             )
             .padding(.horizontal, 20)
             .padding(.top, 177)
+            // The header ends a fixed 50pt below the card, however tall the card renders.
+            .padding(.bottom, cardBottomGap)
         }
         .padding(.top, topInset)
-        .frame(maxWidth: .infinity, minHeight: headerHeight + topInset, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(alignment: .bottom) {
             ZStack(alignment: .bottom) {
                 Color(hex: "FFF9C0")

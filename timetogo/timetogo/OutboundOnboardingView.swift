@@ -50,33 +50,29 @@ struct OutboundOnboardingView: View {
             .padding(.horizontal, 24)
             .padding(.top, 20)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Spacer(minLength: 40)
+            VStack(spacing: 24) {
+                DestinationCard(
+                    image: "destination-home",
+                    title: "Home",
+                    subtitle: "Back to your home station",
+                    isSelected: destinationType == .home
+                ) {
+                    destinationType = .home
+                }
 
-                    destinationOption(
-                        icon: "house.fill",
-                        title: "Home",
-                        subtitle: "Back to your home station",
-                        isSelected: destinationType == .home
-                    ) {
-                        destinationType = .home
-                    }
-                    .padding(.horizontal, 24)
-
-                    destinationOption(
-                        icon: "mappin.circle.fill",
-                        title: "Other place",
-                        subtitle: "Any other tube destination",
-                        isSelected: destinationType == .otherPlace
-                    ) {
-                        destinationType = .otherPlace
-                    }
-                    .padding(.horizontal, 24)
-
-                    Spacer(minLength: 40)
+                DestinationCard(
+                    image: "destination-other",
+                    title: "Other place",
+                    subtitle: "Any other destination",
+                    isSelected: destinationType == .otherPlace
+                ) {
+                    destinationType = .otherPlace
                 }
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
+
+            Spacer(minLength: 24)
 
             footer {
                 withAnimation {
@@ -94,26 +90,24 @@ struct OutboundOnboardingView: View {
             OnboardingHeader(
                 step: 2,
                 totalSteps: 3,
-                title: "Where are you going?",
+                title: "Where is your destination?",
                 showsBackButton: true,
                 onBack: { withAnimation { currentStep = .destinationType } }
             )
             .padding(.horizontal, 24)
             .padding(.top, 20)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Spacer(minLength: 40)
-
-                    StationSearchField(label: "Destination station", selectedStation: $destStation)
-                        .padding(.horizontal, 24)
-
-                    TimePicker(label: "Walk from station", selectedValue: walkBinding)
-                        .padding(.horizontal, 24)
-
-                    Spacer(minLength: 40)
-                }
+            VStack(alignment: .leading, spacing: 38) {
+                StationSearchField(label: "Destination station", selectedStation: $destStation)
+                TimePicker(label: "How long do you walk from tube?", selectedValue: walkBinding)
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
+
+            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
+            JourneyIllustration(journey: .tubeToDestination)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .padding(.top, 24)
 
             footer(enabled: !destStation.naptanId.isEmpty) {
                 withAnimation { currentStep = .arrivalTime }
@@ -168,113 +162,35 @@ struct OutboundOnboardingView: View {
     // MARK: - Success
 
     private var successStep: some View {
-        VStack(spacing: 0) {
-            OnboardingHeader(step: nil, totalSteps: nil, title: "Outbound is all set!")
-                .padding(.horizontal, 24)
-                .padding(.top, 48)
+        OnboardingSuccessView(
+            title: "🎉 Back home is all set! 🎉",
+            message: "Anytime you open Back home it will show when to leave the office.",
+            nextCommute: nextTripHome,
+            arrivalTime: arrivalTime,
+            onAllDone: onComplete,
+            onChangeSettings: { withAnimation { currentStep = .destinationType } }
+        )
+    }
 
-            Spacer()
-
-            VStack(spacing: 38) {
-                Text("🎉")
-                    .font(.system(size: 62))
-
-                VStack(spacing: 8) {
-                    Text("What's next?")
-                        .h3Style()
-                        .foregroundColor(Color.black)
-
-                    Text("Open TimeToGo whenever\nyou're heading out.")
-                        .bodySmallStyle()
-                        .foregroundColor(Color.grey50)
-                        .multilineTextAlignment(.center)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 55)
-            .padding(.horizontal, 24)
-            .background(Color.white)
-            .cornerRadius(10)
-            .padding(.horizontal, 24)
-
-            Spacer()
-
-            CustomButton(title: "Got it", style: .filled) {
-                onComplete()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-            .padding(.bottom, 24)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            ZStack {
-                Color.yellow
-                Image("bg-main")
-                    .resizable()
-                    .scaledToFill()
-            }
-            .ignoresSafeArea()
-        }
+    /// Next office day whose trip home is still ahead (judged by the Back home arrival time,
+    /// not the morning one — at 10am today's 6pm trip still counts).
+    private var nextTripHome: Date {
+        var s = appState.settings ?? viewModel.settings
+        s.arrivalTime = arrivalTime
+        return CommuteCalculationService().nextCommuteDate(from: s)
     }
 
     // MARK: - Helpers
 
     @ViewBuilder
-    private func destinationOption(
-        icon: String,
-        title: String,
-        subtitle: String,
-        isSelected: Bool,
-        onTap: @escaping () -> Void
-    ) -> some View {
-        Button(action: onTap) {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.system(size: 22))
-                    .frame(width: 32)
-                    .foregroundColor(isSelected ? .white : .black)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(isSelected ? .white : .black)
-                    Text(subtitle)
-                        .font(.system(size: 13))
-                        .foregroundColor(isSelected ? Color.white.opacity(0.75) : Color.grey30)
-                }
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity)
-            .background(isSelected ? Color.black : Color.grey10)
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.black : Color.grey30, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
     private func footer(enabled: Bool = true, action: @escaping () -> Void) -> some View {
-        VStack(spacing: 0) {
-            Divider().background(Color.grey10)
-            CustomButton(title: "Next", style: .filled, action: action, isEnabled: enabled)
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
-        }
-        .background(Color.white)
+        CustomButton(title: "Next", style: .filled, action: action, isEnabled: enabled)
+            .padding(.horizontal, 16)
+            .padding(.top, 20)
+            .padding(.bottom, 24)
+            .background(Color.white)
     }
+
 
     private var walkBinding: Binding<String> {
         Binding(
@@ -313,5 +229,53 @@ struct OutboundOnboardingView: View {
 
     private static func time(_ hour: Int, _ minute: Int) -> Date {
         Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+    }
+}
+
+// MARK: - Destination card (Figma "card-illustration")
+
+/// Selectable card: illustration, title + subtitle, and a check circle.
+/// Selected: 2pt green border and green tick. Otherwise: 1pt grey border and empty circle.
+private struct DestinationCard: View {
+    var image: String
+    var title: String
+    var subtitle: String
+    var isSelected: Bool
+    var onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 16) {
+                Image(image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 88, height: 100)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .typography(.h2)
+                    Text(subtitle)
+                        .typography(.large)
+                }
+                .foregroundColor(.grey50)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+
+                Checkmark(state: isSelected ? .checked : .unchecked)
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 12)
+            .padding(.vertical, 16)
+            .frame(height: 132)
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(isSelected ? Color(hex: "059013") : Color.grey30, lineWidth: isSelected ? 2 : 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

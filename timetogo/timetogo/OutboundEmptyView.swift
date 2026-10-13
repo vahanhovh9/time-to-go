@@ -1,51 +1,43 @@
 import SwiftUI
 
+/// Back home tab before outbound is set up (Figma "BH - onboarding").
 struct OutboundEmptyView: View {
     var onGetStarted: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer()
+            Spacer(minLength: 16)
 
-            VStack(spacing: 16) {
-                Image(systemName: "arrow.left.to.line")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundColor(.black)
+            // Scales to the available height, so the figure is never cut off on small phones.
+            JourneyIllustration(journey: .walkingHome)
+                .frame(maxHeight: 302)
 
-                Text("Need to be back\nright on time?")
-                    .font(.system(size: 28, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.black)
+            Spacer(minLength: 24)
 
-                Text("Use Outbound to know when you\nshould leave the office.")
-                    .font(.system(size: 16, weight: .regular))
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(Color.grey30)
-                    .padding(.top, 4)
+            VStack(spacing: 48) {
+                VStack(spacing: 16) {
+                    Text("Need to be back right on time?")
+                        .typography(.title)
+                        .foregroundColor(.black)
+                    Text("Use Back home to know when you should leave the office.")
+                        .typography(.large)
+                        .lineSpacing(14 * 0.8)   // 1.8 line height
+                        .foregroundColor(.grey50)
+                }
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
+                CustomButton(title: "Let’s go", style: .filled, action: onGetStarted)
+                    .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 32)
 
-            Spacer()
-
-            CustomButton(title: "Let's go", style: .filled) {
-                onGetStarted()
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 32)
+            Spacer(minLength: 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            ZStack {
-                Color.yellow
-                Image("bg-main")
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-            }
-        )
+        .background(Color.white)
     }
 }
 
 #Preview {
-    OutboundEmptyView(onGetStarted: { print("Let's go") })
+    OutboundEmptyView(onGetStarted: {})
 }
