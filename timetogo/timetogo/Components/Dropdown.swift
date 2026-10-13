@@ -24,37 +24,8 @@ struct Dropdown<Item: Hashable>: View where Item: CustomStringConvertible {
     @State private var showModal = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .labelStyle()
-                .foregroundColor(Color.black)
-
-            Button {
-                showModal = true
-            } label: {
-                HStack {
-                    Text(selectedItem.description)
-                        .h4Style()
-                        .foregroundColor(selectedItem.description == "Choose" ? Color.grey30 : Color.black)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color.black)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-                .frame(height: 56)
-                .frame(maxWidth: .infinity)
-                .background(Color.grey10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(Color.grey30, lineWidth: 1)
-                )
-                .cornerRadius(5)
-            }
-            .buttonStyle(.plain)
+        FormField(label: label, action: { showModal = true }) {
+            FormFieldValue(text: selectedItem.description, isPlaceholder: selectedItem.description == "Choose")
         }
         .sheet(isPresented: $showModal) {
             DropdownModalView(

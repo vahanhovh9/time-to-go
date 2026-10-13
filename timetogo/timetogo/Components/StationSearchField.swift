@@ -12,50 +12,20 @@ struct StationSearchField: View {
     @State private var showModal = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .labelStyle()
-                .foregroundColor(.black)
-
-            Button {
-                showModal = true
-            } label: {
-                HStack {
-                    if selectedStation.naptanId.isEmpty {
-                        Text("Choose")
-                            .h4Style()
-                            .foregroundColor(Color.grey50)
-                    } else {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(selectedStation.displayName)
-                                .h4Style()
-                                .foregroundColor(.black)
-                            if !selectedStation.lineDisplayText.isEmpty {
-                                Text(selectedStation.lineDisplayText.uppercased())
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(Color.grey30)
-                            }
-                        }
+        FormField(label: label, action: { showModal = true }) {
+            if selectedStation.naptanId.isEmpty {
+                FormFieldValue(text: "Choose", isPlaceholder: true)
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    FormFieldValue(text: selectedStation.displayName, isPlaceholder: false)
+                    if !selectedStation.lineDisplayText.isEmpty {
+                        Text(selectedStation.lineDisplayText)
+                            .typography(.footnote)
+                            .foregroundColor(.grey30)
+                            .lineLimit(1)
                     }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.black)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .frame(minHeight: 56)
-                .frame(maxWidth: .infinity)
-                .background(Color.grey10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(Color.grey30, lineWidth: 1)
-                )
-                .cornerRadius(5)
             }
-            .buttonStyle(.plain)
         }
         .sheet(isPresented: $showModal) {
             StationSearchModalView(
@@ -78,7 +48,6 @@ struct StationSearchModalView: View {
 
     @EnvironmentObject var store: TFLDataStore
     @State private var searchText = ""
-    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         NavigationView {
@@ -86,7 +55,7 @@ struct StationSearchModalView: View {
                 if store.isSearchingStations {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if searchText.count >= 2 && store.stationSearchResults.isEmpty {
+                } else if !searchText.isEmpty && store.stationSearchResults.isEmpty {
                     Text("No stations found")
                         .foregroundColor(Color.grey30)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -130,13 +99,12 @@ struct StationSearchModalView: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Search stations"
             )
+            // Local search over the bundled list: instant, so no debounce needed.
             .onChange(of: searchText) { _, newValue in
-                searchTask?.cancel()
-                searchTask = Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 300_000_000)
-                    guard !Task.isCancelled else { return }
-                    store.searchStations(query: newValue)
-                }
+                store.searchStations(query: newValue)
+            }
+            .onAppear {
+                store.searchStations(query: searchText)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -152,7 +120,6 @@ struct StationSearchModalView: View {
         }
         .navigationViewStyle(.stack)
         .onDisappear {
-            searchTask?.cancel()
             store.clearStationSearch()
         }
     }

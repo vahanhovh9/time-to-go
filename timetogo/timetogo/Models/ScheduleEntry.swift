@@ -1,7 +1,7 @@
 import Foundation
 
 /// Input needed to fetch and filter live arrivals for a given journey leg.
-struct ScheduleReviewContext: Equatable {
+nonisolated struct ScheduleReviewContext: Equatable {
     /// Stop point to query for live arrivals.
     let stopId: String
     /// Line ID used to filter arrivals to only those on the user's line.
@@ -15,7 +15,7 @@ struct ScheduleReviewContext: Equatable {
 }
 
 /// A single upcoming train departure shown in the schedule sheet.
-struct ScheduleEntry: Identifiable {
+nonisolated struct ScheduleEntry: Identifiable {
     let id: String
     let lineName: String
     let platformName: String

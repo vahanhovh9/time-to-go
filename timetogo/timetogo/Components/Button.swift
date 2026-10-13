@@ -21,18 +21,29 @@ struct CustomButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .h4Style()
-                .foregroundColor(isEnabled ? (style == .filled ? Color.white : Color.black) : Color.grey30)
+                .typography(.h2)
+                .foregroundColor(foreground)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(isEnabled ? (style == .filled ? Color.black : Color.clear) : Color.grey10)
+                .background(background)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(Color.clear, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(style == .outline && isEnabled ? Color.black : Color.clear, lineWidth: 1)
                 )
-                .cornerRadius(5)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .disabled(!isEnabled)
+    }
+
+    private var foreground: Color {
+        guard isEnabled else { return .grey30 }
+        return style == .filled ? .white : .black
+    }
+
+    private var background: Color {
+        guard isEnabled else { return .grey10 }
+        return style == .filled ? .black : .clear
     }
 }
 

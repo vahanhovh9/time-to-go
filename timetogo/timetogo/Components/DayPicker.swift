@@ -17,25 +17,23 @@ struct DayPicker: View {
             isSelected.toggle()
             onTap?()
         }) {
-            HStack {
+            HStack(spacing: 8) {
                 Text(day)
-                    .h4Style()
-                    .foregroundColor(isSelected ? Color.white : Color.black)
-                
-                Spacer()
-                
+                    .typography(.h3)
+                    .foregroundColor(isSelected ? .white : .grey50)
+                Spacer(minLength: 0)
                 Checkmark(state: isSelected ? .checked : .unchecked)
             }
-            .padding(.horizontal, 24)
+            .padding(.leading, 16)
+            .padding(.trailing, 12)
             .frame(height: 56)
+            .frame(maxWidth: .infinity)
             .background(isSelected ? Color.black : Color.grey10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke(isSelected ? Color.clear : Color.grey30, lineWidth: 1)
-            )
-            .cornerRadius(5)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

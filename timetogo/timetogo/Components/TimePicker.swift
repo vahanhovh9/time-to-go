@@ -22,46 +22,17 @@ struct TimePicker: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Label
-            Text(label)
-                .labelStyle()
-                .foregroundColor(Color.black)
-            
-            // Time picker field
-            Button {
-                // Initialize selectedMinutes from selectedValue if not "Choose"
-                if selectedValue != "Choose" {
-                    let minutesString = selectedValue.replacingOccurrences(of: " min", with: "")
-                    selectedMinutes = Int(minutesString) ?? timeOptions.first ?? 1
-                } else {
-                    selectedMinutes = timeOptions.first ?? 1
-                }
-                showPicker = true
-            } label: {
-                HStack {
-                    Text(selectedValue)
-                        .h4Style()
-                        .foregroundColor(selectedValue == "Choose" ? Color.grey30 : Color.black)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color.black)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-                .frame(height: 56)
-                .frame(maxWidth: .infinity)
-                .background(Color.grey10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(Color.grey30, lineWidth: 1)
-                )
-                .cornerRadius(5)
+        FormField(label: label, action: {
+            // Start the wheel on the current value, or the first option when nothing is chosen.
+            if selectedValue != "Choose" {
+                let minutesString = selectedValue.replacingOccurrences(of: " min", with: "")
+                selectedMinutes = Int(minutesString) ?? timeOptions.first ?? 1
+            } else {
+                selectedMinutes = timeOptions.first ?? 1
             }
-            .buttonStyle(.plain)
+            showPicker = true
+        }) {
+            FormFieldValue(text: selectedValue, isPlaceholder: selectedValue == "Choose")
         }
         .sheet(isPresented: $showPicker) {
             TimePickerModalView(

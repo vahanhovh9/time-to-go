@@ -34,8 +34,8 @@ struct Checkmark: View {
                 
                 // Checkmark path
                 Path { path in
-                    path.move(to: CGPoint(x: 5, y: 13))
-                    path.addLine(to: CGPoint(x: 9, y: 17))
+                    path.move(to: CGPoint(x: 5, y: 11.5))
+                    path.addLine(to: CGPoint(x: 9.667, y: 16))
                     path.addLine(to: CGPoint(x: 19, y: 7))
                 }
                 .stroke(Color(red: 0.021, green: 0.565, blue: 0.075), lineWidth: 4)

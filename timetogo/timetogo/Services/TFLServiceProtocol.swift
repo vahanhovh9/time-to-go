@@ -1,7 +1,9 @@
 import Foundation
 
 /// Defines all interactions with the TFL Unified API.
-protocol TFLServiceProtocol {
+/// Nonisolated so requests and JSON decoding run off the main actor
+/// (the target defaults to MainActor isolation).
+nonisolated protocol TFLServiceProtocol: Sendable {
     /// Returns all London Underground lines.
     func fetchLines() async throws -> [TFLLine]
 

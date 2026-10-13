@@ -10,7 +10,7 @@ final class ScheduleReviewViewModel: ObservableObject {
 
     private let service: ScheduleReviewService
 
-    nonisolated init(service: ScheduleReviewService = ScheduleReviewService()) {
+    init(service: ScheduleReviewService = ScheduleReviewService()) {
         self.service = service
     }
 

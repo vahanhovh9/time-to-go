@@ -152,3 +152,55 @@ struct BodySmallStyle: ViewModifier {
             .lineSpacing(16.8 - 14) // 120% line height = 16.8px
     }
 }
+
+// MARK: - Figma text styles (Timetogo file, "Final/…")
+
+/// Text styles from the Figma file. Apply with `.typography(.title)`.
+enum AppTextStyle {
+    /// 40 Bold, -2 — big page titles ("Settings"). Figma: Old/H1.
+    case display
+    /// 24 Bold, -0.5 — onboarding step titles ("Where do you leave?").
+    case title
+    /// 20 Bold, -0.5 — section titles, primary button. Figma: Final/H2.
+    case h2
+    /// 16 Bold, -0.5 — field values, card titles. Figma: Final/H3.
+    case h3
+    /// 13 Semibold — step counter ("01 / 3"), small headings. Figma: Final/H4.
+    case h4
+    /// 14 Medium, -0.5 — list labels. Figma: Final/Large.
+    case large
+    /// 13 Medium, -0.5 — field labels, body. Figma: Final/Main.
+    case main
+    /// 12 Regular. Figma: Final/Small.
+    case small
+    /// 11 Regular — secondary lines. Figma: Final/Footnote.
+    case footnote
+
+    var font: Font {
+        switch self {
+        case .display:  return .system(size: 40, weight: .bold)
+        case .title:    return .system(size: 24, weight: .bold)
+        case .h2:       return .system(size: 20, weight: .bold)
+        case .h3:       return .system(size: 16, weight: .bold)
+        case .h4:       return .system(size: 13, weight: .semibold)
+        case .large:    return .system(size: 14, weight: .medium)
+        case .main:     return .system(size: 13, weight: .medium)
+        case .small:    return .system(size: 12)
+        case .footnote: return .system(size: 11)
+        }
+    }
+
+    var tracking: CGFloat {
+        switch self {
+        case .display:                        return -2
+        case .title, .h2, .h3, .large, .main: return -0.5
+        case .h4, .small, .footnote:          return 0
+        }
+    }
+}
+
+extension View {
+    func typography(_ style: AppTextStyle) -> some View {
+        font(style.font).tracking(style.tracking)
+    }
+}
