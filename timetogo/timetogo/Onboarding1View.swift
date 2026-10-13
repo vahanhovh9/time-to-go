@@ -20,38 +20,31 @@ struct Onboarding1View: View {
                 title: "Where do you leave?"
             )
             .padding(.horizontal, 24)
+            .padding(.top, 20)
+
+            VStack(alignment: .leading, spacing: 38) {
+                StationSearchField(
+                    label: "Home station",
+                    selectedStation: $selectedStation
+                )
+
+                TimePicker(
+                    label: "How long do you walk to tube?",
+                    selectedValue: $selectedWalkTime
+                )
+            }
+            .padding(.horizontal, 24)
             .padding(.top, 48)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Spacer(minLength: 40)
+            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
+            JourneyIllustration(journey: .homeToTube)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .padding(.top, 24)
 
-                    StationSearchField(
-                        label: "Your station",
-                        selectedStation: $selectedStation
-                    )
-                    .padding(.horizontal, 24)
-
-                    TimePicker(
-                        label: "How long do you walk to tube?",
-                        selectedValue: $selectedWalkTime
-                    )
-                    .padding(.horizontal, 24)
-
-                    Spacer(minLength: 40)
-                }
-            }
-
-            VStack(spacing: 0) {
-                Divider().background(Color.grey10)
-                VStack(spacing: 16) {
-                    CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
-                }
-                .padding(.horizontal, 24)
+            CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
+                .padding(.horizontal, 16)
                 .padding(.top, 20)
                 .padding(.bottom, 24)
-            }
-            .background(Color.white)
         }
         .background(Color.white)
     }

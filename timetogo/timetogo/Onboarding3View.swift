@@ -20,46 +20,39 @@ struct Onboarding3View: View {
             OnboardingHeader(
                 step: 3,
                 totalSteps: 3,
-                title: "When do you arrive?",
+                title: "When at office?",
                 showsBackButton: true,
                 onBack: onBack
             )
             .padding(.horizontal, 24)
-            .padding(.top, 48)
+            .padding(.top, 20)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Spacer(minLength: 40)
+            VStack(alignment: .leading, spacing: 32) {
+                ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
 
-                    ArrivalTimePicker(label: "Office", selectedTime: $arrivalTime)
-                        .padding(.horizontal, 24)
-
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
-                    ], spacing: 12) {
-                        DayPicker(day: "Monday",    isSelected: $monday)
-                        DayPicker(day: "Tuesday",   isSelected: $tuesday)
-                        DayPicker(day: "Wednesday", isSelected: $wednesday)
-                        DayPicker(day: "Thursday",  isSelected: $thursday)
-                        DayPicker(day: "Friday",    isSelected: $friday)
-                        Color.clear.frame(height: 56)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 24)
-
-                    Spacer(minLength: 40)
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12)
+                ], spacing: 12) {
+                    DayPicker(day: "Mon", isSelected: $monday)
+                    DayPicker(day: "Tue", isSelected: $tuesday)
+                    DayPicker(day: "Wed", isSelected: $wednesday)
+                    DayPicker(day: "Thu", isSelected: $thursday)
+                    DayPicker(day: "Fri", isSelected: $friday)
                 }
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
 
-            VStack(spacing: 0) {
-                Divider().background(Color.grey10)
-                CustomButton(title: "Complete", style: .filled, action: { onNext() }, isEnabled: isFormValid)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-                    .padding(.bottom, 24)
-            }
-            .background(Color.white)
+            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
+            JourneyIllustration(journey: .atDesk)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .padding(.top, 24)
+
+            CustomButton(title: "Complete", style: .filled, action: { onNext() }, isEnabled: isFormValid)
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
         }
         .background(Color.white)
     }

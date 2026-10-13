@@ -48,7 +48,7 @@ struct OutboundOnboardingView: View {
                 onBack: onComplete
             )
             .padding(.horizontal, 24)
-            .padding(.top, 48)
+            .padding(.top, 20)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -99,7 +99,7 @@ struct OutboundOnboardingView: View {
                 onBack: { withAnimation { currentStep = .destinationType } }
             )
             .padding(.horizontal, 24)
-            .padding(.top, 48)
+            .padding(.top, 20)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -138,7 +138,7 @@ struct OutboundOnboardingView: View {
                 onBack: { withAnimation { currentStep = prevStep } }
             )
             .padding(.horizontal, 24)
-            .padding(.top, 48)
+            .padding(.top, 20)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {

@@ -24,6 +24,17 @@ final class CommuteCalculationService {
 
     // MARK: - Public API
 
+    /// Today's (or the next office day's) saved result, if it's still fresh — shown instantly
+    /// on launch while `calculate` fetches a new one.
+    func cachedResult(for settings: UserSettings) -> CommuteResult? {
+        cacheManager.load(for: nextCommuteDate(from: settings)).map { CommuteResult(from: $0) }
+    }
+
+    /// Drops the saved result, e.g. after the stations or times change.
+    func clearCache() {
+        cacheManager.clear()
+    }
+
     /// Calculate the commute result for the user's next office day.
     ///
     /// - Parameter forceRefresh: When `true`, errors are surfaced instead of falling back
@@ -75,6 +86,9 @@ final class CommuteCalculationService {
         let trainArrivalTarget = applyTime(settings.outboundArrivalTime, to: commuteDate)
             .addingTimeInterval(TimeInterval(-settings.effectiveOutboundWalkingTime * 60))
 
+        let lineIds = settings.outboundLineIds.filter { !$0.isEmpty }
+        async let statusRequest = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
+
         let journey = try await tflService.fetchJourney(
             from:       settings.officeStationId,
             to:         destinationId,
@@ -88,8 +102,7 @@ final class CommuteCalculationService {
         let leaveOfficeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToOffice + safetyBufferMinutes) * 60))
 
-        let lineIds      = settings.outboundLineIds.filter { !$0.isEmpty }
-        let lineStatuses = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
+        let lineStatuses = await statusRequest
 
         return CommuteResult(
             leaveHomeTime:               leaveOfficeTime,
@@ -159,6 +172,11 @@ final class CommuteCalculationService {
         let trainArrivalTarget = applyTime(settings.arrivalTime, to: commuteDate)
             .addingTimeInterval(TimeInterval(-settings.walkingMinutesToOffice * 60))
 
+        // Line status doesn't depend on the journey, so request both at once.
+        // Status is best-effort: a failing status call must not abort the journey result.
+        let lineIds = Array(Set([settings.homeLineId, settings.officeLineId])).filter { !$0.isEmpty }
+        async let statusRequest = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
+
         let journey = try await tflService.fetchJourney(
             from:      settings.homeStationId,
             to:        settings.officeStationId,
@@ -174,10 +192,7 @@ final class CommuteCalculationService {
         let leaveHomeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToStation + safetyBufferMinutes) * 60))
 
-        // Deduplicate (same line for both stations is common) and treat status as best-effort:
-        // a failing status call must not abort an otherwise successful journey result.
-        let lineIds      = Array(Set([settings.homeLineId, settings.officeLineId])).filter { !$0.isEmpty }
-        let lineStatuses = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
+        let lineStatuses = await statusRequest
 
         return CommuteResult(
             leaveHomeTime:               leaveHomeTime,

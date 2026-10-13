@@ -17,9 +17,7 @@ struct ArrivalTimePicker: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         let timeStr = formatter.string(from: selectedTime)
-        return timeStr
-            .replacingOccurrences(of: " am", with: " AM", options: .caseInsensitive)
-            .replacingOccurrences(of: " pm", with: " PM", options: .caseInsensitive)
+        return timeStr.lowercased()
     }
 
     init(label: String, selectedTime: Binding<Date>, maximumTime: Date? = nil) {
@@ -29,39 +27,8 @@ struct ArrivalTimePicker: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Label
-            Text(label)
-                .labelStyle()
-                .foregroundColor(Color.black)
-            
-            // Time picker field
-            Button {
-                showPicker = true
-            } label: {
-                HStack {
-                    Text(timeString)
-                        .h4Style()
-                        .foregroundColor(Color.black)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color.black)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-                .frame(height: 56)
-                .frame(maxWidth: .infinity)
-                .background(Color.grey10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(Color.grey30, lineWidth: 1)
-                )
-                .cornerRadius(5)
-            }
-            .buttonStyle(.plain)
+        FormField(label: label, action: { showPicker = true }) {
+            FormFieldValue(text: timeString, isPlaceholder: false)
         }
         .sheet(isPresented: $showPicker) {
             ArrivalTimePickerModalView(

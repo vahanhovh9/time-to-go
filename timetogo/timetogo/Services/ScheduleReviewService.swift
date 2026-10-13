@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Schedule errors
 
-enum ScheduleError: LocalizedError {
+nonisolated enum ScheduleError: LocalizedError {
     case directionUnknown
     case noMatchingPlatformData(String)
 
@@ -18,7 +18,7 @@ enum ScheduleError: LocalizedError {
 
 // MARK: - Service
 
-final class ScheduleReviewService {
+nonisolated final class ScheduleReviewService: @unchecked Sendable {
 
     private let tflService: TFLServiceProtocol
 

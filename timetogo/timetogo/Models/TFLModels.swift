@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Lines
 
-struct TFLLine: Identifiable, Codable, Hashable, CustomStringConvertible {
+nonisolated struct TFLLine: Identifiable, Codable, Hashable, CustomStringConvertible {
     let id: String
     let name: String
     let lineStatuses: [TFLLineStatus]?
@@ -19,13 +19,13 @@ struct TFLLine: Identifiable, Codable, Hashable, CustomStringConvertible {
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
-struct TFLLineStatus: Codable {
+nonisolated struct TFLLineStatus: Codable {
     let statusSeverityDescription: String
 }
 
 // MARK: - Line Reference (lightweight, used in station search results)
 
-struct TFLLineRef: Codable, Hashable {
+nonisolated struct TFLLineRef: Codable, Hashable {
     let id: String
     let name: String
 
@@ -46,7 +46,7 @@ struct TFLLineRef: Codable, Hashable {
 
 // MARK: - Stop Points (Stations)
 
-struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringConvertible {
+nonisolated struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringConvertible {
     let naptanId: String
     let commonName: String
     var lines: [TFLLineRef]
@@ -102,7 +102,7 @@ struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringConvertible {
 
 // MARK: - Station Search Response
 
-struct TFLStopPointSearchResponse: Decodable {
+nonisolated struct TFLStopPointSearchResponse: Decodable {
     let matches: [TFLStopPointSearchMatch]
 
     init(from decoder: Decoder) throws {
@@ -113,7 +113,7 @@ struct TFLStopPointSearchResponse: Decodable {
     enum CodingKeys: String, CodingKey { case matches }
 }
 
-struct TFLStopPointSearchMatch: Decodable {
+nonisolated struct TFLStopPointSearchMatch: Decodable {
     let id: String
     let name: String
     let lines: [TFLLineRef]
@@ -135,7 +135,7 @@ struct TFLStopPointSearchMatch: Decodable {
 
 // MARK: - Journey Planning
 
-struct TFLJourneyResponse: Decodable {
+nonisolated struct TFLJourneyResponse: Decodable {
     let journeys: [TFLJourneyResult]
 
     init(from decoder: Decoder) throws {
@@ -146,7 +146,7 @@ struct TFLJourneyResponse: Decodable {
     enum CodingKeys: String, CodingKey { case journeys }
 }
 
-struct TFLJourneyResult: Codable {
+nonisolated struct TFLJourneyResult: Codable {
     let startDateTime: String
     let arrivalDateTime: String
     let duration: Int?
@@ -161,28 +161,28 @@ struct TFLJourneyResult: Codable {
     }
 }
 
-struct TFLLeg: Codable {
+nonisolated struct TFLLeg: Codable {
     let duration: Int?
     let departurePoint: TFLPoint
     let arrivalPoint: TFLPoint
     let path: TFLPath?
 }
 
-struct TFLPoint: Codable {
+nonisolated struct TFLPoint: Codable {
     let commonName: String
 }
 
-struct TFLPath: Codable {
+nonisolated struct TFLPath: Codable {
     let stopPoints: [TFLPathStopPoint]
 }
 
-struct TFLPathStopPoint: Codable {
+nonisolated struct TFLPathStopPoint: Codable {
     let name: String
 }
 
 // MARK: - Arrival Predictions
 
-struct TFLArrivalPrediction: Identifiable, Codable {
+nonisolated struct TFLArrivalPrediction: Identifiable, Codable {
     let id: String
     let lineId: String
     let lineName: String

@@ -99,7 +99,7 @@ struct CommuteHomeView: View {
             LeaveTimeCard(
                 caption: leaveCaption,
                 time: leaveTimeText,
-                status: isLoading ? nil : result?.serviceStatus
+                status: result?.serviceStatus
             )
             .padding(.horizontal, 20)
             .padding(.top, 177)

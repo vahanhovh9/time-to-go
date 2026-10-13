@@ -43,6 +43,10 @@ final class MainViewModel: ObservableObject {
     ///     • Manual pull-to-refresh.
     ///     • Date or settings change (§11.9).
     func loadCommute(forceRefresh: Bool = false) {
+        // Show the saved result immediately; the fresh one replaces it when it arrives.
+        if commuteResult == nil, !forceRefresh {
+            commuteResult = calculationService.cachedResult(for: settings)
+        }
         Task {
             isLoading = true
             errorMessage = nil
@@ -80,6 +84,7 @@ final class MainViewModel: ObservableObject {
     func updateSettings(_ newSettings: UserSettings) {
         settings = newSettings
         settings.save()
+        calculationService.clearCache()   // the saved result belongs to the old settings
         loadCommute(forceRefresh: true)
         loadOutbound(forceRefresh: true)
     }
@@ -191,9 +196,9 @@ final class MainViewModel: ObservableObject {
 
     // MARK: - Schedule review contexts
 
+    // Departures only need the stations, so they load alongside the journey, not after it.
     var inboundScheduleContext: ScheduleReviewContext? {
-        guard commuteResult != nil,
-              !settings.homeStationId.isEmpty,
+        guard !settings.homeStationId.isEmpty,
               !settings.officeStationId.isEmpty,
               !settings.homeLineId.isEmpty else { return nil }
         return ScheduleReviewContext(
@@ -206,7 +211,7 @@ final class MainViewModel: ObservableObject {
     }
 
     var outboundScheduleContext: ScheduleReviewContext? {
-        guard outboundResult != nil,
+        guard settings.outboundEnabled,
               !settings.officeStationId.isEmpty,
               !settings.homeStationId.isEmpty,
               !settings.homeLineId.isEmpty else { return nil }

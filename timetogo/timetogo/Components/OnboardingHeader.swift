@@ -23,81 +23,56 @@ struct OnboardingHeader: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.black)
-                .frame(height: 4)
-                .frame(maxWidth: .infinity)
-            
-            contentStack
-                .frame(maxWidth: .infinity)
-                .frame(height: contentHeight)
-        }
-        .frame(height: totalHeight, alignment: .top)
-    }
-    
-    @ViewBuilder
-    private var headerContent: some View {
-        if let progressText = progressText {
-            if showsBackButton {
-                Button {
-                    onBack?()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color.grey30)
-                            .frame(width: 25, height: 25, alignment: .center)
-                        
-                        Text(progressText)
-                            .labelStyle()
-                            .foregroundColor(Color.grey30)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-            } else {
-                Text(progressText)
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        if let progressText {
+            // Figma "Onboarding - Step" header: step counter row, then a 24pt title.
+            VStack(alignment: .leading, spacing: 12) {
+                progressRow(progressText)
+                Text(title)
+                    .typography(.title)
+                    .foregroundColor(.black)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-        }
-    }
-    
-    @ViewBuilder
-    private var contentStack: some View {
-        if progressText != nil {
-            VStack(alignment: .leading, spacing: 4) {
-                headerContent
-                
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            // Success screens: centred large title under the black bar.
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.black)
+                    .frame(height: 4)
+                    .frame(maxWidth: .infinity)
                 Text(title)
                     .h1Style()
                     .foregroundColor(Color.black)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-        } else {
-            Text(title)
-                .h1Style()
-                .foregroundColor(Color.black)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .frame(maxHeight: .infinity, alignment: .bottom)
+            .frame(height: 88, alignment: .top)
         }
     }
-    
-    private var isVariantWithProgress: Bool {
-        progressText != nil
-    }
-    
-    private var totalHeight: CGFloat {
-        isVariantWithProgress ? 104 : 88
-    }
-    
-    private var contentHeight: CGFloat {
-        isVariantWithProgress ? 100 : 84
+
+    @ViewBuilder
+    private func progressRow(_ text: String) -> some View {
+        let label = Text(text)
+            .typography(.h4)
+            .foregroundColor(.grey30)
+
+        if showsBackButton {
+            Button { onBack?() } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.grey30)
+                    label
+                }
+                .frame(height: 24)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Back, step \(text)")
+        } else {
+            label.frame(height: 24)
+        }
     }
 }
 

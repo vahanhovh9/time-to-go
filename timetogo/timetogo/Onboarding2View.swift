@@ -18,43 +18,36 @@ struct Onboarding2View: View {
             OnboardingHeader(
                 step: 2,
                 totalSteps: 3,
-                title: "Where do you work?",
+                title: "Where is the office?",
                 showsBackButton: true,
                 onBack: onBack
             )
             .padding(.horizontal, 24)
+            .padding(.top, 20)
+
+            VStack(alignment: .leading, spacing: 38) {
+                StationSearchField(
+                    label: "Office station",
+                    selectedStation: $selectedStation
+                )
+
+                TimePicker(
+                    label: "How long do you walk from tube?",
+                    selectedValue: $selectedWalkTime
+                )
+            }
+            .padding(.horizontal, 24)
             .padding(.top, 48)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Spacer(minLength: 40)
+            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
+            JourneyIllustration(journey: .tubeToOffice)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .padding(.top, 24)
 
-                    StationSearchField(
-                        label: "Office's station",
-                        selectedStation: $selectedStation
-                    )
-                    .padding(.horizontal, 24)
-
-                    TimePicker(
-                        label: "How long do you walk to office?",
-                        selectedValue: $selectedWalkTime
-                    )
-                    .padding(.horizontal, 24)
-
-                    Spacer(minLength: 40)
-                }
-            }
-
-            VStack(spacing: 0) {
-                Divider().background(Color.grey10)
-                VStack(spacing: 16) {
-                    CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
-                }
-                .padding(.horizontal, 24)
+            CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
+                .padding(.horizontal, 16)
                 .padding(.top, 20)
                 .padding(.bottom, 24)
-            }
-            .background(Color.white)
         }
         .background(Color.white)
     }

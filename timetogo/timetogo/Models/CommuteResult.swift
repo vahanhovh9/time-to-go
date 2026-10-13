@@ -47,7 +47,7 @@ struct CommuteResult {
             trainArrivalAtOfficeStation: cache.trainArrivalAtOfficeStation,
             journeyDurationMinutes:      cache.journeyDurationMinutes,
             numberOfStops:               cache.numberOfStops,
-            serviceStatus:               .unknown(cache.serviceStatusText),
+            serviceStatus:               ServiceStatus(cachedText: cache.serviceStatusText),
             dayLabel:                    cache.dayLabel,
             isFromCache:                 true
         )
@@ -68,6 +68,16 @@ enum ServiceStatus {
         case .minorDelays:              return "Service status: Minor delays"
         case .severeDelays:             return "Service status: Severe delays"
         case .unknown(let detail):      return "Service status: \(detail)"
+        }
+    }
+
+    /// Rebuilds a status from the `displayText` stored in the cache.
+    init(cachedText text: String) {
+        switch text {
+        case ServiceStatus.goodService.displayText:        self = .goodService
+        case ServiceStatus.minorDelays("").displayText:    self = .minorDelays("")
+        case ServiceStatus.severeDelays("").displayText:   self = .severeDelays("")
+        default:                                           self = .unknown(text)
         }
     }
 

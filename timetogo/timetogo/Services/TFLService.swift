@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Live implementation
 
-final class TFLService: TFLServiceProtocol {
+nonisolated final class TFLService: TFLServiceProtocol, @unchecked Sendable {
 
     private let baseURL = "https://api.tfl.gov.uk"
     private let session: URLSession
@@ -13,11 +13,11 @@ final class TFLService: TFLServiceProtocol {
 
     // MARK: - Debug state (written per-request, read by DevMenu via MainViewModel)
 
-    static var debugJourneyCount: Int = 0
-    static var debugJourneyDurations: [Int] = []
-    static var debugDisambiguated: Bool = false
-    static var debugResolvedFrom: String = ""
-    static var debugResolvedTo: String = ""
+    nonisolated(unsafe) static var debugJourneyCount: Int = 0
+    nonisolated(unsafe) static var debugJourneyDurations: [Int] = []
+    nonisolated(unsafe) static var debugDisambiguated: Bool = false
+    nonisolated(unsafe) static var debugResolvedFrom: String = ""
+    nonisolated(unsafe) static var debugResolvedTo: String = ""
 
     /// Resets debug state at the start of each fresh (non-retry) journey request.
     private static func resetDebugState() {
@@ -30,6 +30,7 @@ final class TFLService: TFLServiceProtocol {
 
     // MARK: - Lines
 
+    @concurrent
     func fetchLines() async throws -> [TFLLine] {
         let url = try buildURL(path: "/Line/Mode/tube")
         let data = try await get(url)
@@ -41,6 +42,7 @@ final class TFLService: TFLServiceProtocol {
     // (/stationdata/tfl-stationdata-detailed.zip is for offline/bulk processing
     // and would require ZIP extraction — not suitable for a mobile app).
 
+    @concurrent
     func fetchStations(for lineId: String) async throws -> [TFLStopPoint] {
         let url = try buildURL(path: "/Line/\(lineId)/StopPoints")
         let data = try await get(url)
@@ -49,6 +51,7 @@ final class TFLService: TFLServiceProtocol {
 
     // MARK: - Journey
 
+    @concurrent
     func fetchJourney(from fromId: String, to toId: String, arrivingBy: Date) async throws -> TFLJourneyResult {
         let timeStr = timeFormatter.string(from: arrivingBy)
         let dateStr = dateFormatter.string(from: arrivingBy)
@@ -131,6 +134,7 @@ final class TFLService: TFLServiceProtocol {
 
     // MARK: - Station Search
 
+    @concurrent
     func searchStations(query: String) async throws -> [TFLStopPoint] {
         guard !query.isEmpty else { return [] }
 
@@ -151,12 +155,14 @@ final class TFLService: TFLServiceProtocol {
 
     // MARK: - Arrivals
 
+    @concurrent
     func fetchArrivals(stopId: String) async throws -> [TFLArrivalPrediction] {
         let url = try buildURL(path: "/StopPoint/\(stopId)/Arrivals")
         let data = try await get(url)
         return try decode([TFLArrivalPrediction].self, from: data)
     }
 
+    @concurrent
     func fetchLineArrivals(lineId: String, stopId: String) async throws -> [TFLArrivalPrediction] {
         let url = try buildURL(path: "/Line/\(lineId)/Arrivals/\(stopId)")
         let data = try await get(url)
@@ -165,6 +171,7 @@ final class TFLService: TFLServiceProtocol {
 
     // MARK: - Line Status
 
+    @concurrent
     func fetchLineStatus(for lineIds: [String]) async throws -> [TFLLine] {
         guard !lineIds.isEmpty else { return [] }
         let ids = lineIds.joined(separator: ",")
@@ -173,6 +180,7 @@ final class TFLService: TFLServiceProtocol {
         return try decode([TFLLine].self, from: data)
     }
 
+    @concurrent
     func fetchStopPointLines(naptanIds: [String]) async throws -> [String: [TFLLineRef]] {
         guard !naptanIds.isEmpty else { return [:] }
         let ids = naptanIds.prefix(20).joined(separator: ",")
@@ -194,6 +202,7 @@ final class TFLService: TFLServiceProtocol {
         )
     }
 
+    @concurrent
     func resolveToTubeStopPoints(naptanIds: [String]) async throws -> [String: TFLStopPoint] {
         guard !naptanIds.isEmpty else { return [:] }
 
@@ -285,7 +294,7 @@ final class TFLService: TFLServiceProtocol {
 
 /// TFL Journey Planner HTTP 300 disambiguation response.
 /// Returned when a station ID matches multiple stops — the body contains the best match.
-private struct TFLDisambiguationResponse: Decodable {
+nonisolated private struct TFLDisambiguationResponse: Decodable {
     let fromLocationDisambiguation: Group?
     let toLocationDisambiguation: Group?
 
@@ -356,7 +365,7 @@ private struct TFLDisambiguationResponse: Decodable {
 /// StopPoint shape used by /StopPoint/{ids}.
 /// Captures children so composite/interchange NaPTANs can be resolved to
 /// their canonical tube-specific child stop (940GZZLU… prefix).
-private struct StopPointLinesDetail: Decodable {
+nonisolated private struct StopPointLinesDetail: Decodable {
     let naptanId: String
     let lines: [TFLLineRef]
     let modes: [String]
@@ -385,7 +394,7 @@ private struct StopPointLinesDetail: Decodable {
     }
 }
 
-private struct StopPointChild: Decodable {
+nonisolated private struct StopPointChild: Decodable {
     let naptanId: String
     let modes: [String]
     let lines: [TFLLineRef]
@@ -408,7 +417,7 @@ private struct StopPointChild: Decodable {
 
 // MARK: - Errors
 
-enum TFLError: LocalizedError {
+nonisolated enum TFLError: LocalizedError {
     case invalidURL
     case badResponse(Int)
     case noJourneyFound
@@ -432,7 +441,7 @@ enum TFLError: LocalizedError {
 
 // MARK: - Mock (for previews and unit tests)
 
-final class MockTFLService: TFLServiceProtocol {
+nonisolated final class MockTFLService: TFLServiceProtocol, @unchecked Sendable {
 
     func fetchLines() async throws -> [TFLLine] {
         [
