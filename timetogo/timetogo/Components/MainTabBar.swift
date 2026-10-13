@@ -22,7 +22,7 @@ struct MainTabBar: View {
                             .font(.system(size: 9, weight: .medium))
                             .foregroundColor(.black)
                     }
-                    .frame(width: 96, height: 56)
+                    .frame(width: 96, height: 48)
                     .background(selection == item.tab ? Color.grey10 : Color.clear)
                     .clipShape(Capsule())
                     .contentShape(Capsule())
@@ -34,7 +34,7 @@ struct MainTabBar: View {
             }
         }
         .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .padding(.vertical, 4)   // 56pt bar (48pt items + 4pt top and bottom)
         .frame(maxWidth: .infinity)
         .background(Color.white.ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) { Rectangle().fill(Color.grey10).frame(height: 1) }
