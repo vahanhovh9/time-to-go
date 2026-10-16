@@ -249,8 +249,16 @@ nonisolated final class TFLService: TFLServiceProtocol, @unchecked Sendable {
         return url
     }
 
+    /// Adds the TfL `app_key` to every request so traffic is identified as this app.
+    private static func withAppKey(_ url: URL) -> URL {
+        guard !Secrets.tflAppKey.isEmpty,
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "app_key", value: Secrets.tflAppKey)]
+        return components.url ?? url
+    }
+
     private func getRaw(_ url: URL) async throws -> (Data, Int) {
-        let (data, response) = try await session.data(from: url)
+        let (data, response) = try await session.data(from: Self.withAppKey(url))
         guard let http = response as? HTTPURLResponse else { throw TFLError.badResponse(0) }
         return (data, http.statusCode)
     }

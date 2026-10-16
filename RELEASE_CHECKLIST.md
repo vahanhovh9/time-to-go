@@ -8,7 +8,10 @@ Last updated: 14 Oct 2026
 - [x] **App icon.** Added 16 Oct: `AppIcon-1024.png`, flattened to an opaque square (no alpha, no baked corners) from `exports/app icon/Icon-iOS-Default-1024@1x.png`. iOS generates dark and tinted versions automatically. Optional: design your own dark and tinted variants.
 - [ ] **Bundle ID.** It's currently `timetogo.timetogo`. Change it to a reverse-DNS ID you own (e.g. `com.vahanhovhannisyan.timetogo`) **before** creating the App Store record. It can't be changed after the first release.
 - [x] **TfL attribution.** The departures card now says "Powered by TfL Open Data" (done 14 Oct). Update the Figma frames to match.
-- [ ] **TfL app key (recommended, not blocking).** Get the Primary key from <https://api-portal.tfl.gov.uk> → Profile → Subscriptions. Each phone already has its own anonymous allowance, so this isn't urgent. A key identifies the app to TfL, gives you usage stats and matches TfL's terms. Send it over and it will be added as a `TFL_APP_KEY` build setting.
+- [x] **TfL app key.** Added 16 Oct. It lives in `timetogo/timetogo/Secrets.swift`, which git ignores so the key is never pushed. On a fresh clone, recreate that file:
+  ```swift
+  nonisolated enum Secrets { static let tflAppKey = "<Primary key from api-portal.tfl.gov.uk>" }
+  ```
 - [ ] **Privacy policy URL.** App Store Connect requires one, even though the app collects nothing. A one-page note is enough: "No personal data is collected; stations and times stay on your device."
 - [ ] **App Store Connect privacy answers.** Answer "Data Not Collected". This matches the `PrivacyInfo.xcprivacy` now in the app.
 - [ ] **iPad: decide.** The app is set up for iPhone *and* iPad, but every screen is designed for iPhone. Either remove iPad (Target → General → Supported Destinations), or test it properly, because Apple reviews on iPad too.
