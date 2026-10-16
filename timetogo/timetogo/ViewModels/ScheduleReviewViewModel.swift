@@ -22,7 +22,7 @@ final class ScheduleReviewViewModel: ObservableObject {
             do {
                 entries = try await service.fetchSchedule(context: context)
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = UserFacingError.message(for: error)
             }
             isLoading = false
         }

@@ -86,14 +86,15 @@ final class CommuteCalculationService {
         let trainArrivalTarget = applyTime(settings.outboundArrivalTime, to: commuteDate)
             .addingTimeInterval(TimeInterval(-settings.effectiveOutboundWalkingTime * 60))
 
-        let lineIds = settings.outboundLineIds.filter { !$0.isEmpty }
-        async let statusRequest = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
+        let candidateLines = settings.outboundLineIds.filter { !$0.isEmpty }
+        async let statusRequest = (try? await tflService.fetchLineStatus(for: candidateLines)) ?? []
 
         let journey = try await tflService.fetchJourney(
             from:       settings.officeStationId,
             to:         destinationId,
             arrivingBy: trainArrivalTarget
         )
+        let journeyLines = Self.lineIds(of: journey)
 
         let trainDeparture = Self.parseTFLDate(journey.startDateTime)   ?? trainArrivalTarget
         let trainArrival   = Self.parseTFLDate(journey.arrivalDateTime) ?? trainArrivalTarget
@@ -102,7 +103,7 @@ final class CommuteCalculationService {
         let leaveOfficeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToOffice + safetyBufferMinutes) * 60))
 
-        let lineStatuses = await statusRequest
+        let lineStatuses = Self.statuses(await statusRequest, for: journeyLines)
 
         return CommuteResult(
             leaveHomeTime:               leaveOfficeTime,
@@ -111,8 +112,10 @@ final class CommuteCalculationService {
             journeyDurationMinutes:      journey.durationMinutes,
             numberOfStops:               numberOfStops,
             serviceStatus:               resolveServiceStatus(from: lineStatuses),
-            dayLabel:                    dayLabel(for: commuteDate)
+            dayLabel:                    dayLabel(for: commuteDate),
+            lineIds:                     journeyLines
         )
+        .withFirstTrainExit(Self.firstTrainExit(of: journey))
     }
 
     // MARK: - Helpers
@@ -174,14 +177,15 @@ final class CommuteCalculationService {
 
         // Line status doesn't depend on the journey, so request both at once.
         // Status is best-effort: a failing status call must not abort the journey result.
-        let lineIds = Array(Set([settings.homeLineId, settings.officeLineId])).filter { !$0.isEmpty }
-        async let statusRequest = (try? await tflService.fetchLineStatus(for: lineIds)) ?? []
+        let candidateLines = Array(Set(settings.homeLineIds + settings.officeLineIds)).filter { !$0.isEmpty }
+        async let statusRequest = (try? await tflService.fetchLineStatus(for: candidateLines)) ?? []
 
         let journey = try await tflService.fetchJourney(
             from:      settings.homeStationId,
             to:        settings.officeStationId,
             arrivingBy: trainArrivalTarget
         )
+        let journeyLines = Self.lineIds(of: journey)
 
         let trainDeparture = Self.parseTFLDate(journey.startDateTime)  ?? trainArrivalTarget
         let trainArrival   = Self.parseTFLDate(journey.arrivalDateTime) ?? trainArrivalTarget
@@ -192,7 +196,7 @@ final class CommuteCalculationService {
         let leaveHomeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToStation + safetyBufferMinutes) * 60))
 
-        let lineStatuses = await statusRequest
+        let lineStatuses = Self.statuses(await statusRequest, for: journeyLines)
 
         return CommuteResult(
             leaveHomeTime:               leaveHomeTime,
@@ -201,8 +205,32 @@ final class CommuteCalculationService {
             journeyDurationMinutes:      journey.durationMinutes,
             numberOfStops:               numberOfStops,
             serviceStatus:               resolveServiceStatus(from: lineStatuses),
-            dayLabel:                    dayLabel(for: commuteDate)
+            dayLabel:                    dayLabel(for: commuteDate),
+            lineIds:                     journeyLines
         )
+        .withFirstTrainExit(Self.firstTrainExit(of: journey))
+    }
+
+    /// NaPTAN where the first tube leg ends.
+    private static func firstTrainExit(of journey: TFLJourneyResult) -> String? {
+        journey.legs.first(where: { $0.isTube })?.arrivalPoint.naptanId
+    }
+
+    /// Tube lines used by the journey, in travel order, without repeats.
+    private static func lineIds(of journey: TFLJourneyResult) -> [String] {
+        var seen = Set<String>()
+        return journey.legs.compactMap { leg in
+            guard leg.isTube, let id = leg.lineId, !id.isEmpty, seen.insert(id).inserted else { return nil }
+            return id
+        }
+    }
+
+    /// Narrows fetched statuses to the journey's lines; keeps all when the journey didn't say.
+    private static func statuses(_ all: [TFLLine], for lineIds: [String]) -> [TFLLine] {
+        guard !lineIds.isEmpty else { return all }
+        let wanted = Set(lineIds)
+        let matching = all.filter { wanted.contains($0.id) }
+        return matching.isEmpty ? all : matching
     }
 
     /// Parses TFL date strings, which typically omit timezone:

@@ -16,6 +16,8 @@ struct CachedCommuteResult: Codable {
     let commuteDate: Date
     /// When CommuteCalculationService produced this result.
     let timestamp: Date
+    /// Tube lines the journey uses. Optional so caches from older builds still decode.
+    let lineIds: [String]?
 }
 
 // MARK: - Manager
@@ -44,7 +46,8 @@ final class CommuteCacheManager {
             serviceStatusText:           result.serviceStatus.displayText,
             dayLabel:                    result.dayLabel,
             commuteDate:                 Calendar.current.startOfDay(for: date),
-            timestamp:                   Date()
+            timestamp:                   Date(),
+            lineIds:                     result.lineIds
         )
         guard let data = try? JSONEncoder().encode(cached) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)

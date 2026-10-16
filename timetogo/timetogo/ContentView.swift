@@ -30,18 +30,21 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
+            #if DEBUG
             if showDevMenu {
                 DevMenuView(
                     onDismiss: { withAnimation { showDevMenu = false } },
                     onClearCache: { mainViewModel?.loadCommute(forceRefresh: true) },
                     journeyDebugInfo: mainViewModel?.journeyDebugInfo
                 )
-            } else if appState.hasCompletedOnboarding {
-                mainView
             } else {
-                onboardingView
+                rootView
             }
+            #else
+            rootView
+            #endif
 
+            #if DEBUG
             if !showDevMenu {
                 Button {
                     withAnimation { showDevMenu = true }
@@ -63,9 +66,19 @@ struct ContentView: View {
                 .padding(.trailing, 24)
                 .zIndex(1000)
             }
+            #endif
         }
         .onAppear {
             ensureMainViewModelIfNeeded()
+        }
+    }
+
+    @ViewBuilder
+    private var rootView: some View {
+        if appState.hasCompletedOnboarding {
+            mainView
+        } else {
+            onboardingView
         }
     }
 

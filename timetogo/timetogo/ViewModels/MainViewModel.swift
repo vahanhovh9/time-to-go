@@ -57,7 +57,7 @@ final class MainViewModel: ObservableObject {
                 )
                 journeyDebugInfo = buildJourneyDebugInfo()
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = UserFacingError.message(for: error)
                 journeyDebugInfo = buildJourneyDebugInfo(error: error)
             }
             isLoading = false
@@ -75,7 +75,7 @@ final class MainViewModel: ObservableObject {
                     forceRefresh: forceRefresh
                 )
             } catch {
-                outboundErrorMessage = error.localizedDescription
+                outboundErrorMessage = UserFacingError.message(for: error)
             }
             isLoadingOutbound = false
         }
@@ -97,7 +97,7 @@ final class MainViewModel: ObservableObject {
             commuteResult = try await calculationService.calculate(for: settings, forceRefresh: true)
             journeyDebugInfo = buildJourneyDebugInfo()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingError.message(for: error)
             journeyDebugInfo = buildJourneyDebugInfo(error: error)
         }
         isLoading = false
@@ -110,7 +110,7 @@ final class MainViewModel: ObservableObject {
         do {
             outboundResult = try await calculationService.calculateOutbound(for: settings, forceRefresh: true)
         } catch {
-            outboundErrorMessage = error.localizedDescription
+            outboundErrorMessage = UserFacingError.message(for: error)
         }
         isLoadingOutbound = false
     }
@@ -200,28 +200,36 @@ final class MainViewModel: ObservableObject {
     var inboundScheduleContext: ScheduleReviewContext? {
         guard !settings.homeStationId.isEmpty,
               !settings.officeStationId.isEmpty,
-              !settings.homeLineId.isEmpty else { return nil }
+              let lineId = boardingLine(for: commuteResult, station: settings.homeStationLines) else { return nil }
         return ScheduleReviewContext(
             stopId: settings.homeStationId,
-            lineId: settings.homeLineId,
+            lineId: lineId,
             homeStopId: settings.homeStationId,
-            destinationStopId: settings.officeStationId,
+            destinationStopId: commuteResult?.firstTrainExitId ?? settings.officeStationId,
             destinationStationName: officeStationDisplayName
         )
     }
 
     var outboundScheduleContext: ScheduleReviewContext? {
+        let destinationId = settings.effectiveOutboundDestinationId
         guard settings.outboundEnabled,
               !settings.officeStationId.isEmpty,
-              !settings.homeStationId.isEmpty,
-              !settings.homeLineId.isEmpty else { return nil }
+              !destinationId.isEmpty,
+              let lineId = boardingLine(for: outboundResult, station: settings.officeStationLines) else { return nil }
         return ScheduleReviewContext(
             stopId: settings.officeStationId,
-            lineId: settings.homeLineId,
+            lineId: lineId,
             homeStopId: settings.officeStationId,
-            destinationStopId: settings.homeStationId,
-            destinationStationName: homeStationDisplayName
+            destinationStopId: outboundResult?.firstTrainExitId ?? destinationId,
+            destinationStationName: outboundDestinationDisplayName
         )
+    }
+
+    /// The line to show departures for: the journey's first line once known; before that,
+    /// the station's only line. Multi-line stations wait for the journey rather than guess.
+    private func boardingLine(for result: CommuteResult?, station lines: [TFLLineRef]) -> String? {
+        if let id = result?.boardingLineId, !id.isEmpty { return id }
+        return lines.count == 1 ? lines[0].id : nil
     }
 
     private func cleanStationName(_ name: String) -> String {
