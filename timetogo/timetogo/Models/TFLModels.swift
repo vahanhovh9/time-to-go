@@ -166,10 +166,34 @@ nonisolated struct TFLLeg: Codable {
     let departurePoint: TFLPoint
     let arrivalPoint: TFLPoint
     let path: TFLPath?
+    let mode: TFLMode?
+    let routeOptions: [TFLRouteOption]?
+
+    var isTube: Bool { mode?.id == "tube" }
+    /// The tube line this leg runs on, e.g. "northern".
+    var lineId: String? { routeOptions?.first?.lineIdentifier?.id }
+}
+
+nonisolated struct TFLMode: Codable {
+    let id: String
+}
+
+nonisolated struct TFLRouteOption: Codable {
+    let lineIdentifier: TFLLineRef?
 }
 
 nonisolated struct TFLPoint: Codable {
     let commonName: String
+    let naptanId: String?
+}
+
+/// /Line/{id}/Route/Sequence/{direction}: station order of each branch.
+nonisolated struct TFLRouteSequence: Decodable {
+    let orderedLineRoutes: [Route]
+
+    nonisolated struct Route: Decodable {
+        let naptanIds: [String]
+    }
 }
 
 nonisolated struct TFLPath: Codable {

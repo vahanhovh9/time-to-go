@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 
 struct DevMenuView: View {
@@ -159,3 +160,4 @@ struct DevMenuView: View {
         }
     }
 }
+#endif

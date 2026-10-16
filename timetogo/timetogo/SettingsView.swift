@@ -31,6 +31,8 @@ struct SettingsView: View {
     /// Which time row currently has its wheel picker expanded.
     @State private var expandedTimeRow: String?
     @State private var isLoaded = false
+    /// Settings save instantly; the TfL reload waits until the user pauses.
+    @State private var reloadTask: Task<Void, Never>?
 
     private let walkOptions: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
 
@@ -320,7 +322,12 @@ struct SettingsView: View {
             }
         }
         appState.updateSettings(s)
-        viewModel.updateSettings(s)
+        reloadTask?.cancel()
+        reloadTask = Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
+            viewModel.updateSettings(s)
+        }
     }
 
     private static func time(_ hour: Int, _ minute: Int) -> Date {

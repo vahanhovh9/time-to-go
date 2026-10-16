@@ -20,7 +20,7 @@ struct OutboundOnboardingView: View {
 
     // Station (Option B only)
     @State private var destStation: TFLStopPoint = .placeholder
-    @State private var walkMinutes: Int = 5
+    @State private var walkMinutes: Int?
 
     // Arrival
     @State private var arrivalTime: Date = Self.time(18, 0)
@@ -109,7 +109,7 @@ struct OutboundOnboardingView: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .padding(.top, 24)
 
-            footer(enabled: !destStation.naptanId.isEmpty) {
+            footer(enabled: !destStation.naptanId.isEmpty && walkMinutes != nil) {
                 withAnimation { currentStep = .arrivalTime }
             }
         }
@@ -194,8 +194,8 @@ struct OutboundOnboardingView: View {
 
     private var walkBinding: Binding<String> {
         Binding(
-            get: { "\(walkMinutes) min" },
-            set: { walkMinutes = Int($0.replacingOccurrences(of: " min", with: "")) ?? 5 }
+            get: { walkMinutes.map { "\($0) min" } ?? "Choose" },
+            set: { walkMinutes = Int($0.replacingOccurrences(of: " min", with: "")) }
         )
     }
 
@@ -218,7 +218,7 @@ struct OutboundOnboardingView: View {
             s.outboundDestinationStationId    = destStation.naptanId
             s.outboundDestinationStationName  = destStation.commonName
             s.outboundDestinationStationLines = destStation.lines
-            s.outboundWalkingTimeFromStation  = walkMinutes
+            s.outboundWalkingTimeFromStation  = walkMinutes ?? 5
         }
 
         appState.updateSettings(s)

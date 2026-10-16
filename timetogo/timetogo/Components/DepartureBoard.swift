@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Toward Old Street / Provided by TFL" card listing live departures.
+/// "Toward Old Street / Powered by TfL Open Data" card listing live departures.
 struct DepartureBoard: View {
     var title: String
     var entries: [ScheduleEntry]
@@ -13,7 +13,7 @@ struct DepartureBoard: View {
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.black)
-                Text("Provided by TFL")
+                Text("Powered by TfL Open Data")
                     .font(.system(size: 11))
                     .foregroundColor(.grey30)
             }

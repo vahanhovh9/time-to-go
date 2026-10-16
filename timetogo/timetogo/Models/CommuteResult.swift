@@ -18,6 +18,13 @@ struct CommuteResult {
     let dayLabel: String
     /// True when reconstructed from cache rather than a live API call.
     let isFromCache: Bool
+    /// Tube lines the journey actually uses, in order (from the journey planner).
+    let lineIds: [String]
+    /// Line of the first train the user boards — drives the departures board.
+    var boardingLineId: String? { lineIds.first }
+    /// Station where the user leaves the first train (differs from the destination when
+    /// the journey has a change). Not cached; nil after a cache restore.
+    var firstTrainExitId: String? = nil
 
     init(
         leaveHomeTime: Date,
@@ -27,7 +34,8 @@ struct CommuteResult {
         numberOfStops: Int,
         serviceStatus: ServiceStatus,
         dayLabel: String,
-        isFromCache: Bool = false
+        isFromCache: Bool = false,
+        lineIds: [String] = []
     ) {
         self.leaveHomeTime               = leaveHomeTime
         self.trainDepartureAtHomeStation = trainDepartureAtHomeStation
@@ -37,6 +45,7 @@ struct CommuteResult {
         self.serviceStatus               = serviceStatus
         self.dayLabel                    = dayLabel
         self.isFromCache                 = isFromCache
+        self.lineIds                     = lineIds
     }
 
     /// Reconstruct a CommuteResult from a CachedCommuteResult.
@@ -49,8 +58,17 @@ struct CommuteResult {
             numberOfStops:               cache.numberOfStops,
             serviceStatus:               ServiceStatus(cachedText: cache.serviceStatusText),
             dayLabel:                    cache.dayLabel,
-            isFromCache:                 true
+            isFromCache:                 true,
+            lineIds:                     cache.lineIds ?? []
         )
+    }
+}
+
+extension CommuteResult {
+    func withFirstTrainExit(_ id: String?) -> CommuteResult {
+        var copy = self
+        copy.firstTrainExitId = id
+        return copy
     }
 }
 

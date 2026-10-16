@@ -163,6 +163,13 @@ nonisolated final class TFLService: TFLServiceProtocol, @unchecked Sendable {
     }
 
     @concurrent
+    func fetchRouteSequences(lineId: String) async throws -> [[String]] {
+        let url = try buildURL(path: "/Line/\(lineId)/Route/Sequence/outbound")
+        let data = try await get(url)
+        return try decode(TFLRouteSequence.self, from: data).orderedLineRoutes.map(\.naptanIds)
+    }
+
+    @concurrent
     func fetchLineArrivals(lineId: String, stopId: String) async throws -> [TFLArrivalPrediction] {
         let url = try buildURL(path: "/Line/\(lineId)/Arrivals/\(stopId)")
         let data = try await get(url)
@@ -522,4 +529,5 @@ nonisolated final class MockTFLService: TFLServiceProtocol, @unchecked Sendable 
 
     func fetchArrivals(stopId: String) async throws -> [TFLArrivalPrediction] { [] }
     func fetchLineArrivals(lineId: String, stopId: String) async throws -> [TFLArrivalPrediction] { [] }
+    func fetchRouteSequences(lineId: String) async throws -> [[String]] { [] }
 }

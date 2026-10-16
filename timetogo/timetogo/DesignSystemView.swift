@@ -1,3 +1,4 @@
+#if DEBUG
 //
 //  DesignSystemView.swift
 //  timetogo
@@ -387,3 +388,4 @@ struct ColorCard: View {
 #Preview {
     DesignSystemView()
 }
+#endif
