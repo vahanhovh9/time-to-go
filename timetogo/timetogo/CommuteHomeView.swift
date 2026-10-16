@@ -33,7 +33,7 @@ struct CommuteHomeView: View {
 
                 if let error = errorMessage {
                     Text(error)
-                        .font(.system(size: 13, weight: .medium))
+                        .typography(.main)
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
@@ -85,7 +85,8 @@ struct CommuteHomeView: View {
     // MARK: - Header
 
     private func header(topInset: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
+        // Stacked rather than overlaid so long (wrapping) station names push the card down.
+        VStack(alignment: .leading, spacing: 24) {
             JourneyStops(
                 title: journeyTitle,
                 startLabel: startLabel,
@@ -101,21 +102,32 @@ struct CommuteHomeView: View {
                 time: leaveTimeText,
                 status: result?.serviceStatus
             )
+            .anchorPreference(key: LeaveCardBoundsKey.self, value: .bounds) { $0 }
             .padding(.horizontal, 20)
-            .padding(.top, 177)
             // The header ends a fixed 50pt below the card, however tall the card renders.
             .padding(.bottom, cardBottomGap)
         }
         .padding(.top, topInset)
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .backgroundPreferenceValue(LeaveCardBoundsKey.self) { cardBounds in
+            GeometryReader { geo in
+                let scale = geo.size.width / Self.headerArtSize.width
+                let cardTop = cardBounds.map { geo[$0].minY } ?? Self.figmaCardTop
+                // Width-fitted and pinned to the card as in Figma, so the skyline ends just
+                // above the card whatever the status bar height or station-name wrapping.
+                Image(headerImage)
+                    .resizable()
+                    .frame(width: geo.size.width, height: Self.headerArtSize.height * scale)
+                    // Drop the 3pt divider baked into the export's bottom edge; the header draws its own.
+                    .frame(height: (Self.headerArtSize.height - 3) * scale, alignment: .top)
+                    .clipped()
+                    .offset(y: cardTop - Self.figmaCardTop * scale)
+            }
+            .clipped()
+        }
         .background(alignment: .bottom) {
             ZStack(alignment: .bottom) {
                 Color(hex: "FFF9C0")
-                Image(headerImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .clipped()
                 Rectangle()
                     .fill(Color(hex: "F3EEB9"))
                     .frame(height: 3)
@@ -139,6 +151,10 @@ struct CommuteHomeView: View {
     }
 
     private static let scrollSpace = "commuteHomeScroll"
+    /// Header artwork size in points (the @3x export ÷ 3).
+    private static let headerArtSize = CGSize(width: 402, height: 443)
+    /// Top of the leave-time card within the artwork, from the Figma frame.
+    private static let figmaCardTop: CGFloat = 249
 
     // MARK: - Direction-specific data
 
@@ -204,6 +220,13 @@ private struct HeaderOffsetKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }
 
+private struct LeaveCardBoundsKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? = nil
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = value ?? nextValue()
+    }
+}
+
 // MARK: - Moving train
 
 /// Header train that runs like a tube train calling at a station: it brakes in from one
@@ -219,8 +242,8 @@ private struct MovingTrain: View {
     @State private var stop: Stop = .entry
 
     private let size = CGSize(width: 195, height: 23)
-    /// Gap between the train and the screen edge it enters from, when stopped.
-    private let platformInset: CGFloat = 69
+    /// Gap between the train and the screen edge it enters from, when stopped (per Figma).
+    private var platformInset: CGFloat { leftToRight ? 69 : 36 }
     private let arriveSeconds: Double = 3.5
     private let dwellSeconds: Double = 2
     private let departSeconds: Double = 3.5

@@ -190,10 +190,91 @@ nonisolated struct TFLPoint: Codable {
 /// /Line/{id}/Route/Sequence/{direction}: station order of each branch.
 nonisolated struct TFLRouteSequence: Decodable {
     let orderedLineRoutes: [Route]
+    /// Every stop on the line, keyed by the same NaPTANs the routes use. (The top-level
+    /// `stations` list can't be used: it gives interchanges hub IDs, e.g. Bank is "HUBBAN".)
+    let stops: [Stop]
 
     nonisolated struct Route: Decodable {
         let naptanIds: [String]
     }
+
+    nonisolated struct Stop: Decodable {
+        let id: String
+        let name: String
+    }
+
+    private nonisolated struct StopPointSequence: Decodable {
+        let stopPoint: [Stop]
+    }
+
+    init(orderedLineRoutes: [Route], stops: [Stop]) {
+        self.orderedLineRoutes = orderedLineRoutes
+        self.stops = stops
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        orderedLineRoutes = try c.decode([Route].self, forKey: .orderedLineRoutes)
+        // Only used to read "via …" in arrivals, so a missing list isn't fatal.
+        let sequences = (try? c.decode([StopPointSequence].self, forKey: .stopPointSequences)) ?? []
+        stops = sequences.flatMap(\.stopPoint)
+    }
+
+    private enum CodingKeys: String, CodingKey { case orderedLineRoutes, stopPointSequences }
+}
+
+/// /Line/{id}/Timetable/{stop}: scheduled departures from one stop in one direction.
+nonisolated struct TFLTimetable: Decodable {
+    let stops: [Stop]
+    let routes: [Route]
+
+    nonisolated struct Stop: Decodable {
+        let id: String
+        let name: String
+    }
+
+    nonisolated struct Route: Decodable {
+        let stationIntervals: [StationInterval]
+        let schedules: [Schedule]
+    }
+
+    /// The stops a train pattern calls at after the departure stop, in order.
+    nonisolated struct StationInterval: Decodable {
+        let id: String
+        let intervals: [Interval]
+    }
+
+    nonisolated struct Interval: Decodable {
+        let stopId: String
+    }
+
+    /// One day type, e.g. "Monday - Thursday", "Friday", "Saturday (also Good Friday)".
+    nonisolated struct Schedule: Decodable {
+        let name: String
+        let knownJourneys: [KnownJourney]
+    }
+
+    /// A departure from the stop. `hour` runs past 23 for trains after midnight.
+    nonisolated struct KnownJourney: Decodable {
+        let hour: String
+        let minute: String
+        let intervalId: Int
+    }
+
+    init(stops: [Stop], routes: [Route]) {
+        self.stops = stops
+        self.routes = routes
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        stops = (try? c.decode([Stop].self, forKey: .stops)) ?? []
+        routes = try c.nestedContainer(keyedBy: TimetableKeys.self, forKey: .timetable)
+            .decode([Route].self, forKey: .routes)
+    }
+
+    private enum CodingKeys: String, CodingKey { case stops, timetable }
+    private enum TimetableKeys: String, CodingKey { case routes }
 }
 
 nonisolated struct TFLPath: Codable {

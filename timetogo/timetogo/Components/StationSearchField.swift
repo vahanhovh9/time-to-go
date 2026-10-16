@@ -69,18 +69,18 @@ struct StationSearchModalView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(station.displayName)
-                                            .labelStyle()
+                                            .typography(.large)
                                             .foregroundColor(.black)
                                         if !station.lineDisplayText.isEmpty {
                                             Text(station.lineDisplayText)
-                                                .font(.system(size: 11, weight: .medium))
+                                                .scaledFont(size: 11, weight: .medium)
                                                 .foregroundColor(Color.grey30)
                                         }
                                     }
                                     Spacer()
                                     if station == selectedStation {
                                         Image(systemName: "checkmark")
-                                            .font(.system(size: 16, weight: .semibold))
+                                            .scaledFont(size: 16, weight: .semibold)
                                             .foregroundColor(.black)
                                     }
                                 }

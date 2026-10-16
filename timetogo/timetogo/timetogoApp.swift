@@ -22,6 +22,9 @@ struct timetogoApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(.light)
+                // Text follows the user's text size up to the largest standard size; beyond
+                // that the illustrated headers and fixed-height controls can't fit it.
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .environmentObject(appState)
         }
     }

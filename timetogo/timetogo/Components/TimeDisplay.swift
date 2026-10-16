@@ -37,12 +37,12 @@ struct TimeDisplay: View {
                     .overlay(
                         VStack(spacing: 10 * scale) {
                             Text(day)
-                                .bodyTextStyle()
+                                .scaledFont(size: 20, weight: .medium).tracking(-1)
                                 .foregroundColor(Color.white)
                                 .padding(.top, 24 * scale)
 
                             Text(time)
-                                .timeStyle()
+                                .scaledFont(size: 80, weight: .bold).tracking(-4)
                                 .foregroundColor(Color.white)
                                 .padding(.top, -16 * scale)
                         }

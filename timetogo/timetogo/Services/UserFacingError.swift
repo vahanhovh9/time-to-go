@@ -25,8 +25,6 @@ nonisolated enum UserFacingError {
             switch schedule {
             case .directionUnknown:
                 return "Live departures aren't available for this route yet."
-            case .noMatchingPlatformData:
-                return "No departures found right now. Pull down to refresh."
             }
         }
         return "Something went wrong. Pull down to try again."

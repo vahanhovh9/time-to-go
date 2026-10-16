@@ -75,14 +75,14 @@ struct DropdownModalView<Item: Hashable>: View where Item: CustomStringConvertib
                     } label: {
                         HStack {
                             Text(item.description)
-                                .labelStyle()
+                                .typography(.large)
                                 .foregroundColor(Color.black)
 
                             Spacer()
 
                             if item == selectedItem {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .scaledFont(size: 16, weight: .semibold)
                                     .foregroundColor(Color.black)
                             }
                         }

@@ -19,7 +19,7 @@ struct MainTabBar: View {
                             .resizable()
                             .frame(width: 24, height: 24)
                         Text(item.title)
-                            .font(.system(size: 9, weight: .medium))
+                            .scaledFont(size: 9, weight: .medium)
                             .foregroundColor(.black)
                     }
                     .frame(width: 96, height: 48)

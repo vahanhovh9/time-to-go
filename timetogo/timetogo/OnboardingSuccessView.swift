@@ -58,11 +58,10 @@ struct OnboardingSuccessView: View {
         VStack(spacing: 0) {
             VStack(spacing: 16) {
                 Text(title)
-                    .typography(.title)
+                    .typography(.h2)
                     .foregroundColor(.black)
                 Text(message)
                     .typography(.large)
-                    .lineSpacing(14 * 0.8)   // 1.8 line height
                     .foregroundColor(.grey50)
             }
             .multilineTextAlignment(.center)
@@ -75,7 +74,7 @@ struct OnboardingSuccessView: View {
                     .typography(.h3)
                     .foregroundColor(.black)
                 Text(nextCommuteText)
-                    .font(.system(size: 14, weight: .medium))
+                    .scaledFont(size: 14, weight: .medium)
                     .foregroundColor(.grey50)
             }
             .multilineTextAlignment(.center)

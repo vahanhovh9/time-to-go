@@ -10,12 +10,11 @@ struct LeaveTimeCard: View {
         VStack(spacing: 16) {
             VStack(spacing: 12) {
                 Text(caption)
-                    .font(.system(size: 13, weight: .medium))
-                    .tracking(-0.5)
+                    .typography(.main)
                     .foregroundColor(.grey50)
 
                 Text(time)
-                    .font(.system(size: 56, weight: .bold))
+                    .scaledFont(size: 56, weight: .bold)
                     .tracking(-2)
                     .foregroundColor(.black)
                     .lineLimit(1)
@@ -39,7 +38,7 @@ struct ServiceStatusPill: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 12))
+            .typography(.small)
             .foregroundColor(colors.text)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)

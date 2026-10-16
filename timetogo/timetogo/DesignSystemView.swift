@@ -23,7 +23,7 @@ struct DesignSystemView: View {
             VStack(alignment: .leading, spacing: 40) {
                 // Title
                 Text("Design System Showcase")
-                    .h1Style()
+                    .typography(.display)
                     .foregroundColor(Color.black)
                 .padding(.horizontal, 24)
                 .padding(.top, 48)
@@ -48,153 +48,35 @@ struct DesignSystemView: View {
     private var typographySection: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("Typography")
-                .h2Style()
+                .typography(.h2)
                 .foregroundColor(Color.black)
                 .padding(.horizontal, 24)
-            
-            VStack(alignment: .leading, spacing: 32) {
-                Text("Time")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("12:30 PM")
-                    .timeStyle()
-                    .foregroundColor(Color.black)
-                
-                Text("80px, -4p, 100%")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
+
+            ForEach(AppTextStyle.allCases, id: \.self) { style in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(".\(String(describing: style))")
+                        .typography(.main)
+                        .foregroundColor(Color.grey30)
+
+                    Text("Leave today at 8:02")
+                        .typography(style)
+                        .foregroundColor(Color.black)
+
+                    Text("\(Int(style.size))pt, tracking \(style.tracking, specifier: "%g")")
+                        .typography(.small)
+                        .foregroundColor(Color.grey30)
+                }
+                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("H1")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("Heading 1")
-                    .h1Style()
-                    .foregroundColor(Color.black)
-                
-                Text("40px, -2p, 100%")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("H2")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("Heading 2")
-                    .h2Style()
-                    .foregroundColor(Color.black)
-                
-                Text("24px, -1px, 100%")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("H3")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("Heading 3")
-                    .h3Style()
-                    .foregroundColor(Color.black)
-                
-                Text("20px, -0.5px")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("H4")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("Heading 4")
-                    .h4Style()
-                    .foregroundColor(Color.black)
-                
-                Text("17px, -0.5px, 120%")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Body Text")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("This is body text with longer content for display purposes.")
-                    .bodyTextStyle()
-                    .foregroundColor(Color.black)
-                
-                Text("20px, -1px, 123%")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Label")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("Label text")
-                    .labelStyle()
-                    .foregroundColor(Color.black)
-                
-                Text("16px, -0.5px")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Body Small")
-                    .labelStyle()
-                    .foregroundColor(Color.grey30)
-                
-                Text("Small body text for additional information.")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.black)
-                
-                Text("14px, 0px, 120%")
-                    .bodySmallStyle()
-                    .foregroundColor(Color.grey30)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
-    
+
     // MARK: - Colors Section
     private var colorsSection: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("Color Palette")
-                .h2Style()
+                .typography(.h2)
                 .foregroundColor(Color.black)
                 .padding(.horizontal, 24)
             
@@ -213,27 +95,14 @@ struct DesignSystemView: View {
     private var componentsSection: some View {
         VStack(alignment: .leading, spacing: 40) {
             Text("Components")
-                .h2Style()
+                .typography(.h2)
                 .foregroundColor(Color.black)
                 .padding(.horizontal, 24)
-            
-            // Title Home
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Title Home")
-                    .h3Style()
-                    .foregroundColor(Color.black)
-                
-                TitleHome(
-                    title: "Time to GO!",
-                    subtitle: "A simple vibe coded app designed to help you ARRIVING ON TIME"
-                )
-            }
-            .padding(.horizontal, 24)
             
             // Onboarding Header
             VStack(alignment: .leading, spacing: 16) {
                 Text("Onboarding Header")
-                    .h3Style()
+                    .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 VStack(alignment: .leading, spacing: 24) {
@@ -253,7 +122,7 @@ struct DesignSystemView: View {
             // Time Display
             VStack(alignment: .leading, spacing: 16) {
                 Text("Time Display")
-                    .h3Style()
+                    .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 TimeDisplay(day: "Today at", time: "12:59 AM")
@@ -263,7 +132,7 @@ struct DesignSystemView: View {
             // Info Card
             VStack(alignment: .leading, spacing: 16) {
                 Text("Info")
-                    .h3Style()
+                    .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 InfoCard(
@@ -279,21 +148,21 @@ struct DesignSystemView: View {
             // Checkmark
             VStack(alignment: .leading, spacing: 16) {
                 Text("Checkmark")
-                    .h3Style()
+                    .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 HStack(spacing: 24) {
                     VStack(spacing: 8) {
                         Checkmark(state: .unchecked)
                         Text("Unchecked")
-                            .bodySmallStyle()
+                            .typography(.main)
                             .foregroundColor(Color.grey50)
                     }
                     
                     VStack(spacing: 8) {
                         Checkmark(state: .checked)
                         Text("Checked")
-                            .bodySmallStyle()
+                            .typography(.main)
                             .foregroundColor(Color.grey50)
                     }
                 }
@@ -307,7 +176,7 @@ struct DesignSystemView: View {
             // Dropdown
             VStack(alignment: .leading, spacing: 16) {
                 Text("Dropdown")
-                    .h3Style()
+                    .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 Dropdown(
@@ -321,7 +190,7 @@ struct DesignSystemView: View {
             // Buttons
             VStack(alignment: .leading, spacing: 16) {
                 Text("Button")
-                    .h3Style()
+                    .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 VStack(spacing: 12) {
@@ -339,7 +208,7 @@ struct DesignSystemView: View {
             // Day Picker
             VStack(alignment: .leading, spacing: 16) {
                 Text("Day Picker")
-                    .h3Style()
+                    .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 VStack(spacing: 12) {
@@ -369,11 +238,11 @@ struct ColorCard: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(name)
-                    .h4Style()
+                    .typography(.h4)
                     .foregroundColor(textColor)
                 
                 Text(hex)
-                    .labelStyle()
+                    .typography(.large)
                     .foregroundColor(textColor.opacity(0.8))
             }
             .padding(.leading, 20)

@@ -50,7 +50,7 @@ struct ContentView: View {
                     withAnimation { showDevMenu = true }
                 } label: {
                     Text("DEV")
-                        .font(.system(size: 10, weight: .medium))
+                        .scaledFont(size: 10, weight: .medium)
                         .foregroundColor(Color.black)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)

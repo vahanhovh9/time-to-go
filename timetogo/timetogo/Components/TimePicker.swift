@@ -68,7 +68,7 @@ struct TimePickerModalView: View {
                     ForEach(timeOptions, id: \.self) { minutes in
                         Text("\(minutes) min")
                             .tag(minutes)
-                            .h4Style()
+                            .scaledFont(size: 17, weight: .bold).tracking(-0.5)
                             .foregroundColor(Color.black)
                     }
                 }

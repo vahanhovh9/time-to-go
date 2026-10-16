@@ -11,10 +11,10 @@ struct DepartureBoard: View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .typography(.h3)
                     .foregroundColor(.black)
                 Text("Powered by TfL Open Data")
-                    .font(.system(size: 11))
+                    .typography(.footnote)
                     .foregroundColor(.grey30)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -41,7 +41,7 @@ struct DepartureBoard: View {
 
     private func message<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
-            .font(.system(size: 13, weight: .medium))
+            .typography(.main)
             .foregroundColor(.grey30)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -65,24 +65,25 @@ private struct DepartureRow: View {
         HStack(alignment: .top, spacing: 8) {
             HStack(alignment: .top, spacing: 12) {
                 Text(Self.timeFormatter.string(from: entry.expectedArrival))
-                    .font(.system(size: 12, weight: .bold))
+                    .typography(.large)
                     .foregroundColor(.grey50)
-                    .frame(width: 56, alignment: .leading)
+                    .frame(minWidth: 65, alignment: .leading)
+                    .fixedSize()
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(entry.towards.isEmpty ? entry.destinationName : entry.towards)
-                        .font(.system(size: 13, weight: .medium))
+                        .typography(.large)
                         .foregroundColor(.grey50)
                     Text(entry.platformName)
-                        .font(.system(size: 11, weight: .medium))
+                        .scaledFont(size: 11, weight: .medium)
+                        .tracking(-0.5)
                         .foregroundColor(.grey30)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .tracking(-0.5)
 
             Text(minutesText)
-                .font(.system(size: 13, weight: .medium))
+                .typography(.small)
                 .foregroundColor(.grey50)
                 .lineLimit(1)
                 .padding(.horizontal, 8)

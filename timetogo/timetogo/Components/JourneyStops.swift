@@ -11,54 +11,54 @@ struct JourneyStops: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
-                .font(.system(size: 20, weight: .bold))
-                .tracking(-0.5)
+                .typography(.h2)
                 .foregroundColor(.black)
 
             VStack(alignment: .leading, spacing: 0) {
-                endpoint(icon: "journey-home", iconSize: CGSize(width: 12, height: 12), label: startLabel)
-                connector("journey-connector-dashed-8", height: 8)
+                endpoint(icon: "journey-home", iconSize: CGSize(width: 12, height: 12), spacing: 5, label: startLabel)
+                    .frame(minHeight: 16)
+                connector("journey-connector-dashed-start", size: CGSize(width: 8, height: 12))
                 station(boardingStation)
-                connector("journey-connector-solid-24", height: 24)
+                connector("journey-connector-solid-24", size: CGSize(width: 6.5, height: 24))
                 station(alightingStation)
-                connector("journey-connector-dashed-7", height: 7)
-                endpoint(icon: "journey-pin", iconSize: CGSize(width: 11.4, height: 14.5), label: endLabel)
+                connector("journey-connector-dashed-end", size: CGSize(width: 9, height: 12))
+                endpoint(icon: "journey-pin", iconSize: CGSize(width: 14, height: 17), spacing: 4, label: endLabel)
             }
         }
-        .frame(width: 188, alignment: .leading)
+        .frame(maxWidth: 294, alignment: .leading)
     }
 
-    private func endpoint(icon: String, iconSize: CGSize, label: String) -> some View {
-        HStack(spacing: 5) {
+    private func endpoint(icon: String, iconSize: CGSize, spacing: CGFloat, label: String) -> some View {
+        HStack(spacing: spacing) {
             Image(icon)
                 .resizable()
                 .frame(width: iconSize.width, height: iconSize.height)
-                .frame(width: 12.4)
             Text(label)
-                .font(.system(size: 12))
+                .scaledFont(size: 16)
+                .tracking(-0.5)
                 .foregroundColor(.black)
+                .lineLimit(1)
         }
-        .frame(height: 16)
     }
 
     private func station(_ name: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
+        HStack(alignment: .top, spacing: 5) {
             Image("journey-stop")
                 .resizable()
                 .frame(width: 12.4, height: 12.4)
-                .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1.5 }
+                // Centres the dot on the first line of the name, as in Figma.
+                .padding(.top, 3)
             Text(name)
-                .font(.system(size: 13, weight: .semibold))
+                .typography(.h4)
                 .foregroundColor(.black)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(minHeight: 16)
     }
 
-    private func connector(_ asset: String, height: CGFloat) -> some View {
+    private func connector(_ asset: String, size: CGSize) -> some View {
         Image(asset)
             .resizable()
-            .frame(width: 6.5, height: height)
+            .frame(width: size.width, height: size.height)
     }
 }
 

@@ -163,10 +163,17 @@ nonisolated final class TFLService: TFLServiceProtocol, @unchecked Sendable {
     }
 
     @concurrent
-    func fetchRouteSequences(lineId: String) async throws -> [[String]] {
+    func fetchRouteSequences(lineId: String) async throws -> TFLRouteSequence {
         let url = try buildURL(path: "/Line/\(lineId)/Route/Sequence/outbound")
         let data = try await get(url)
-        return try decode(TFLRouteSequence.self, from: data).orderedLineRoutes.map(\.naptanIds)
+        return try decode(TFLRouteSequence.self, from: data)
+    }
+
+    @concurrent
+    func fetchTimetable(lineId: String, stopId: String, direction: String) async throws -> TFLTimetable {
+        let url = try buildURL(path: "/Line/\(lineId)/Timetable/\(stopId)?direction=\(direction)")
+        let data = try await get(url)
+        return try decode(TFLTimetable.self, from: data)
     }
 
     @concurrent
@@ -537,5 +544,10 @@ nonisolated final class MockTFLService: TFLServiceProtocol, @unchecked Sendable 
 
     func fetchArrivals(stopId: String) async throws -> [TFLArrivalPrediction] { [] }
     func fetchLineArrivals(lineId: String, stopId: String) async throws -> [TFLArrivalPrediction] { [] }
-    func fetchRouteSequences(lineId: String) async throws -> [[String]] { [] }
+    func fetchRouteSequences(lineId: String) async throws -> TFLRouteSequence {
+        TFLRouteSequence(orderedLineRoutes: [], stops: [])
+    }
+    func fetchTimetable(lineId: String, stopId: String, direction: String) async throws -> TFLTimetable {
+        TFLTimetable(stops: [], routes: [])
+    }
 }
