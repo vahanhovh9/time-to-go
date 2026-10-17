@@ -77,7 +77,8 @@ nonisolated final class TFLService: TFLServiceProtocol, @unchecked Sendable {
             URLQueryItem(name: "date",              value: dateStr),
             URLQueryItem(name: "time",              value: timeStr),
             URLQueryItem(name: "timeIs",            value: "Arriving"),
-            URLQueryItem(name: "mode",              value: "tube"),
+            // Not tube-only: a change onto Thameslink or the Overground can be the best route.
+            URLQueryItem(name: "mode",              value: TFLMode.trainModes.joined(separator: ",")),
             URLQueryItem(name: "journeyPreference", value: "LeastTime"),
             URLQueryItem(name: "nationalSearch",    value: "false")
         ]

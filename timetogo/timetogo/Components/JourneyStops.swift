@@ -7,12 +7,32 @@ struct JourneyStops: View {
     var boardingStation: String
     var alightingStation: String
     var endLabel: String
+    /// Opens the full journey. When set, the title gets a chevron and the whole block is tappable.
+    var onShowDetails: (() -> Void)? = nil
 
     var body: some View {
+        if let onShowDetails {
+            Button(action: onShowDetails) { content }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows every step of the journey")
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .typography(.h2)
-                .foregroundColor(.black)
+            HStack(spacing: 8) {
+                Text(title)
+                    .typography(.h2)
+                    .foregroundColor(.black)
+                if onShowDetails != nil {
+                    Image(systemName: "chevron.right")
+                        .scaledFont(size: 18, weight: .bold)
+                        .foregroundColor(.black)
+                        .accessibilityHidden(true)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 0) {
                 endpoint(icon: "journey-home", iconSize: CGSize(width: 12, height: 12), spacing: 5, label: startLabel)
@@ -26,6 +46,7 @@ struct JourneyStops: View {
             }
         }
         .frame(maxWidth: 294, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func endpoint(icon: String, iconSize: CGSize, spacing: CGFloat, label: String) -> some View {

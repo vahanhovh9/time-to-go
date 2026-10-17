@@ -16,6 +16,7 @@ struct CommuteHomeView: View {
     @StateObject private var schedule = ScheduleReviewViewModel()
     /// True once the header has scrolled up under the status bar.
     @State private var isScrolled = false
+    @State private var showsJourneyDetails = false
 
     /// Space between the leave-time card and the bottom of the yellow header.
     private let cardBottomGap: CGFloat = 50
@@ -80,6 +81,25 @@ struct CommuteHomeView: View {
                 viewModel.loadOutbound()
             }
         }
+        .sheet(isPresented: $showsJourneyDetails) {
+            if let result {
+                JourneyDetailsView(
+                    title: journeyTitle,
+                    result: result,
+                    startLabel: direction == .toOffice ? "Leave home" : "Leave the office",
+                    endLabel: endArrivalLabel,
+                    walkToStationMinutes: direction == .toOffice
+                        ? viewModel.settings.walkingMinutesToStation
+                        : viewModel.settings.walkingMinutesToOffice,
+                    walkFromStationMinutes: direction == .toOffice
+                        ? viewModel.settings.walkingMinutesToOffice
+                        : viewModel.settings.effectiveOutboundWalkingTime,
+                    onClose: { showsJourneyDetails = false }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+        }
     }
 
     // MARK: - Header
@@ -92,7 +112,9 @@ struct CommuteHomeView: View {
                 startLabel: startLabel,
                 boardingStation: boardingStation,
                 alightingStation: alightingStation,
-                endLabel: endLabel
+                endLabel: endLabel,
+                // Only once the journey is planned (a cache restore has no legs).
+                onShowDetails: (result?.legs.isEmpty ?? true) ? nil : { showsJourneyDetails = true }
             )
             .padding(.leading, 26)
             .padding(.top, 14)
@@ -194,6 +216,14 @@ struct CommuteHomeView: View {
         switch direction {
         case .toOffice: return "Office"
         case .backHome: return viewModel.settings.outboundDestinationType == .home ? "Home" : "Destination"
+        }
+    }
+
+    /// Last step of the journey page: "At the office", "At home", "At your destination".
+    private var endArrivalLabel: String {
+        switch direction {
+        case .toOffice: return "At the office"
+        case .backHome: return viewModel.settings.outboundDestinationType == .home ? "At home" : "At your destination"
         }
     }
 

@@ -163,6 +163,8 @@ nonisolated struct TFLJourneyResult: Codable {
 
 nonisolated struct TFLLeg: Codable {
     let duration: Int?
+    let departureTime: String?
+    let arrivalTime: String?
     let departurePoint: TFLPoint
     let arrivalPoint: TFLPoint
     let path: TFLPath?
@@ -170,16 +172,26 @@ nonisolated struct TFLLeg: Codable {
     let routeOptions: [TFLRouteOption]?
 
     var isTube: Bool { mode?.id == "tube" }
-    /// The tube line this leg runs on, e.g. "northern".
+    /// A train of any kind (tube, Elizabeth line, Overground, DLR, National Rail), not a walk.
+    var isTrain: Bool { TFLMode.trainModes.contains(mode?.id ?? "") }
+    /// The line this leg runs on, e.g. "northern", "thameslink".
     var lineId: String? { routeOptions?.first?.lineIdentifier?.id }
+    /// Where the train is heading, e.g. "Morden via Bank", "Luton Rail Station".
+    var heading: String? { routeOptions?.first?.directions?.first(where: { !$0.isEmpty }) }
 }
 
 nonisolated struct TFLMode: Codable {
     let id: String
+
+    /// Journey planner modes the app plans with; walking between them is added by TfL.
+    static let trainModes = ["tube", "elizabeth-line", "overground", "dlr", "national-rail"]
 }
 
 nonisolated struct TFLRouteOption: Codable {
+    /// Line name, e.g. "Northern", "Thameslink".
+    let name: String?
     let lineIdentifier: TFLLineRef?
+    let directions: [String]?
 }
 
 nonisolated struct TFLPoint: Codable {

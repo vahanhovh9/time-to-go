@@ -90,9 +90,12 @@ private struct DepartureRow: View {
                 .frame(minWidth: 63, minHeight: 20)
                 .background(Color.grey10)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
+                // Centres the chip on the time's first line, as in Figma.
+                .padding(.top, 2)
         }
         .padding(.horizontal, 4)
-        .padding(.vertical, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 20)
         .overlay(alignment: .top) { Rectangle().fill(Color.grey10).frame(height: 1) }
     }
 
