@@ -82,7 +82,7 @@ struct CommuteHomeView: View {
             }
         }
         .sheet(isPresented: $showsJourneyDetails) {
-            if let result {
+            if let result, !result.legs.isEmpty {
                 JourneyDetailsView(
                     title: journeyTitle,
                     result: result,
@@ -98,6 +98,20 @@ struct CommuteHomeView: View {
                 )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+            } else {
+                // Opened from a saved result, which has no steps: fetch the journey, then show it.
+                ProgressView("Loading your journey…")
+                    .typography(.main)
+                    .foregroundColor(.grey30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .task {
+                        switch direction {
+                        case .toOffice: await viewModel.refreshInbound()
+                        case .backHome: await viewModel.refreshOutbound()
+                        }
+                    }
             }
         }
     }
@@ -113,8 +127,10 @@ struct CommuteHomeView: View {
                 boardingStation: boardingStation,
                 alightingStation: alightingStation,
                 endLabel: endLabel,
-                // Only once the journey is planned (a cache restore has no legs).
-                onShowDetails: (result?.legs.isEmpty ?? true) ? nil : { showsJourneyDetails = true }
+                lineChanges: changes.line,
+                branchChanges: changes.branch,
+                // Always available once there's a result; the sheet loads the steps if missing.
+                onShowDetails: result == nil ? nil : { showsJourneyDetails = true }
             )
             .padding(.leading, 26)
             .padding(.top, 14)
@@ -217,6 +233,22 @@ struct CommuteHomeView: View {
         case .toOffice: return "Office"
         case .backHome: return viewModel.settings.outboundDestinationType == .home ? "Home" : "Destination"
         }
+    }
+
+    /// Times the journey changes train. Uses the legs when planned; after a cache restore
+    /// (no legs) the cached line list stands in.
+    /// Changes of train, split into changes of line and changes on the same line (branch).
+    /// Uses the legs when planned; after a cache restore (no legs) only the cached line list
+    /// is known, so every change counts as a line change.
+    private var changes: (line: Int, branch: Int) {
+        guard let result else { return (0, 0) }
+        let trainLines = result.legs.filter { $0.kind == .train }.map(\.lineId)
+        guard !trainLines.isEmpty else { return (max(0, result.lineIds.count - 1), 0) }
+        var line = 0, branch = 0
+        for (a, b) in zip(trainLines, trainLines.dropFirst()) {
+            if a != nil && a == b { branch += 1 } else { line += 1 }
+        }
+        return (line, branch)
     }
 
     /// Last step of the journey page: "At the office", "At home", "At your destination".

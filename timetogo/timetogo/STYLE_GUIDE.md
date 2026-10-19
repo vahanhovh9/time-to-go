@@ -68,6 +68,7 @@ Figma sets Final/H4, H5, Final/Small and Final/Footnote in Inter; the app uses S
 | White | #FFFFFF |
 | Grey 10 | #EBEBEB |
 | Grey 30 | #949494 |
+| Grey 40 | #686868 |
 | Grey 50 | #3E3E3E |
 | Black | #000000 |
 

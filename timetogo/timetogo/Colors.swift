@@ -12,6 +12,8 @@ extension Color {
     static let white = Color(hex: "FFFFFF")
     static let grey10 = Color(hex: "EBEBEB")
     static let grey30 = Color(hex: "949494")
+    /// Secondary text on grey surfaces (e.g. the journey page's train cards).
+    static let grey40 = Color(hex: "686868")
     static let grey50 = Color(hex: "3E3E3E")
     static let black = Color(hex: "000000")
     static let yellow = Color(hex: "FFF9E6") // Light yellow background
@@ -53,33 +55,76 @@ extension Color {
 
 
 
-// MARK: - TfL line colours
+// MARK: - Line colours
 
 extension Color {
-    /// TfL's colour for a line ID ("northern", "elizabeth", "mildmay", …); grey when unknown,
-    /// e.g. National Rail operators like Thameslink.
+    /// Colour for a journey line ID: TfL's line colours ("northern", "elizabeth", "mildmay", …)
+    /// and the main National Rail operators' brand colours ("thameslink", "southern", …).
+    /// Grey when unknown.
     static func tflLine(_ id: String?) -> Color {
+        Color(hex: lineHex(id))
+    }
+
+    /// Black or white, whichever reads better on `tflLine(id)` (higher WCAG contrast).
+    /// Lines in `whiteTextLines` always get white, matching TfL's own badges.
+    static func tflLineText(_ id: String?) -> Color {
+        if let id, whiteTextLines.contains(id) { return .white }
+        let hex = lineHex(id)
+        var value: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&value)
+        func channel(_ shift: UInt64) -> Double {
+            let c = Double((value >> shift) & 0xFF) / 255
+            return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        let luminance = 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
+        let onWhite = 1.05 / (luminance + 0.05)
+        let onBlack = (luminance + 0.05) / 0.05
+        return onWhite >= onBlack ? .white : .black
+    }
+
+    /// Mid-tone lines where contrast alone would pick black text.
+    private static let whiteTextLines: Set<String> = ["victoria", "bakerloo"]
+
+    private static func lineHex(_ id: String?) -> String {
         switch id ?? "" {
-        case "bakerloo":         return Color(hex: "B36305")
-        case "central":          return Color(hex: "E32017")
-        case "circle":           return Color(hex: "FFD300")
-        case "district":         return Color(hex: "00782A")
-        case "hammersmith-city": return Color(hex: "F3A9BB")
-        case "jubilee":          return Color(hex: "A0A5A9")
-        case "metropolitan":     return Color(hex: "9B0056")
-        case "northern":         return Color(hex: "000000")
-        case "piccadilly":       return Color(hex: "003688")
-        case "victoria":         return Color(hex: "0098D4")
-        case "waterloo-city":    return Color(hex: "95CDBA")
-        case "elizabeth":        return Color(hex: "6950A1")
-        case "dlr":              return Color(hex: "00A4A7")
-        case "liberty":          return Color(hex: "61686B")
-        case "lioness":          return Color(hex: "FAA61A")
-        case "mildmay":          return Color(hex: "437EC1")
-        case "suffragette":      return Color(hex: "39B97A")
-        case "weaver":           return Color(hex: "972861")
-        case "windrush":         return Color(hex: "EF4D5E")
-        default:                 return .grey50
+        // Tube
+        case "bakerloo":         return "B36305"
+        case "central":          return "E32017"
+        case "circle":           return "FFD300"
+        case "district":         return "00782A"
+        case "hammersmith-city": return "F3A9BB"
+        case "jubilee":          return "A0A5A9"
+        case "metropolitan":     return "9B0056"
+        case "northern":         return "000000"
+        case "piccadilly":       return "003688"
+        case "victoria":         return "0098D4"
+        case "waterloo-city":    return "95CDBA"
+        // Elizabeth line, DLR, Overground
+        case "elizabeth":        return "6950A1"
+        case "dlr":              return "00A4A7"
+        case "liberty":          return "61686B"
+        case "lioness":          return "FAA61A"
+        case "mildmay":          return "437EC1"
+        case "suffragette":      return "39B97A"
+        case "weaver":           return "972861"
+        case "windrush":         return "EF4D5E"
+        // National Rail operators serving London
+        case "thameslink":                    return "E9438D"
+        case "southern":                      return "8CC63E"
+        case "southeastern":                  return "389CFF"
+        case "great-northern":                return "0099FF"
+        case "c2c":                           return "B7007C"
+        case "greater-anglia":                return "D70428"
+        case "south-western-railway":         return "24398C"
+        case "chiltern-railways":             return "00BFFF"
+        case "great-western-railway":         return "0A493E"
+        case "gatwick-express":               return "EB1E2D"
+        case "heathrow-express":              return "532E63"
+        case "west-midlands-trains":          return "FF8300"
+        case "avanti-west-coast":             return "004354"
+        case "london-north-eastern-railway":  return "CE0E2D"
+        case "east-midlands-railway":         return "713563"
+        default:                              return "3E3E3E"   // Grey 50
         }
     }
 }

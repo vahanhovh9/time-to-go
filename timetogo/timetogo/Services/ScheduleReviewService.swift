@@ -228,11 +228,5 @@ nonisolated final class ScheduleReviewService: @unchecked Sendable {
         ISO8601DateFormatter().date(from: string)
     }
 
-    private static func cleanName(_ name: String) -> String {
-        name
-            .replacingOccurrences(of: " Underground Station", with: "")
-            .replacingOccurrences(of: " Rail Station", with: "")
-            .replacingOccurrences(of: " DLR Station", with: "")
-            .replacingOccurrences(of: " Station", with: "")
-    }
+    private static func cleanName(_ name: String) -> String { name.tflStationName }
 }

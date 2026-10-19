@@ -45,7 +45,8 @@ struct JourneyDetailsView: View {
                 .foregroundColor(.grey30)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 24)
+            // Figma: 5pt grabber at 10pt, then 24pt to the header. The system draws the grabber.
+            .padding(.top, 39)
             .padding(.bottom, 32)
         }
         .background(Color.white.ignoresSafeArea())
@@ -121,6 +122,7 @@ struct JourneyDetailsView: View {
         var here = firstTrain.from
         var readyAt = onPlatform
         var hasRidden = false
+        var previousLine: String?
         for leg in legs {
             switch leg.kind {
             case .walk:
@@ -134,9 +136,11 @@ struct JourneyDetailsView: View {
             case .train:
                 if hasRidden {
                     let spare = Int(leg.departure.timeIntervalSince(readyAt) / 60)
+                    // Same line, different train (e.g. Edgware → High Barnet at Camden Town).
+                    let sameLine = leg.lineId != nil && leg.lineId == previousLine
                     steps.append(Step(
-                        title: "Change to \(article(leg.lineName ?? "the next train"))",
-                        kind: .walk(note: "\(max(0, spare)) min to change", isTight: spare < 3)
+                        title: sameLine ? "Branch change" : "Change to \(article(leg.lineName ?? "the next train"))",
+                        kind: .walk(note: "\(max(0, spare)) min to change", isTight: spare < 3, isChange: true)
                     ))
                     if leg.from != here {
                         steps.append(Step(title: leg.from, kind: .place(.station)))
@@ -147,6 +151,7 @@ struct JourneyDetailsView: View {
                 here = leg.to
                 readyAt = leg.arrival
                 hasRidden = true
+                previousLine = leg.lineId
             }
         }
 
@@ -181,7 +186,8 @@ extension JourneyDetailsView {
         enum Kind {
             case place(Marker)
             case ride(JourneyLeg)
-            case walk(note: String?, isTight: Bool)
+            /// `isChange`: a change between trains (swap icon) rather than a walk (walking figure).
+            case walk(note: String?, isTight: Bool, isChange: Bool = false)
         }
 
         var time: Date? = nil
@@ -203,11 +209,18 @@ extension JourneyDetailsView {
     enum Rail {
         case solid(Color)
         case dotted
+
+        var isSolid: Bool {
+            if case .solid = self { return true }
+            return false
+        }
     }
 }
 
 // MARK: - Row
 
+/// One timeline row: time column | 16pt rail | content. Markers, solid lines and dots all
+/// sit on the rail's centre line so they align vertically from top to bottom.
 private struct StepRow: View {
     let step: JourneyDetailsView.Step
     let railAbove: JourneyDetailsView.Rail?
@@ -217,6 +230,7 @@ private struct StepRow: View {
 
     /// Same time column as the departures board, growing with the text size.
     @ScaledMetric(relativeTo: .subheadline) private var timeWidth: CGFloat = 65
+    /// Centre of a place's marker: the middle of its first line of text.
     @ScaledMetric(relativeTo: .subheadline) private var markerY: CGFloat = 11
     private let railWidth: CGFloat = 16
     private let gap: CGFloat = 12
@@ -229,14 +243,13 @@ private struct StepRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .frame(width: timeWidth, alignment: .leading)
+                .padding(.top, isPlace ? 0 : 12)
 
             Color.clear.frame(width: railWidth, height: 1)
 
             content
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        // On the whole row, so the time lines up with the first line of text.
-        .padding(.vertical, verticalPadding)
         // Drawn behind the row so the line always runs its full height.
         .background(alignment: .topLeading) {
             rail
@@ -245,10 +258,9 @@ private struct StepRow: View {
         }
     }
 
-    /// Places sit tight on the line; rides and walks get room around them.
-    private var verticalPadding: CGFloat {
-        if case .place = step.kind { return 0 }
-        return 12
+    private var isPlace: Bool {
+        if case .place = step.kind { return true }
+        return false
     }
 
     // MARK: Content
@@ -267,44 +279,74 @@ private struct StepRow: View {
                         .foregroundColor(.grey30)
                 }
             }
+            // H4 station names have a shorter line than the time beside them; 2pt down
+            // centres the name on the dot.
+            .padding(.top, marker == .station ? 2 : 0)
             .padding(.bottom, 4)
 
         case .ride(let leg):
-            VStack(alignment: .leading, spacing: 6) {
-                Text(step.title)
-                    .typography(.h4)
-                    .foregroundColor(.black)
-                if let heading = leg.heading {
-                    Text("to \(heading)")
+            rideCard(leg)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+
+        case .walk(let note, let isTight, let isChange):
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: isChange ? "arrow.triangle.swap" : "figure.walk")
+                        .scaledFont(size: 11, weight: .semibold)
+                        .foregroundColor(.grey50)
+                        .frame(width: 12, height: 12)
+                        .accessibilityHidden(true)
+                    Text(step.title)
                         .typography(.main)
                         .foregroundColor(.grey50)
                 }
-                if let status = leg.statusText {
-                    Text(status)
-                        .typography(.small)
-                        .foregroundColor(Color(hex: "7A5500"))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(Color(hex: "FFE7A3"))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
-                if !leg.stops.isEmpty {
-                    stopsToggle(leg)
-                }
-            }
-
-        case .walk(let note, let isTight):
-            VStack(alignment: .leading, spacing: 4) {
-                Text(step.title)
-                    .typography(.main)
-                    .foregroundColor(.grey50)
                 if let note {
                     Text(note)
                         .typography(.small)
                         .foregroundColor(isTight ? Color(hex: "7A5500") : .grey30)
                 }
             }
+            // 2pt higher than centred: sits visually midway between the places either side.
+            .padding(.top, 10)
+            .padding(.bottom, 14)
+            // Lines up with the text inside the ride cards ("to Morden via Bank", "8 stops").
+            .padding(.leading, 12)
         }
+    }
+
+    /// Grey card: line badge in the line's colour, heading, status, stops.
+    private func rideCard(_ leg: JourneyLeg) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(step.title)
+                .typography(.h5)
+                .foregroundColor(Color.tflLineText(leg.lineId))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Color.tflLine(leg.lineId))
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+            if let heading = leg.heading {
+                Text("to \(heading)")
+                    .typography(.main)
+                    .foregroundColor(.grey40)
+            }
+            if let status = leg.statusText {
+                Text(status)
+                    .typography(.small)
+                    .foregroundColor(Color(hex: "7A5500"))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color(hex: "FFE7A3"))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+            if !leg.stops.isEmpty {
+                stopsToggle(leg)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(hex: "F3F3F3"))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private func stopsToggle(_ leg: JourneyLeg) -> some View {
@@ -313,13 +355,16 @@ private struct StepRow: View {
                 withAnimation(.easeInOut(duration: 0.2)) { showsStops.toggle() }
             } label: {
                 HStack(spacing: 4) {
-                    Text(leg.stops.count == 1 ? "1 stop" : "\(leg.stops.count) stops")
-                    Text("· \(leg.minutes) min")
-                    Image(systemName: showsStops ? "chevron.up" : "chevron.down")
-                        .scaledFont(size: 11, weight: .semibold)
+                    Text("\(leg.stops.count == 1 ? "1 stop" : "\(leg.stops.count) stops") · \(leg.minutes) min")
+                        .typography(.main)
+                        .foregroundColor(.grey40)
+                    Image("icon-chevron-down")
+                        .resizable()
+                        .renderingMode(.template)
+                        .foregroundColor(.grey40)
+                        .frame(width: 12, height: 12)
+                        .rotationEffect(.degrees(showsStops ? 180 : 0))
                 }
-                .typography(.main)
-                .foregroundColor(.grey30)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -333,7 +378,6 @@ private struct StepRow: View {
                             .foregroundColor(.grey50)
                     }
                 }
-                .padding(.leading, 4)
             }
         }
     }
@@ -346,17 +390,23 @@ private struct StepRow: View {
             ZStack(alignment: .top) {
                 switch step.kind {
                 case .place(let marker):
+                    // Lines stop 4pt short of the marker's visible edge on both sides.
+                    let half = markerHalfHeight(marker)
                     if let railAbove {
-                        line(railAbove, from: 0, to: markerY, x: x)
+                        line(railAbove, from: 0, to: max(0, markerY - half - markerGap), x: x)
                     }
                     if let railBelow {
-                        line(railBelow, from: markerY, to: geo.size.height, x: x)
+                        line(railBelow, from: markerY + half + markerGap, to: geo.size.height, x: x)
                     }
                     markerView(marker)
                         .position(x: x, y: markerY)
                 default:
                     if let own = step.rail {
-                        line(own, from: 0, to: geo.size.height, x: x)
+                        // Where a dotted walk meets a solid train line directly (no place
+                        // between them), the train line keeps the same 4pt gap.
+                        let gapTop = own.isSolid && railAbove?.isSolid == false ? markerGap : 0
+                        let gapBottom = own.isSolid && railBelow?.isSolid == false ? markerGap : 0
+                        line(own, from: gapTop, to: geo.size.height - gapBottom, x: x)
                     }
                 }
             }
@@ -374,8 +424,18 @@ private struct StepRow: View {
         case .solid(let color):
             path.stroke(color, lineWidth: 4)
         case .dotted:
-            path.stroke(Color.grey30, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [0.5, 5]))
+            // Figma: 1pt Grey 30 dashes, ~1.9pt on and off.
+            path.stroke(Color.grey30, style: StrokeStyle(lineWidth: 1, dash: [1.92, 1.92]))
         }
+    }
+
+    /// Space between a marker and the line above or below it.
+    private let markerGap: CGFloat = 4
+
+    /// Half the visible height of a marker: 12pt circles; the pin's shape is 14pt tall
+    /// inside its 17pt frame.
+    private func markerHalfHeight(_ marker: JourneyDetailsView.Step.Marker) -> CGFloat {
+        marker == .end ? 7 : 6
     }
 
     @ViewBuilder
@@ -390,11 +450,12 @@ private struct StepRow: View {
             Circle()
                 .fill(Color.black)
                 .frame(width: 12, height: 12)
-                .overlay(Circle().stroke(Color.white, lineWidth: 2))
         case .end:
-            Image("journey-pin")
+            // 14×17 frame, pin centred; its top sits 2pt below the row top as in Figma.
+            Image("timeline-pin")
                 .resizable()
                 .frame(width: 14, height: 17)
+                .offset(y: -0.5)
         }
     }
 }

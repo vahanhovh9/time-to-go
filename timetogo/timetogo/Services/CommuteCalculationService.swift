@@ -333,7 +333,7 @@ final class CommuteCalculationService {
                     arrival: arrival,
                     lineId: leg.lineId,
                     lineName: name.map { isNamedLine ? "\($0) line" : $0 },
-                    heading: leg.heading.map { cleanStationName($0) },
+                    heading: leg.heading.map { $0.tflHeading },
                     stops: leg.path?.stopPoints.map { cleanStationName($0.name) } ?? [],
                     statusText: status
                 )
@@ -352,13 +352,7 @@ final class CommuteCalculationService {
     }
 
     /// "Luton Rail Station" → "Luton".
-    private static func cleanStationName(_ name: String) -> String {
-        name
-            .replacingOccurrences(of: " Underground Station", with: "")
-            .replacingOccurrences(of: " Rail Station", with: "")
-            .replacingOccurrences(of: " DLR Station", with: "")
-            .replacingOccurrences(of: " Station", with: "")
-    }
+    private static func cleanStationName(_ name: String) -> String { name.tflStationName }
 }
 
 /// How bad a TfL line status is, from its severity description.

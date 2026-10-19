@@ -84,6 +84,7 @@ struct DesignSystemView: View {
                 ColorCard(name: "White", hex: "#FFFFFF", color: Color.white, textColor: Color.black)
                 ColorCard(name: "Grey 10", hex: "#EBEBEB", color: Color.grey10, textColor: Color.black)
                 ColorCard(name: "Grey 30", hex: "#949494", color: Color.grey30, textColor: Color.white)
+                ColorCard(name: "Grey 40", hex: "#686868", color: Color.grey40, textColor: Color.white)
                 ColorCard(name: "Grey 50", hex: "#3E3E3E", color: Color.grey50, textColor: Color.white)
                 ColorCard(name: "Black", hex: "#000000", color: Color.black, textColor: Color.white)
             }

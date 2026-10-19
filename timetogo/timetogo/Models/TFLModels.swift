@@ -2,6 +2,31 @@ import Foundation
 
 // MARK: - Lines
 
+// MARK: - Station names
+
+nonisolated extension String {
+    /// TfL station name without its mode suffix: "Old Street Underground Station" → "Old Street",
+    /// "Luton Rail Station" → "Luton". Only the suffix is removed, once, so names that contain
+    /// "Station" keep it ("Battersea Power Station Underground Station" → "Battersea Power Station").
+    var tflStationName: String {
+        for suffix in [" Underground Station", " Rail Station", " DLR Station"] where hasSuffix(suffix) {
+            return String(dropLast(suffix.count))
+        }
+        if hasSuffix(" Station"), self != "Battersea Power Station" {
+            return String(dropLast(" Station".count))
+        }
+        return self
+    }
+
+    /// A train's heading with the station name cleaned before any "via":
+    /// "Battersea Power Station Underground Station via Charing Cross"
+    /// → "Battersea Power Station via Charing Cross".
+    var tflHeading: String {
+        guard let via = range(of: " via ") else { return tflStationName }
+        return String(self[..<via.lowerBound]).tflStationName + self[via.lowerBound...]
+    }
+}
+
 nonisolated struct TFLLine: Identifiable, Codable, Hashable, CustomStringConvertible {
     let id: String
     let name: String
@@ -55,13 +80,7 @@ nonisolated struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringCo
 
     var id: String { naptanId }
 
-    var displayName: String {
-        commonName
-            .replacingOccurrences(of: " Underground Station", with: "")
-            .replacingOccurrences(of: " Rail Station", with: "")
-            .replacingOccurrences(of: " DLR Station", with: "")
-            .replacingOccurrences(of: " Station", with: "")
-    }
+    var displayName: String { commonName.tflStationName }
 
     var description: String { displayName }
 
