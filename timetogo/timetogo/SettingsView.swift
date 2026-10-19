@@ -27,6 +27,8 @@ struct SettingsView: View {
     @State private var outboundWalkMinutes: Int = 5
     @State private var outboundDestStation: TFLStopPoint = .placeholder
     @State private var showOutboundDestPicker = false
+    /// Going back home or to another place; both keep their details.
+    @State private var outboundType: OutboundDestinationType = .home
 
     /// Which time row currently has its wheel picker expanded.
     @State private var expandedTimeRow: String?
@@ -37,7 +39,6 @@ struct SettingsView: View {
     private let walkOptions: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
 
     private var outboundEnabled: Bool { appState.settings?.outboundEnabled ?? false }
-    private var outboundDestType: OutboundDestinationType { appState.settings?.outboundDestinationType ?? .home }
 
     // MARK: - Body
 
@@ -64,6 +65,13 @@ struct SettingsView: View {
             .onChange(of: outboundArrivalTime)      { _, _ in autoSave() }
             .onChange(of: outboundWalkMinutes)      { _, _ in autoSave() }
             .onChange(of: outboundDestStation)      { _, _ in autoSave() }
+            .onChange(of: outboundType)             { _, newType in
+                autoSave()
+                // No station for the other place yet: ask for one straight away.
+                if newType == .otherPlace, outboundDestStation.naptanId.isEmpty, isLoaded {
+                    showOutboundDestPicker = true
+                }
+            }
     }
 
     private var inboundObserved: some View {
@@ -93,14 +101,15 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 32) {
                     toOfficeGroup
-                    backHomeGroup
+                    // Only once Back home is set up (from the Back home tab).
+                    if outboundEnabled { backHomeGroup }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
                 .padding(.bottom, 32)
             }
         }
-        .background(Color.white)
+        .background(Color(hex: "FAFAFA").ignoresSafeArea())
     }
 
     private var header: some View {
@@ -143,20 +152,20 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             groupTitle("Back home")
 
-            if outboundEnabled {
-                if outboundDestType == .otherPlace {
-                    SettingsCard(title: "Destination") {
-                        stationRow(label: "Station", station: outboundDestStation) { showOutboundDestPicker = true }
-                        walkRow(label: "Walk from station", minutes: $outboundWalkMinutes)
-                    }
+            Picker("Going to", selection: $outboundType) {
+                Text("Home").tag(OutboundDestinationType.home)
+                Text("Other place").tag(OutboundDestinationType.otherPlace)
+            }
+            .pickerStyle(.segmented)
+
+            if outboundType == .otherPlace {
+                SettingsCard(title: "Destination") {
+                    stationRow(label: "Station", station: outboundDestStation) { showOutboundDestPicker = true }
+                    walkRow(label: "Walk from station", minutes: $outboundWalkMinutes)
                 }
-                SettingsCard(title: "Schedule") {
-                    timeRow(id: "outboundArrival", label: "Arrival time", time: $outboundArrivalTime)
-                }
-            } else {
-                SettingsCard(title: "Not set up yet", subtitle: "Set up your journey home from the Back home tab.") {
-                    EmptyView()
-                }
+            }
+            SettingsCard(title: "Schedule") {
+                timeRow(id: "outboundArrival", label: "Arrival time", time: $outboundArrivalTime)
             }
         }
     }
@@ -282,7 +291,9 @@ struct SettingsView: View {
         friday    = days.contains(.friday)
         outboundArrivalTime      = s.outboundArrivalTime
         outboundWalkMinutes      = max(1, s.outboundWalkingTimeFromStation)
-        if s.outboundDestinationType == .otherPlace {
+        outboundType             = s.outboundDestinationType
+        // The other place's details are kept even while Home is selected.
+        if !s.outboundDestinationStationId.isEmpty {
             outboundDestStation = TFLStopPoint(
                 naptanId: s.outboundDestinationStationId,
                 commonName: s.outboundDestinationStationName,
@@ -311,13 +322,13 @@ struct SettingsView: View {
         if friday    { days.append(.friday) }
         s.officeDays = days
         if s.outboundEnabled {
-            s.outboundArrivalTime      = outboundArrivalTime
-            if s.outboundDestinationType == .otherPlace {
-                s.outboundWalkingTimeFromStation  = outboundWalkMinutes
-                s.outboundDestinationStationId    = outboundDestStation.naptanId
-                s.outboundDestinationStationName  = outboundDestStation.commonName
-                s.outboundDestinationStationLines = outboundDestStation.lines
-            }
+            s.outboundArrivalTime             = outboundArrivalTime
+            s.outboundDestinationType         = outboundType
+            // Saved whichever is selected, so switching back to Other place restores them.
+            s.outboundWalkingTimeFromStation  = outboundWalkMinutes
+            s.outboundDestinationStationId    = outboundDestStation.naptanId
+            s.outboundDestinationStationName  = outboundDestStation.commonName
+            s.outboundDestinationStationLines = outboundDestStation.lines
         }
         appState.updateSettings(s)
         reloadTask?.cancel()
@@ -371,6 +382,7 @@ private struct SettingsCard<Rows: View>: View {
         .padding(.top, 16)
         .padding(.bottom, subtitle == nil ? 0 : 16)
         .padding(.horizontal, 12)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.grey10, lineWidth: 1)
