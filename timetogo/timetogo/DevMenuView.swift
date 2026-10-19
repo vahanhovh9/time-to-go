@@ -29,15 +29,15 @@ struct DevMenuView: View {
                 Button(action: onDismiss) {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
+                            .scaledFont(size: 14, weight: .semibold)
                         Text("Back")
-                            .font(.system(size: 14, weight: .semibold))
+                            .scaledFont(size: 14, weight: .semibold)
                     }
                     .foregroundColor(.black)
                 }
                 Spacer()
                 Text("DEV")
-                    .font(.system(size: 16, weight: .bold))
+                    .scaledFont(size: 16, weight: .bold)
                 Spacer()
                 Color.clear.frame(width: 52, height: 1)
             }
@@ -64,10 +64,10 @@ struct DevMenuView: View {
             if let debug = journeyDebugInfo {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Journey diagnostics")
-                        .font(.system(size: 12, weight: .semibold))
+                        .scaledFont(size: 12, weight: .semibold)
                         .foregroundColor(Color.grey30)
                     Text(debug)
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .scaledFont(size: 11, weight: .regular, design: .monospaced)
                         .foregroundColor(.black)
                 }
                 .padding(.horizontal, 24)
@@ -77,13 +77,13 @@ struct DevMenuView: View {
             } else if let s = appState.settings {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Station NaPTANs (load inbound first)")
-                        .font(.system(size: 12, weight: .semibold))
+                        .scaledFont(size: 12, weight: .semibold)
                         .foregroundColor(Color.grey30)
                     Text("Home:   \(s.homeStationId.isEmpty ? "(none)" : s.homeStationId)")
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .scaledFont(size: 11, weight: .regular, design: .monospaced)
                         .foregroundColor(.black)
                     Text("Office: \(s.officeStationId.isEmpty ? "(none)" : s.officeStationId)")
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .scaledFont(size: 11, weight: .regular, design: .monospaced)
                         .foregroundColor(.black)
                 }
                 .padding(.horizontal, 24)
@@ -114,11 +114,11 @@ struct DevMenuView: View {
         Button(action: action) {
             HStack {
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .scaledFont(size: 16, weight: .medium)
                     .foregroundColor(destructive ? .red : .black)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .medium))
+                    .scaledFont(size: 14, weight: .medium)
                     .foregroundColor(Color.grey30)
             }
             .padding(.horizontal, 24)
@@ -139,9 +139,9 @@ struct DevMenuView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 9, weight: .medium))
+                        .scaledFont(size: 9, weight: .medium)
                     Text("Menu")
-                        .font(.system(size: 10, weight: .medium))
+                        .scaledFont(size: 10, weight: .medium)
                 }
                 .foregroundColor(.black)
                 .padding(.horizontal, 8)

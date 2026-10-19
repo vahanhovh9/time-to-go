@@ -2,48 +2,49 @@
 
 ## Typography Styles
 
+Text styles come from the Figma file (Timetogo, "Final/…" styles) and live in `TextStyles.swift`.
+
 ### Usage in Views
 
-Apply typography styles using view modifiers:
+```swift
+Text("Where do you leave?")
+    .typography(.title)
+
+Text("Home station")
+    .typography(.main)
+```
+
+For a one-off size with no Figma style, use `scaledFont` instead of `.font(.system(size:))`:
 
 ```swift
-Text("12:30 PM")
-    .timeStyle()
-    
-Text("Heading")
-    .h1Style()
-    
-Text("Heading")
-    .h2Style()
-    
-Text("Heading")
-    .h3Style()
-    
-Text("Heading")
-    .h4Style()
-    
-Text("Body text content")
-    .bodyTextStyle()
-    
-Text("Label")
-    .labelStyle()
-    
-Text("Small text")
-    .bodySmallStyle()
+Text("8:02 AM")
+    .scaledFont(size: 56, weight: .bold)
 ```
+
+### Text size (Dynamic Type)
+
+Every size below is the design size at the default text size. `typography` and `scaledFont`
+grow and shrink it with Settings → Display → Text Size. The app caps text at the largest
+standard size (`xxxLarge`) in `timetogoApp.swift`. Don't use `.font(.system(size:))` directly:
+it ignores the setting.
 
 ### Style Specifications
 
-| Style | Font | Weight | Size | Tracking | Line Height |
-|-------|------|--------|------|----------|-------------|
-| Time | SF Pro | Bold | 80px | -4p | 100% |
-| H1 | SF Pro | Bold | 40px | -2p | 100% |
-| H2 | SF Pro | Bold | 24px | -1px | 100% |
-| H3 | SF Pro | Bold | 20px | -0.5px | 100% |
-| H4 | SF Pro | Bold | 17px | -0.5px | 120% |
-| Body Text | SF Pro | Medium | 20px | -1px | 123% |
-| Label | SF Pro | Medium | 16px | -0.5px | 100% |
-| Body Small | SF Pro | Medium | 14px | 0px | 120% |
+| Style | Figma | Weight | Size | Tracking | Line height | Used for |
+|-------|-------|--------|------|----------|-------------|----------|
+| `.display` | Old/H1 | Bold | 40 | -2 | auto | "Settings" page title |
+| `.h1` | Final/H1 | Bold | 28 | -0.5 | auto | Onboarding step titles, Back home intro |
+| `.h2` | Final/H2 | Bold | 24 | -0.5 | auto | Journey and group titles, success title, destination cards |
+| `.h3` | Final/H3 | Bold | 18 | -0.5 | auto | Card titles, field values, "Next commute" |
+| `.h4` | Final/H4 | Semibold | 16 | 0 | auto | Step counter, station names |
+| `.h5` | H5 | Semibold | 15 | 0 | auto | (not used yet) |
+| `.button` | Old/H3 | Bold | 20 | -0.5 | auto | Button labels |
+| `.large` | Final/Large | Medium | 16 | -0.5 | 140% | Body copy, settings rows, departures |
+| `.main` | Final/Main | Medium | 14 | -0.5 | auto | Field labels, day chips |
+| `.small` | Final/Small | Regular | 13 | 0 | auto | Line status, minutes chips |
+| `.footnote` | Final/Footnote | Regular | 11 | 0 | auto | Secondary lines ("Northern", "Powered by TfL") |
+
+Figma sets Final/H4, H5, Final/Small and Final/Footnote in Inter; the app uses SF Pro throughout.
 
 ## Color Palette
 
@@ -67,6 +68,7 @@ Text("Small text")
 | White | #FFFFFF |
 | Grey 10 | #EBEBEB |
 | Grey 30 | #949494 |
+| Grey 40 | #686868 |
 | Grey 50 | #3E3E3E |
 | Black | #000000 |
 

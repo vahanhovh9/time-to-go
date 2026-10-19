@@ -24,11 +24,11 @@ struct OnboardingHeader: View {
     
     var body: some View {
         if let progressText {
-            // Figma "Onboarding - Step" header: step counter row, then a 24pt title.
+            // Figma "Onboarding - Step" header: step counter row, then a 28pt title.
             VStack(alignment: .leading, spacing: 12) {
                 progressRow(progressText)
                 Text(title)
-                    .typography(.title)
+                    .typography(.h1)
                     .foregroundColor(.black)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -41,7 +41,7 @@ struct OnboardingHeader: View {
                     .frame(height: 4)
                     .frame(maxWidth: .infinity)
                 Text(title)
-                    .h1Style()
+                    .typography(.display)
                     .foregroundColor(Color.black)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -59,9 +59,9 @@ struct OnboardingHeader: View {
 
         if showsBackButton {
             Button { onBack?() } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: 8) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 13, weight: .semibold))
+                        .scaledFont(size: 14, weight: .semibold)
                         .foregroundColor(.grey30)
                     label
                 }

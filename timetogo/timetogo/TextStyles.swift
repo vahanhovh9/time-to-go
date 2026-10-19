@@ -7,200 +7,142 @@
 
 import SwiftUI
 
-// MARK: - Typography Styles
-struct Typography {
-    // MARK: - Time
-    static func time() -> Font {
-        return .system(size: 80, weight: .bold)
-    }
-    
-    // MARK: - Headings
-    static func h1() -> Font {
-        return .system(size: 40, weight: .bold)
-    }
-    
-    static func h2() -> Font {
-        return .system(size: 24, weight: .bold)
-    }
-    
-    static func h3() -> Font {
-        return .system(size: 20, weight: .bold)
-    }
-    
-    static func h4() -> Font {
-        return .system(size: 17, weight: .bold)
-    }
-    
-    // MARK: - Body Text
-    static func bodyText() -> Font {
-        return .system(size: 20, weight: .medium)
-    }
-    
-    static func label() -> Font {
-        return .system(size: 16, weight: .medium)
-    }
-    
-    static func bodySmall() -> Font {
-        return .system(size: 14, weight: .medium)
-    }
-}
-
-// MARK: - View Modifier for Typography with Line Height
-extension View {
-    func timeStyle() -> some View {
-        self.modifier(TimeStyle())
-    }
-    
-    func h1Style() -> some View {
-        self.modifier(H1Style())
-    }
-    
-    func h2Style() -> some View {
-        self.modifier(H2Style())
-    }
-    
-    func h3Style() -> some View {
-        self.modifier(H3Style())
-    }
-    
-    func h4Style() -> some View {
-        self.modifier(H4Style())
-    }
-    
-    func bodyTextStyle() -> some View {
-        self.modifier(BodyTextStyle())
-    }
-    
-    func labelStyle() -> some View {
-        self.modifier(LabelStyle())
-    }
-    
-    func bodySmallStyle() -> some View {
-        self.modifier(BodySmallStyle())
-    }
-}
-
-// MARK: - Typography Modifiers
-struct TimeStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.time())
-            .tracking(-4)
-            .lineSpacing(100 - 80) // 100% line height = 80px
-    }
-}
-
-struct H1Style: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.h1())
-            .tracking(-2)
-            .lineSpacing(100 - 40) // 100% line height = 40px
-    }
-}
-
-struct H2Style: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.h2())
-            .tracking(-1)
-            .lineSpacing(100 - 24) // 100% line height = 24px
-    }
-}
-
-struct H3Style: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.h3())
-            .tracking(-0.5)
-            .lineSpacing(20) // Assuming default line spacing
-    }
-}
-
-struct H4Style: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.h4())
-            .tracking(-0.5)
-            .lineSpacing(20.4 - 17) // 120% line height = 20.4px
-            .padding(.trailing, 1)
-    }
-}
-
-struct BodyTextStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.bodyText())
-            .tracking(-1)
-            .lineSpacing(24.6 - 20) // 123% line height = 24.6px
-    }
-}
-
-struct LabelStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.label())
-            .tracking(-0.5)
-    }
-}
-
-struct BodySmallStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Typography.bodySmall())
-            .tracking(0)
-            .lineSpacing(16.8 - 14) // 120% line height = 16.8px
-    }
-}
-
 // MARK: - Figma text styles (Timetogo file, "Final/…")
 
-/// Text styles from the Figma file. Apply with `.typography(.title)`.
-enum AppTextStyle {
+/// Text styles from the Figma file. Apply with `.typography(.h2)`.
+/// Sizes are the design sizes at the default text size; they grow and shrink with the
+/// user's text size setting (Settings → Display → Text Size).
+enum AppTextStyle: CaseIterable {
     /// 40 Bold, -2 — big page titles ("Settings"). Figma: Old/H1.
     case display
-    /// 24 Bold, -0.5 — onboarding step titles ("Where do you leave?").
-    case title
-    /// 20 Bold, -0.5 — section titles, primary button. Figma: Final/H2.
+    /// 28 Bold, -0.5 — onboarding step titles ("Where do you leave?"). Figma: Final/H1.
+    case h1
+    /// 24 Bold, -0.5 — journey and group titles, destination cards. Figma: Final/H2.
     case h2
-    /// 16 Bold, -0.5 — field values, card titles. Figma: Final/H3.
+    /// 18 Bold, -0.5 — field values, card titles. Figma: Final/H3.
     case h3
-    /// 13 Semibold — step counter ("01 / 3"), small headings. Figma: Final/H4.
+    /// 16 Semibold — step counter ("01 / 3"), station names. Figma: Final/H4.
     case h4
-    /// 14 Medium, -0.5 — list labels. Figma: Final/Large.
+    /// 15 Semibold. Figma: H5.
+    case h5
+    /// 20 Bold, -0.5 — button labels. Figma: Old/H3.
+    case button
+    /// 16 Medium, -0.5, 140% line height — body copy, settings rows, departures. Figma: Final/Large.
     case large
-    /// 13 Medium, -0.5 — field labels, body. Figma: Final/Main.
+    /// 14 Medium, -0.5 — field labels, "LEAVE TODAY AT". Figma: Final/Main.
     case main
-    /// 12 Regular. Figma: Final/Small.
+    /// 13 Regular — line status, minutes chips. Figma: Final/Small.
     case small
     /// 11 Regular — secondary lines. Figma: Final/Footnote.
     case footnote
 
-    var font: Font {
+    var size: CGFloat {
         switch self {
-        case .display:  return .system(size: 40, weight: .bold)
-        case .title:    return .system(size: 24, weight: .bold)
-        case .h2:       return .system(size: 20, weight: .bold)
-        case .h3:       return .system(size: 16, weight: .bold)
-        case .h4:       return .system(size: 13, weight: .semibold)
-        case .large:    return .system(size: 14, weight: .medium)
-        case .main:     return .system(size: 13, weight: .medium)
-        case .small:    return .system(size: 12)
-        case .footnote: return .system(size: 11)
+        case .display:  return 40
+        case .h1:       return 28
+        case .h2:       return 24
+        case .h3:       return 18
+        case .h4:       return 16
+        case .h5:       return 15
+        case .button:   return 20
+        case .large:    return 16
+        case .main:     return 14
+        case .small:    return 13
+        case .footnote: return 11
+        }
+    }
+
+    var weight: Font.Weight {
+        switch self {
+        case .display, .h1, .h2, .h3, .button: return .bold
+        case .h4, .h5:                         return .semibold
+        case .large, .main:                    return .medium
+        case .small, .footnote:                return .regular
         }
     }
 
     var tracking: CGFloat {
         switch self {
-        case .display:                        return -2
-        case .title, .h2, .h3, .large, .main: return -0.5
-        case .h4, .small, .footnote:          return 0
+        case .display:                                return -2
+        case .h1, .h2, .h3, .button, .large, .main:   return -0.5
+        case .h4, .h5, .small, .footnote:             return 0
         }
+    }
+
+    /// Line height as a multiple of the font size; nil = the font's natural line height.
+    var lineHeight: CGFloat? {
+        self == .large ? 1.4 : nil
     }
 }
 
 extension View {
     func typography(_ style: AppTextStyle) -> some View {
-        font(style.font).tracking(style.tracking)
+        modifier(ScaledFont(size: style.size, weight: style.weight, design: .default, lineHeight: style.lineHeight))
+            .tracking(style.tracking)
+    }
+
+    /// System font at a design size that follows the user's text size setting.
+    /// Use for one-off sizes; prefer `typography(_:)` where a Figma style fits.
+    func scaledFont(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> some View {
+        modifier(ScaledFont(size: size, weight: weight, design: design, lineHeight: nil))
+    }
+}
+
+// MARK: - Dynamic Type
+
+private struct ScaledFont: ViewModifier {
+    let weight: Font.Weight
+    let design: Font.Design
+    let lineHeight: CGFloat?
+    @ScaledMetric private var size: CGFloat
+
+    init(size: CGFloat, weight: Font.Weight, design: Font.Design, lineHeight: CGFloat?) {
+        self.weight = weight
+        self.design = design
+        self.lineHeight = lineHeight
+        _size = ScaledMetric(wrappedValue: size, relativeTo: Self.textStyle(for: size))
+    }
+
+    func body(content: Content) -> some View {
+        // Figma line height: every line is `size × lineHeight` tall, so the extra space
+        // goes between lines and, split in half, above the first and below the last.
+        let extra = lineHeight.map { max(0, size * $0 - naturalLineHeight) } ?? 0
+        content
+            .font(.system(size: size, weight: weight, design: design))
+            .lineSpacing(extra)
+            .padding(.vertical, extra / 2)
+    }
+
+    private var naturalLineHeight: CGFloat {
+        UIFont.systemFont(ofSize: size, weight: Self.uiWeight(weight)).lineHeight
+    }
+
+    private static func uiWeight(_ weight: Font.Weight) -> UIFont.Weight {
+        switch weight {
+        case .ultraLight: return .ultraLight
+        case .thin:       return .thin
+        case .light:      return .light
+        case .medium:     return .medium
+        case .semibold:   return .semibold
+        case .bold:       return .bold
+        case .heavy:      return .heavy
+        case .black:      return .black
+        default:          return .regular
+        }
+    }
+
+    /// The iOS text style whose scaling curve suits this size: big display text grows
+    /// gently, small text grows the most.
+    private static func textStyle(for size: CGFloat) -> Font.TextStyle {
+        switch size {
+        case 34...: return .largeTitle
+        case 24...: return .title2
+        case 20...: return .title3
+        case 17...: return .body
+        case 15...: return .subheadline
+        case 13...: return .footnote
+        case 12...: return .caption
+        default:    return .caption2
+        }
     }
 }

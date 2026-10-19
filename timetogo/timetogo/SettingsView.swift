@@ -105,7 +105,7 @@ struct SettingsView: View {
 
     private var header: some View {
         Text("Settings")
-            .font(.system(size: 40, weight: .bold))
+            .scaledFont(size: 40, weight: .bold)
             .tracking(-2)
             .foregroundColor(.black)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -163,8 +163,7 @@ struct SettingsView: View {
 
     private func groupTitle(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 20, weight: .bold))
-            .tracking(-0.5)
+            .typography(.h2)
             .foregroundColor(.black)
             .padding(.leading, 6)
     }
@@ -177,24 +176,24 @@ struct SettingsView: View {
                 HStack(spacing: 8) {
                     if station.naptanId.isEmpty {
                         Text("Choose")
-                            .font(.system(size: 13, weight: .medium))
+                            .typography(.large)
                             .foregroundColor(.grey30)
                     } else {
                         VStack(alignment: .trailing, spacing: 4) {
                             Text(station.displayName)
-                                .font(.system(size: 13, weight: .semibold))
+                                .typography(.h4)
                                 .foregroundColor(.black)
                                 .lineLimit(1)
                             if !station.lineDisplayText.isEmpty {
                                 Text(station.lineDisplayText)
-                                    .font(.system(size: 11))
+                                    .typography(.footnote)
                                     .foregroundColor(.grey30)
                                     .lineLimit(1)
                             }
                         }
                     }
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .scaledFont(size: 12, weight: .semibold)
                         .foregroundColor(.grey30)
                 }
             }
@@ -243,8 +242,7 @@ struct SettingsView: View {
     private var daysRow: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Office days")
-                .font(.system(size: 13, weight: .medium))
-                .tracking(-0.5)
+                .typography(.main)
                 .foregroundColor(.grey50)
             HStack(spacing: 6) {
                 DayChip(title: "Mon", isOn: $monday)
@@ -348,7 +346,7 @@ struct SettingsView: View {
 
 // MARK: - Building blocks (same card / row language as DepartureBoard)
 
-/// Bordered card with a 13pt title, optional footnote subtitle, and divided rows.
+/// Bordered card with an H3 title, optional footnote subtitle, and divided rows.
 private struct SettingsCard<Rows: View>: View {
     var title: String
     var subtitle: String? = nil
@@ -358,12 +356,11 @@ private struct SettingsCard<Rows: View>: View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 16, weight: .bold))
-                    .tracking(-0.5)
+                    .typography(.h3)
                     .foregroundColor(.black)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 11))
+                        .typography(.footnote)
                         .foregroundColor(.grey30)
                 }
             }
@@ -389,10 +386,8 @@ private struct SettingsRow<Value: View>: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(label)
-                .font(.system(size: 14, weight: .medium))
-                .tracking(-0.5)
+                .typography(.large)
                 .foregroundColor(.grey30)
-                .frame(minHeight: 25)   // 1.8 line height at 14pt
             Spacer(minLength: 8)
             value()
         }
@@ -410,8 +405,7 @@ private struct ValueChip: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 14, weight: .medium))
-            .tracking(-0.5)
+            .typography(.large)
             .foregroundColor(isActive ? .grey30 : .black)
             .lineLimit(1)
             .padding(.horizontal, 8)
@@ -427,7 +421,7 @@ private struct DayChip: View {
     var body: some View {
         Button { isOn.toggle() } label: {
             Text(title)
-                .font(.system(size: 13, weight: .medium))
+                .typography(.main)
                 .foregroundColor(isOn ? .white : .grey50)
                 .frame(maxWidth: .infinity, minHeight: 36)
                 .background(isOn ? Color.black : Color.grey10)

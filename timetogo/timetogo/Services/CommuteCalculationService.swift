@@ -103,7 +103,7 @@ final class CommuteCalculationService {
         let leaveOfficeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToOffice + safetyBufferMinutes) * 60))
 
-        let lineStatuses = Self.statuses(await statusRequest, for: journeyLines)
+        let (status, lineById) = await serviceStatus(for: journey, prefetched: await statusRequest)
 
         return CommuteResult(
             leaveHomeTime:               leaveOfficeTime,
@@ -111,11 +111,12 @@ final class CommuteCalculationService {
             trainArrivalAtOfficeStation: trainArrival,
             journeyDurationMinutes:      journey.durationMinutes,
             numberOfStops:               numberOfStops,
-            serviceStatus:               resolveServiceStatus(from: lineStatuses),
+            serviceStatus:               status,
             dayLabel:                    dayLabel(for: commuteDate),
             lineIds:                     journeyLines
         )
         .withFirstTrainExit(Self.firstTrainExit(of: journey))
+        .withLegs(Self.journeyLegs(of: journey, lines: lineById))
     }
 
     // MARK: - Helpers
@@ -196,7 +197,7 @@ final class CommuteCalculationService {
         let leaveHomeTime = trainDeparture
             .addingTimeInterval(TimeInterval(-(settings.walkingMinutesToStation + safetyBufferMinutes) * 60))
 
-        let lineStatuses = Self.statuses(await statusRequest, for: journeyLines)
+        let (status, lineById) = await serviceStatus(for: journey, prefetched: await statusRequest)
 
         return CommuteResult(
             leaveHomeTime:               leaveHomeTime,
@@ -204,33 +205,26 @@ final class CommuteCalculationService {
             trainArrivalAtOfficeStation: trainArrival,
             journeyDurationMinutes:      journey.durationMinutes,
             numberOfStops:               numberOfStops,
-            serviceStatus:               resolveServiceStatus(from: lineStatuses),
+            serviceStatus:               status,
             dayLabel:                    dayLabel(for: commuteDate),
             lineIds:                     journeyLines
         )
         .withFirstTrainExit(Self.firstTrainExit(of: journey))
+        .withLegs(Self.journeyLegs(of: journey, lines: lineById))
     }
 
-    /// NaPTAN where the first tube leg ends.
+    /// NaPTAN where the first train leg ends.
     private static func firstTrainExit(of journey: TFLJourneyResult) -> String? {
-        journey.legs.first(where: { $0.isTube })?.arrivalPoint.naptanId
+        journey.legs.first(where: { $0.isTrain })?.arrivalPoint.naptanId
     }
 
-    /// Tube lines used by the journey, in travel order, without repeats.
+    /// Lines used by the journey, in travel order, without repeats.
     private static func lineIds(of journey: TFLJourneyResult) -> [String] {
         var seen = Set<String>()
         return journey.legs.compactMap { leg in
-            guard leg.isTube, let id = leg.lineId, !id.isEmpty, seen.insert(id).inserted else { return nil }
+            guard leg.isTrain, let id = leg.lineId, !id.isEmpty, seen.insert(id).inserted else { return nil }
             return id
         }
-    }
-
-    /// Narrows fetched statuses to the journey's lines; keeps all when the journey didn't say.
-    private static func statuses(_ all: [TFLLine], for lineIds: [String]) -> [TFLLine] {
-        guard !lineIds.isEmpty else { return all }
-        let wanted = Set(lineIds)
-        let matching = all.filter { wanted.contains($0.id) }
-        return matching.isEmpty ? all : matching
     }
 
     /// Parses TFL date strings, which typically omit timezone:
@@ -261,15 +255,123 @@ final class CommuteCalculationService {
         ) ?? date
     }
 
-    private func resolveServiceStatus(from lines: [TFLLine]) -> ServiceStatus {
-        for line in lines {
-            let s = (line.lineStatuses?.first?.statusSeverityDescription ?? "").lowercased()
-            if s.contains("severe") { return .severeDelays(line.serviceStatus) }
+    // MARK: - Service status
+
+    /// Status of the worst line on the route, worded as advice, e.g. "Severe delays on
+    /// Thameslink. Leave earlier to catch the Luton train." A later line counts as much as
+    /// the first: a delay at the change still makes you late.
+    ///
+    /// `prefetched` covers the home and office stations' lines (requested alongside the
+    /// journey); lines met only at a change, like Thameslink at Kentish Town, are fetched here.
+    /// Also returns every fetched line by ID, so the journey page can flag the delayed train.
+    private func serviceStatus(
+        for journey: TFLJourneyResult,
+        prefetched: [TFLLine]
+    ) async -> (ServiceStatus, [String: TFLLine]) {
+        let legs = journey.legs.filter { $0.isTrain && !($0.lineId ?? "").isEmpty }
+        var lines = prefetched
+        let missing = Set(legs.compactMap(\.lineId)).subtracting(lines.map(\.id))
+        if !missing.isEmpty {
+            lines += (try? await tflService.fetchLineStatus(for: Array(missing))) ?? []
         }
-        for line in lines {
-            let s = (line.lineStatuses?.first?.statusSeverityDescription ?? "").lowercased()
-            if s.contains("minor") || s.contains("delay") { return .minorDelays(line.serviceStatus) }
+        let lineById = Dictionary(lines.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+
+        // (line, how to name it, where the train is heading) for each train in the journey;
+        // without legs, fall back to the stations' lines.
+        let candidates: [(line: TFLLine, isNamedLine: Bool, heading: String?)] = legs.isEmpty
+            ? prefetched.map { ($0, true, nil) }
+            : legs.compactMap { leg in
+                guard let id = leg.lineId, let line = lineById[id] else { return nil }
+                let named = ["tube", "overground"].contains(leg.mode?.id ?? "")
+                return (line, named, leg.heading)
+            }
+
+        // The worst line decides; on a tie, the earlier one.
+        var worst: (line: TFLLine, isNamedLine: Bool, heading: String?, severity: LineSeverity)?
+        for candidate in candidates {
+            let severity = LineSeverity(candidate.line.serviceStatus)
+            if severity > (worst?.severity ?? .good) {
+                worst = (candidate.line, candidate.isNamedLine, candidate.heading, severity)
+            }
         }
-        return .goodService
+        guard let worst else { return (.goodService, lineById) }
+
+        let lineName = worst.isNamedLine ? "the \(worst.line.name) line" : worst.line.name
+        let what = Self.sentenceCase(worst.line.serviceStatus) + " on \(lineName)."
+        let advice: String
+        switch worst.severity {
+        case .disrupted:
+            advice = "Check your route before you leave."
+        default:
+            advice = worst.heading.map { "Leave earlier to catch the \(Self.cleanStationName($0)) train." }
+                ?? "Leave earlier."
+        }
+        let message = "\(what) \(advice)"
+        return (worst.severity == .minor ? .minorDelays(message) : .severeDelays(message), lineById)
     }
+
+    // MARK: - Journey legs
+
+    /// Trains and walks for the journey page. Other modes (e.g. a bus replacement) are skipped.
+    private static func journeyLegs(of journey: TFLJourneyResult, lines: [String: TFLLine]) -> [JourneyLeg] {
+        journey.legs.compactMap { leg in
+            guard let departure = leg.departureTime.flatMap({ parseTFLDate($0) }),
+                  let arrival = leg.arrivalTime.flatMap({ parseTFLDate($0) }) else { return nil }
+            let from = cleanStationName(leg.departurePoint.commonName)
+            let to = cleanStationName(leg.arrivalPoint.commonName)
+
+            if leg.isTrain {
+                let line = leg.lineId.flatMap { lines[$0] }
+                let name = leg.routeOptions?.first?.name ?? line?.name
+                let isNamedLine = ["tube", "overground"].contains(leg.mode?.id ?? "")
+                let status = line.map(\.serviceStatus).flatMap { LineSeverity($0) == .good ? nil : sentenceCase($0) }
+                return JourneyLeg(
+                    kind: .train,
+                    from: from,
+                    to: to,
+                    departure: departure,
+                    arrival: arrival,
+                    lineId: leg.lineId,
+                    lineName: name.map { isNamedLine ? "\($0) line" : $0 },
+                    heading: leg.heading.map { $0.tflHeading },
+                    stops: leg.path?.stopPoints.map { cleanStationName($0.name) } ?? [],
+                    statusText: status
+                )
+            }
+            if leg.mode?.id == "walking" {
+                return JourneyLeg(kind: .walk, from: from, to: to, departure: departure, arrival: arrival)
+            }
+            return nil
+        }
+    }
+
+    /// "Part Suspended" → "Part suspended".
+    private static func sentenceCase(_ text: String) -> String {
+        let lower = text.lowercased()
+        return lower.prefix(1).uppercased() + lower.dropFirst()
+    }
+
+    /// "Luton Rail Station" → "Luton".
+    private static func cleanStationName(_ name: String) -> String { name.tflStationName }
+}
+
+/// How bad a TfL line status is, from its severity description.
+private enum LineSeverity: Int, Comparable {
+    case good, minor, severe, disrupted
+
+    init(_ description: String) {
+        let s = description.lowercased()
+        if ["suspended", "closed", "closure", "not running", "no service"].contains(where: s.contains) {
+            self = .disrupted
+        } else if s.contains("severe") || s.contains("serious") {
+            self = .severe
+        } else if ["minor", "moderate", "delay", "reduced", "special", "frequency", "diverted", "bus service", "issues"]
+                    .contains(where: s.contains) {
+            self = .minor
+        } else {
+            self = .good   // Good Service, No Issues, Information, Exit Only, …
+        }
+    }
+
+    static func < (a: LineSeverity, b: LineSeverity) -> Bool { a.rawValue < b.rawValue }
 }

@@ -232,13 +232,7 @@ final class MainViewModel: ObservableObject {
         return lines.count == 1 ? lines[0].id : nil
     }
 
-    private func cleanStationName(_ name: String) -> String {
-        name
-            .replacingOccurrences(of: " Underground Station", with: "")
-            .replacingOccurrences(of: " Rail Station", with: "")
-            .replacingOccurrences(of: " DLR Station", with: "")
-            .replacingOccurrences(of: " Station", with: "")
-    }
+    private func cleanStationName(_ name: String) -> String { name.tflStationName }
 
     // MARK: - Private
 

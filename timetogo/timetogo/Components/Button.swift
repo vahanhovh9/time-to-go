@@ -23,7 +23,7 @@ struct CustomButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .typography(.h2)
+                .typography(.button)
                 .foregroundColor(foreground)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)

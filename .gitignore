@@ -25,3 +25,6 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 **/*.xcuserstate
+
+# Secrets (API keys) — recreate locally; see README section in RELEASE_CHECKLIST.md
+timetogo/timetogo/Secrets.swift

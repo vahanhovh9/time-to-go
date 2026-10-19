@@ -31,25 +31,25 @@ struct InfoItem: View {
                     )
                 
                 Image(systemName: data.iconName)
-                    .font(.system(size: 18, weight: .semibold))
+                    .scaledFont(size: 18, weight: .semibold)
                     .foregroundColor(Color.black)
             }
             
             HStack(alignment: .center, spacing: 20) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(data.title)
-                        .h4Style()
+                        .scaledFont(size: 17, weight: .bold).tracking(-0.5)
                         .foregroundColor(Color.black)
                     
                     Text(data.subtitle)
-                        .labelStyle()
+                        .typography(.large)
                         .foregroundColor(Color.grey30)
                 }
                 
                 Spacer()
                 
                 Text(data.time)
-                    .h4Style()
+                    .scaledFont(size: 17, weight: .bold).tracking(-0.5)
                     .foregroundColor(Color.black)
             }
         }

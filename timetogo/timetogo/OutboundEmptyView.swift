@@ -17,11 +17,10 @@ struct OutboundEmptyView: View {
             VStack(spacing: 48) {
                 VStack(spacing: 16) {
                     Text("Need to be back right on time?")
-                        .typography(.title)
+                        .typography(.h1)
                         .foregroundColor(.black)
                     Text("Use Back home to know when you should leave the office.")
                         .typography(.large)
-                        .lineSpacing(14 * 0.8)   // 1.8 line height
                         .foregroundColor(.grey50)
                 }
                 .multilineTextAlignment(.center)

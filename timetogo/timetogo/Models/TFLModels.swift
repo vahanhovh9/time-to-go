@@ -2,6 +2,31 @@ import Foundation
 
 // MARK: - Lines
 
+// MARK: - Station names
+
+nonisolated extension String {
+    /// TfL station name without its mode suffix: "Old Street Underground Station" → "Old Street",
+    /// "Luton Rail Station" → "Luton". Only the suffix is removed, once, so names that contain
+    /// "Station" keep it ("Battersea Power Station Underground Station" → "Battersea Power Station").
+    var tflStationName: String {
+        for suffix in [" Underground Station", " Rail Station", " DLR Station"] where hasSuffix(suffix) {
+            return String(dropLast(suffix.count))
+        }
+        if hasSuffix(" Station"), self != "Battersea Power Station" {
+            return String(dropLast(" Station".count))
+        }
+        return self
+    }
+
+    /// A train's heading with the station name cleaned before any "via":
+    /// "Battersea Power Station Underground Station via Charing Cross"
+    /// → "Battersea Power Station via Charing Cross".
+    var tflHeading: String {
+        guard let via = range(of: " via ") else { return tflStationName }
+        return String(self[..<via.lowerBound]).tflStationName + self[via.lowerBound...]
+    }
+}
+
 nonisolated struct TFLLine: Identifiable, Codable, Hashable, CustomStringConvertible {
     let id: String
     let name: String
@@ -55,13 +80,7 @@ nonisolated struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringCo
 
     var id: String { naptanId }
 
-    var displayName: String {
-        commonName
-            .replacingOccurrences(of: " Underground Station", with: "")
-            .replacingOccurrences(of: " Rail Station", with: "")
-            .replacingOccurrences(of: " DLR Station", with: "")
-            .replacingOccurrences(of: " Station", with: "")
-    }
+    var displayName: String { commonName.tflStationName }
 
     var description: String { displayName }
 
@@ -163,6 +182,8 @@ nonisolated struct TFLJourneyResult: Codable {
 
 nonisolated struct TFLLeg: Codable {
     let duration: Int?
+    let departureTime: String?
+    let arrivalTime: String?
     let departurePoint: TFLPoint
     let arrivalPoint: TFLPoint
     let path: TFLPath?
@@ -170,16 +191,26 @@ nonisolated struct TFLLeg: Codable {
     let routeOptions: [TFLRouteOption]?
 
     var isTube: Bool { mode?.id == "tube" }
-    /// The tube line this leg runs on, e.g. "northern".
+    /// A train of any kind (tube, Elizabeth line, Overground, DLR, National Rail), not a walk.
+    var isTrain: Bool { TFLMode.trainModes.contains(mode?.id ?? "") }
+    /// The line this leg runs on, e.g. "northern", "thameslink".
     var lineId: String? { routeOptions?.first?.lineIdentifier?.id }
+    /// Where the train is heading, e.g. "Morden via Bank", "Luton Rail Station".
+    var heading: String? { routeOptions?.first?.directions?.first(where: { !$0.isEmpty }) }
 }
 
 nonisolated struct TFLMode: Codable {
     let id: String
+
+    /// Journey planner modes the app plans with; walking between them is added by TfL.
+    static let trainModes = ["tube", "elizabeth-line", "overground", "dlr", "national-rail"]
 }
 
 nonisolated struct TFLRouteOption: Codable {
+    /// Line name, e.g. "Northern", "Thameslink".
+    let name: String?
     let lineIdentifier: TFLLineRef?
+    let directions: [String]?
 }
 
 nonisolated struct TFLPoint: Codable {
@@ -190,10 +221,91 @@ nonisolated struct TFLPoint: Codable {
 /// /Line/{id}/Route/Sequence/{direction}: station order of each branch.
 nonisolated struct TFLRouteSequence: Decodable {
     let orderedLineRoutes: [Route]
+    /// Every stop on the line, keyed by the same NaPTANs the routes use. (The top-level
+    /// `stations` list can't be used: it gives interchanges hub IDs, e.g. Bank is "HUBBAN".)
+    let stops: [Stop]
 
     nonisolated struct Route: Decodable {
         let naptanIds: [String]
     }
+
+    nonisolated struct Stop: Decodable {
+        let id: String
+        let name: String
+    }
+
+    private nonisolated struct StopPointSequence: Decodable {
+        let stopPoint: [Stop]
+    }
+
+    init(orderedLineRoutes: [Route], stops: [Stop]) {
+        self.orderedLineRoutes = orderedLineRoutes
+        self.stops = stops
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        orderedLineRoutes = try c.decode([Route].self, forKey: .orderedLineRoutes)
+        // Only used to read "via …" in arrivals, so a missing list isn't fatal.
+        let sequences = (try? c.decode([StopPointSequence].self, forKey: .stopPointSequences)) ?? []
+        stops = sequences.flatMap(\.stopPoint)
+    }
+
+    private enum CodingKeys: String, CodingKey { case orderedLineRoutes, stopPointSequences }
+}
+
+/// /Line/{id}/Timetable/{stop}: scheduled departures from one stop in one direction.
+nonisolated struct TFLTimetable: Decodable {
+    let stops: [Stop]
+    let routes: [Route]
+
+    nonisolated struct Stop: Decodable {
+        let id: String
+        let name: String
+    }
+
+    nonisolated struct Route: Decodable {
+        let stationIntervals: [StationInterval]
+        let schedules: [Schedule]
+    }
+
+    /// The stops a train pattern calls at after the departure stop, in order.
+    nonisolated struct StationInterval: Decodable {
+        let id: String
+        let intervals: [Interval]
+    }
+
+    nonisolated struct Interval: Decodable {
+        let stopId: String
+    }
+
+    /// One day type, e.g. "Monday - Thursday", "Friday", "Saturday (also Good Friday)".
+    nonisolated struct Schedule: Decodable {
+        let name: String
+        let knownJourneys: [KnownJourney]
+    }
+
+    /// A departure from the stop. `hour` runs past 23 for trains after midnight.
+    nonisolated struct KnownJourney: Decodable {
+        let hour: String
+        let minute: String
+        let intervalId: Int
+    }
+
+    init(stops: [Stop], routes: [Route]) {
+        self.stops = stops
+        self.routes = routes
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        stops = (try? c.decode([Stop].self, forKey: .stops)) ?? []
+        routes = try c.nestedContainer(keyedBy: TimetableKeys.self, forKey: .timetable)
+            .decode([Route].self, forKey: .routes)
+    }
+
+    private enum CodingKeys: String, CodingKey { case stops, timetable }
+    private enum TimetableKeys: String, CodingKey { case routes }
 }
 
 nonisolated struct TFLPath: Codable {

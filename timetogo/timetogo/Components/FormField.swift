@@ -18,7 +18,7 @@ struct FormField<Value: View>: View {
                     value()
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 15, weight: .semibold))
+                        .scaledFont(size: 15, weight: .semibold)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }

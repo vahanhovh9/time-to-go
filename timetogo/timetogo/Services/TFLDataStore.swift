@@ -16,6 +16,11 @@ final class TFLDataStore: ObservableObject {
 
     @Published var stationSearchResults: [TFLStopPoint] = []
     @Published var isSearchingStations = false
+    /// Stations the user picked recently, newest first; shared by every station picker.
+    @Published private(set) var recentStations: [TFLStopPoint] = []
+
+    private static let recentStationsKey = "com.timetogo.recentStations"
+    private static let recentStationsLimit = 5
 
     private let service: TFLServiceProtocol
 
@@ -27,11 +32,13 @@ final class TFLDataStore: ObservableObject {
 
     init() {
         self.service = TFLService()
+        loadRecentStations()
         startBundleLoad()
     }
 
     init(service: TFLServiceProtocol) {
         self.service = service
+        loadRecentStations()
         startBundleLoad()
     }
 
@@ -130,13 +137,17 @@ final class TFLDataStore: ObservableObject {
         stationSearchResults = Self.filter(bundledStations, normalized)
     }
 
+    /// Exact matches first (name starts with the query, then a word does, then anywhere),
+    /// then close spellings ("toteridge" → Totteridge & Whetstone), fewest typos first.
     private static func filter(_ stations: [IndexedStation], _ query: String) -> [TFLStopPoint] {
         guard !query.isEmpty else { return stations.map(\.station) }
+        let maxTypos = IndexedStation.allowedTypos(forQueryLength: query.count)
         return stations
             .compactMap { s -> (rank: Int, station: TFLStopPoint)? in
                 if s.key.hasPrefix(query) { return (0, s.station) }
                 if s.words.contains(where: { $0.hasPrefix(query) }) { return (1, s.station) }
                 if s.key.contains(query) { return (2, s.station) }
+                if maxTypos > 0, let typos = s.typos(from: query, max: maxTypos) { return (3 + typos, s.station) }
                 return nil
             }
             .sorted { $0.rank != $1.rank ? $0.rank < $1.rank : $0.station.displayName < $1.station.displayName }
@@ -172,6 +183,41 @@ final class TFLDataStore: ObservableObject {
             guard !Task.isCancelled else { return }
             stationSearchResults = []
         }
+    }
+
+    // MARK: - Recent stations
+
+    /// Remembers a picked station: moves it to the front, keeps the latest 5.
+    func rememberStation(_ station: TFLStopPoint) {
+        guard !station.naptanId.isEmpty else { return }
+        recentStations.removeAll { $0.naptanId == station.naptanId }
+        recentStations.insert(station, at: 0)
+        recentStations = Array(recentStations.prefix(Self.recentStationsLimit))
+        saveRecentStations()
+    }
+
+    func clearRecentStations() {
+        recentStations = []
+        saveRecentStations()
+    }
+
+    /// Search results with recently picked stations moved to the top, in their recent order.
+    var stationSearchResultsWithRecentFirst: [TFLStopPoint] {
+        let recentIds = recentStations.map(\.naptanId)
+        let recent = recentIds.compactMap { id in stationSearchResults.first { $0.naptanId == id } }
+        let others = stationSearchResults.filter { !recentIds.contains($0.naptanId) }
+        return recent + others
+    }
+
+    private func loadRecentStations() {
+        guard let data = UserDefaults.standard.data(forKey: Self.recentStationsKey),
+              let stations = try? JSONDecoder().decode([TFLStopPoint].self, from: data) else { return }
+        recentStations = stations
+    }
+
+    private func saveRecentStations() {
+        guard let data = try? JSONEncoder().encode(recentStations) else { return }
+        UserDefaults.standard.set(data, forKey: Self.recentStationsKey)
     }
 
     func clearStationSearch() {
@@ -217,5 +263,53 @@ nonisolated struct IndexedStation: Sendable {
             .replacingOccurrences(of: ".", with: "")
         let kept = folded.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) ? Character($0) : " " }
         return String(kept).split(separator: " ").joined(separator: " ")
+    }
+
+    // MARK: Typo tolerance
+
+    /// Typos allowed for a query: none for 1–3 letters (too many accidental matches),
+    /// 1 for 4–5, 2 for 6–8, 3 for longer.
+    static func allowedTypos(forQueryLength length: Int) -> Int {
+        switch length {
+        case ..<4: return 0
+        case 4...5: return 1
+        case 6...8: return 2
+        default: return 3
+        }
+    }
+
+    /// Fewest typos (insertions, deletions, substitutions, swapped neighbours) needed for the
+    /// query to match the start of the name or of any word in it, also ignoring spaces
+    /// ("westhampstead"). nil when more than `max`.
+    func typos(from query: String, max: Int) -> Int? {
+        let q = Array(query.unicodeScalars)
+        var candidates = [key, key.replacingOccurrences(of: " ", with: "")]
+        // Each word onwards: "hampstead" in "west hampstead".
+        for word in words.dropFirst() {
+            candidates.append(String(key[word.startIndex...]))
+        }
+        let best = candidates.map { Self.prefixDistance(q, Array($0.unicodeScalars)) }.min() ?? .max
+        return best <= max ? best : nil
+    }
+
+    /// Edit distance between `a` and the closest prefix of `b` (optimal string alignment).
+    private static func prefixDistance(_ a: [Unicode.Scalar], _ b: [Unicode.Scalar]) -> Int {
+        let m = a.count, n = b.count
+        guard m > 0 else { return 0 }
+        guard n > 0 else { return m }
+        var d = Array(repeating: Array(repeating: 0, count: n + 1), count: m + 1)
+        for i in 0...m { d[i][0] = i }
+        for j in 0...n { d[0][j] = j }
+        for i in 1...m {
+            for j in 1...n {
+                let cost = a[i - 1] == b[j - 1] ? 0 : 1
+                d[i][j] = Swift.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+                if i > 1, j > 1, a[i - 1] == b[j - 2], a[i - 2] == b[j - 1] {
+                    d[i][j] = Swift.min(d[i][j], d[i - 2][j - 2] + 1)
+                }
+            }
+        }
+        // Any prefix of b may match: the query is usually only the start of a name.
+        return d[m].min() ?? m
     }
 }

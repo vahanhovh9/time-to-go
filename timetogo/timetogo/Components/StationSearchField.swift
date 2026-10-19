@@ -61,32 +61,27 @@ struct StationSearchModalView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {
-                        ForEach(store.stationSearchResults) { station in
-                            Button {
-                                selectedStation = station
-                                onDismiss()
-                            } label: {
+                        if searchText.isEmpty && !store.recentStations.isEmpty {
+                            Section {
+                                ForEach(store.recentStations) { stationRow($0) }
+                            } header: {
                                 HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(station.displayName)
-                                            .labelStyle()
-                                            .foregroundColor(.black)
-                                        if !station.lineDisplayText.isEmpty {
-                                            Text(station.lineDisplayText)
-                                                .font(.system(size: 11, weight: .medium))
-                                                .foregroundColor(Color.grey30)
-                                        }
-                                    }
+                                    sectionTitle("Recent")
                                     Spacer()
-                                    if station == selectedStation {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(.black)
-                                    }
+                                    Button("Clear") { store.clearRecentStations() }
+                                        .typography(.main)
+                                        .foregroundColor(.grey50)
+                                        .buttonStyle(.plain)
                                 }
-                                .padding(.vertical, 4)
                             }
-                            .buttonStyle(.plain)
+                            Section {
+                                ForEach(store.stationSearchResults) { stationRow($0) }
+                            } header: {
+                                sectionTitle("All stations")
+                            }
+                        } else {
+                            // While typing, recently picked stations that match come first.
+                            ForEach(store.stationSearchResultsWithRecentFirst) { stationRow($0) }
                         }
                     }
                     .listStyle(.plain)
@@ -122,6 +117,43 @@ struct StationSearchModalView: View {
         .onDisappear {
             store.clearStationSearch()
         }
+    }
+
+    private func stationRow(_ station: TFLStopPoint) -> some View {
+        Button {
+            store.rememberStation(station)
+            selectedStation = station
+            onDismiss()
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(station.displayName)
+                        .typography(.large)
+                        .foregroundColor(.black)
+                    if !station.lineDisplayText.isEmpty {
+                        Text(station.lineDisplayText)
+                            .scaledFont(size: 11, weight: .medium)
+                            .foregroundColor(Color.grey30)
+                    }
+                }
+                Spacer()
+                if station == selectedStation {
+                    Image(systemName: "checkmark")
+                        .scaledFont(size: 16, weight: .semibold)
+                        .foregroundColor(.black)
+                }
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func sectionTitle(_ text: String) -> some View {
+        Text(text)
+            .typography(.main)
+            .foregroundColor(.grey30)
+            .textCase(nil)
     }
 }
 

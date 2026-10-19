@@ -25,6 +25,9 @@ struct CommuteResult {
     /// Station where the user leaves the first train (differs from the destination when
     /// the journey has a change). Not cached; nil after a cache restore.
     var firstTrainExitId: String? = nil
+    /// Trains and walks between the first and last station, for the journey page.
+    /// Not cached; empty after a cache restore.
+    var legs: [JourneyLeg] = []
 
     init(
         leaveHomeTime: Date,
@@ -70,6 +73,41 @@ extension CommuteResult {
         copy.firstTrainExitId = id
         return copy
     }
+
+    func withLegs(_ legs: [JourneyLeg]) -> CommuteResult {
+        var copy = self
+        copy.legs = legs
+        return copy
+    }
+}
+
+// MARK: - Journey legs
+
+/// One part of the planned journey: a train ride or a walk between stations.
+struct JourneyLeg: Identifiable, Equatable {
+    enum Kind: Equatable { case train, walk }
+
+    let id = UUID()
+    let kind: Kind
+    /// Station names without "Underground Station" etc.
+    let from: String
+    let to: String
+    let departure: Date
+    let arrival: Date
+    /// Trains only.
+    var lineId: String? = nil
+    /// "Northern line", "Thameslink", "Elizabeth line".
+    var lineName: String? = nil
+    /// Where the train is heading, e.g. "Morden via Bank", "Luton".
+    var heading: String? = nil
+    /// Calling points after `from`, ending at `to`.
+    var stops: [String] = []
+    /// The line's status when it isn't good service, e.g. "Minor delays".
+    var statusText: String? = nil
+
+    var minutes: Int { max(0, Int((arrival.timeIntervalSince(departure) / 60).rounded())) }
+
+    static func == (a: JourneyLeg, b: JourneyLeg) -> Bool { a.id == b.id }
 }
 
 // MARK: - Service Status

@@ -32,8 +32,11 @@ nonisolated protocol TFLServiceProtocol: Sendable {
     /// Returns live arrival predictions for all trains at a given stop point.
     func fetchArrivals(stopId: String) async throws -> [TFLArrivalPrediction]
 
-    /// Station orders for a line's outbound routes (each a list of NaPTANs, start → end).
-    func fetchRouteSequences(lineId: String) async throws -> [[String]]
+    /// A line's outbound routes (each branch's NaPTANs, start → end) and its station names.
+    func fetchRouteSequences(lineId: String) async throws -> TFLRouteSequence
+
+    /// Scheduled departures from a stop in one direction ("inbound" / "outbound").
+    func fetchTimetable(lineId: String, stopId: String, direction: String) async throws -> TFLTimetable
 
     /// Returns live arrival predictions for a specific line at a given stop.
     /// Preferred over fetchArrivals when the line is known — the server filters by line.
