@@ -1,6 +1,6 @@
 # TimeToGo — Release checklist
 
-Last updated: 14 Oct 2026
+Last updated: 19 Oct 2026
 
 ## 1. Fixes you still need to do
 
@@ -38,50 +38,90 @@ Last updated: 14 Oct 2026
 | Back home walk time defaulted to 5 min | Starts at "Choose", like onboarding; Next waits for a choice |
 | Unused files | Deleted `ScheduleReviewSheet.swift` and `ComponentsIndex.swift` |
 
-## 3. Test plan (do on a real iPhone, cable connected)
+## 3. Test plan (real iPhone, Release build or TestFlight)
 
-Use the **Release** build for steps A–F (Edit Scheme → Run → Build Configuration → Release, or TestFlight). That's what users get, and the DEV button must **not** appear.
+Use the **Release** build (Edit Scheme → Run → Build Configuration → Release, or TestFlight). That's what users get, and the DEV button must **not** appear. Station pairs below are ones that trigger each case; TfL plans change through the day, so if a case doesn't appear, try another arrival time.
 
-### A. Fresh install
-1. Delete the app, then install it.
-2. Step 1: tap "Home station". The sheet should open instantly and list all stations A–Z.
-3. Search "kings cross", "totteridge and" and "st paul". Each should find the right station as you type.
-4. Choose a walk time, then Next. Step 2: same checks for the office station.
-5. Step 3: arrival time, then toggle days. "Complete" stays disabled until at least one day is on.
-6. Success page: "Next commute" shows the right next office day and your arrival time.
-7. Glow animations on steps 1 and 2 loop: glow, fade, 2 s pause.
+Change stations and times in **Settings** (not by reinstalling) unless a step says otherwise. After each change, the To office time should update within about a second.
 
-### B. To office tab
-1. The leave time appears, with "LEAVE TODAY/TOMORROW AT".
-2. The status pill shows a real TfL status.
-3. Departures: try **at least 4 lines**, e.g. Northern, Central, District and Jubilee. Every train listed should be going toward your office.
-4. Try a multi-line station (King's Cross, Baker Street, Bank). The departures should be on the line the journey uses.
-5. Try a journey with a change (e.g. Acton Town → Old Street). The departures should show your first train.
-6. Pull to refresh; scroll (the status bar blurs once scrolled); the train animation loops.
+### A. Fresh install and onboarding
+1. Delete the app, then install it. Onboarding starts.
+2. Home station: the sheet opens instantly and lists all stations A–Z. Search "kings cross", "totteridge and", "st paul" and "battersea". Each finds the right station as you type; Battersea shows as **Battersea Power Station**, not "Battersea Power".
+3. Walk time starts at "Choose"; Next stays disabled until you pick one. Same for the office station.
+4. Arrival time and days: "Complete" stays disabled until at least one day is on.
+5. Success page: "Next commute" shows the right next office day and your arrival time.
+6. Glow animations on steps 1 and 2 loop: glow, fade, 2 s pause. Step titles are 28pt and don't clip.
 
-### C. Back home tab
-1. Before setup: the "Need to be back right on time?" page appears, and "Let's go" opens the setup.
-2. **Home** path: 2 steps, then the success page, then the leave-office time and departures.
-3. **Other place** path: 3 steps. The walk time starts at "Choose"; the glow runs right to left.
-4. On the success page, "Change your settings" restarts the setup.
+### B. To office – direct journey
+Use **Totteridge & Whetstone → Camden Town**.
+1. "LEAVE TODAY/TOMORROW/MONDAY AT" + time. On a Saturday or Sunday it should name the next office day.
+2. Journey block: Home → Totteridge & Whetstone → Camden Town → Office, **no** change row, chevron after "Office journey".
+3. Status pill shows TfL's status for the Northern line.
+4. Departures: every train goes toward Camden Town. Pull to refresh works; the header blurs under the status bar when you scroll; the train animation loops.
 
-### D. Settings
-1. Change a station, a walk time, the arrival time and the days.
-2. Go back to To office. The time updates within about a second of your last change.
-3. Toggle days quickly. The app stays smooth (the requests are debounced).
+### C. Journeys with changes
+| Pair (home → office) | Expect in the Journey block | Expect on the journey page |
+|---|---|---|
+| Totteridge & Whetstone → West Hampstead | "1 line change" | Northern line (black badge, white text) → "Change to Thameslink" with swap icon → Thameslink (pink badge, black text) → walk to West Hampstead |
+| Totteridge & Whetstone → Old Street, arrive 9:00 | "1 branch change" (when TfL routes via Finchley Central) | "Branch change" between two Northern line cards |
+| West Hampstead → Old Street | "2 line changes" or "1 line change, 1 branch change" | One card per train, a change row between each |
 
-### E. Offline and errors
-1. Airplane mode, then open the app. The last result shows if it's from today; otherwise "No internet connection. Pull down to try again."
-2. Turn the network back on and pull to refresh. It recovers.
-3. Pick a station pair TfL can't route. You should see a plain message, not "HTTP …".
+For each:
+1. The departures board lists trains for the **first** train only, heading the right way.
+2. Status pill: if any line on the route has delays, it names that line and says "Leave earlier to catch the … train" (suspensions say "Check your route before you leave"). Good service on all lines → green "Good service on all lines". Weekends with engineering works are the easiest time to see this.
 
-### F. Device checks
-1. Rotate the phone. The app must stay portrait.
-2. Try a small phone (iPhone SE / 13 mini) if you can. Check that illustrations scale and nothing is cut.
-3. Turn on Settings → Accessibility → Reduce Motion. The glow and train animations stop.
-4. Largest text size (Settings → Display → Text Size). Check that nothing overlaps badly.
+### D. Journey page
+Tap "Office journey ›" (and "Back home journey ›").
+1. Sheet opens at half height; drag up to full height; ✕ and swipe down both close it.
+2. Header: day and date, then "leave → arrive · minutes · changes" (or "Direct").
+3. Timeline:
+   - Times on the left line up with their rows.
+   - Dots, dashed lines, solid lines and the pin all sit on one vertical line, with a 4pt gap around every dot, the home circle and the pin; no line inside the pin.
+   - Station names are level with their dots.
+   - Walk and change rows sit between the stations and line up with the text inside the train cards.
+   - Train cards: badge in the line colour, "to …" and "N stops · N min" in Grey 40; tap to expand the stop list and tap again to collapse.
+   - A change under 3 minutes shows the note in amber.
+4. Badge colours: try a Victoria line trip (**Green Park → Brixton**) and a Bakerloo trip (**Oxford Circus → Elephant & Castle**): both have **white** badge text. Circle/Hammersmith & City/Jubilee badges have black text.
+5. Force-quit and reopen the app, then tap the title straight away: the sheet shows "Loading your journey…" and then the timeline.
 
-### G. Before you upload
+### E. Departures board accuracy
+| Boarding → destination | Should show | Should **not** show |
+|---|---|---|
+| Old Street → Totteridge & Whetstone (Back home) | High Barnet trains | Edgware or Mill Hill East trains |
+| Totteridge & Whetstone → Old Street | "Morden via Bank" | "via Charing Cross" trains |
+| King's Cross → Edgware | Edgware trains | High Barnet trains |
+| Bank → Newbury Park | "Hainault via Newbury Park" | Epping, Loughton |
+| Victoria → Wimbledon | Wimbledon trains | Richmond, Ealing Broadway |
+| King's Cross → Heathrow T4 | "Heathrow via T4 Loop" | Uxbridge, Rayners Lane |
+
+1. **Near the end of a line** (Totteridge & Whetstone → Old Street): the board fills with rows marked "Scheduled · Southbound - Platform 2" after the first live train, instead of showing 0–1 trains.
+2. Rows are all the same style; "Due" for a train under a minute away.
+3. Late night (after about 00:15): scheduled trains still appear until the last train, then the board says no trains are found.
+
+### F. Back home
+1. Before setup: the "Need to be back right on time?" page, then "Let's go".
+2. **Home** path: 2 steps → success page → leave-office time, journey block (office → home) and departures.
+3. **Other place** path: 3 steps; walk time starts at "Choose"; then "At your destination" on the journey page.
+4. Repeat C and D for the reverse direction (West Hampstead → Totteridge & Whetstone).
+
+### G. Settings
+1. Change each value: home/office station, walk times, arrival time, days, Back home arrival.
+2. To office and Back home update within about a second of the last change; toggling days quickly stays smooth.
+3. Change the office to a station that needs a change: the Journey block switches to the multi variant without restarting.
+
+### H. Offline and errors
+1. Airplane mode, then open the app: the last result shows if it's from today; otherwise "No internet connection. Pull down to try again."
+2. Network back on, pull to refresh: it recovers.
+3. A station pair TfL can't route: a plain message, not "HTTP …".
+
+### I. Device and accessibility
+1. Rotate the phone: stays portrait.
+2. Small phone (iPhone SE / 13 mini): header artwork ends at the leave-time card, nothing cut.
+3. Reduce Motion on: glow and train animations stop.
+4. Largest standard text size (Settings → Display → Text Size): text grows; nothing overlaps; long station names wrap and push the card down; the journey page time column still fits.
+5. iPad (if still enabled): every screen usable, or remove iPad support before submitting.
+
+### J. Before you upload
 1. Product → Archive in Release. It must build with no warnings.
-2. Confirm the DEV button is absent in the archived build (install via TestFlight first).
-3. Bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` for each upload.
+2. Confirm the DEV button is absent in the TestFlight build.
+3. Bump `CURRENT_PROJECT_VERSION` for each upload (and `MARKETING_VERSION` for each release).
