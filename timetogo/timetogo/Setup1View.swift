@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Onboarding1View: View {
+struct Setup1View: View {
     @EnvironmentObject var store: TFLDataStore
 
     @Binding var selectedStation: TFLStopPoint
@@ -14,7 +14,7 @@ struct Onboarding1View: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            OnboardingHeader(
+            SetupHeader(
                 step: 1,
                 totalSteps: 3,
                 title: "Where do you live?"
@@ -56,7 +56,7 @@ struct Onboarding1View: View {
         @State private var walkTime = "Choose"
 
         var body: some View {
-            Onboarding1View(
+            Setup1View(
                 selectedStation: $station,
                 selectedWalkTime: $walkTime,
                 onNext: { print("Next tapped") }

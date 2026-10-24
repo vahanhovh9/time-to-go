@@ -7,7 +7,7 @@ private enum OutboundStep {
     case success
 }
 
-struct OutboundOnboardingView: View {
+struct OutboundSetupView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var store: TFLDataStore
     var viewModel: MainViewModel
@@ -40,7 +40,7 @@ struct OutboundOnboardingView: View {
 
     private var destinationTypeStep: some View {
         VStack(spacing: 0) {
-            OnboardingHeader(
+            SetupHeader(
                 step: 1,
                 totalSteps: destinationType == .home ? 2 : 3,
                 title: "Where are you going?",
@@ -87,7 +87,7 @@ struct OutboundOnboardingView: View {
 
     private var stationSetupStep: some View {
         VStack(spacing: 0) {
-            OnboardingHeader(
+            SetupHeader(
                 step: 2,
                 totalSteps: 3,
                 title: "Where is your destination?",
@@ -124,7 +124,7 @@ struct OutboundOnboardingView: View {
         let prevStep: OutboundStep = destinationType == .home ? .destinationType : .stationSetup
 
         return VStack(spacing: 0) {
-            OnboardingHeader(
+            SetupHeader(
                 step: stepNum,
                 totalSteps: totalSteps,
                 title: "When do you need to arrive?",
@@ -162,7 +162,7 @@ struct OutboundOnboardingView: View {
     // MARK: - Success
 
     private var successStep: some View {
-        OnboardingSuccessView(
+        SetupSuccessView(
             title: "🎉 Back home is all set! 🎉",
             message: "Any time you open Back home, it shows when to leave the office.",
             nextCommute: nextTripHome,

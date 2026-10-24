@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Back home tab before outbound is set up (Figma "BH - onboarding").
+/// Back home tab before outbound is set up (Figma "BH - setup").
 struct OutboundEmptyView: View {
     var onGetStarted: () -> Void
 

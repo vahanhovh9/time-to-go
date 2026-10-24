@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum OnboardingStep {
+enum SetupStep {
     case step1, step2, step3, success
 }
 
@@ -10,12 +10,14 @@ struct ContentView: View {
     @StateObject private var store = TFLDataStore()
 
     @State private var showDevMenu = false
-    @State private var currentOnboardingStep: OnboardingStep = .step1
+    @State private var currentSetupStep: SetupStep = .step1
     @State private var mainViewModel: MainViewModel?
     /// Train loading screen at launch, until the first commute result (or error) is in.
     @State private var showsLaunchLoading = true
+    /// DEV preview of the loading screen: pretends loading finishes at this time.
+    @State private var loadingPreviewEnds: Date?
 
-    // MARK: - Onboarding state
+    // MARK: - Setup state
 
     @State private var homeStation: TFLStopPoint = .placeholder
     @State private var homeWalkTime = "Choose"
@@ -37,6 +39,10 @@ struct ContentView: View {
                 DevMenuView(
                     onDismiss: { withAnimation { showDevMenu = false } },
                     onClearCache: { mainViewModel?.loadCommute(forceRefresh: true) },
+                    onPreviewLoading: {
+                        loadingPreviewEnds = Date().addingTimeInterval(3)
+                        showsLaunchLoading = true
+                    },
                     journeyDebugInfo: mainViewModel?.journeyDebugInfo
                 )
             } else {
@@ -46,13 +52,15 @@ struct ContentView: View {
             rootView
             #endif
 
-            if showsLaunchLoading && appState.hasCompletedOnboarding {
+            if showsLaunchLoading && appState.hasCompletedSetup {
                 LoadingView(
                     isReady: {
+                        if let end = loadingPreviewEnds { return Date() >= end }
                         guard let vm = mainViewModel else { return false }
                         return vm.commuteResult != nil || vm.errorMessage != nil
                     },
                     onDone: { animated in
+                        loadingPreviewEnds = nil
                         if animated {
                             withAnimation(.easeOut(duration: 0.3)) { showsLaunchLoading = false }
                         } else {
@@ -90,17 +98,22 @@ struct ContentView: View {
         }
         .onAppear {
             ensureMainViewModelIfNeeded()
-            // Only a returning user loads a commute at launch; onboarding starts straight away.
-            if !appState.hasCompletedOnboarding { showsLaunchLoading = false }
+            // Only a returning user loads a commute at launch; setup starts straight away.
+            if !appState.hasCompletedSetup { showsLaunchLoading = false }
         }
     }
 
     @ViewBuilder
     private var rootView: some View {
-        if appState.hasCompletedOnboarding {
+        if appState.hasCompletedSetup {
             mainView
+        } else if !appState.hasSeenIntro && !appState.isEditingSettings {
+            IntroView(onFinish: {
+                withAnimation(.easeInOut(duration: 0.3)) { appState.finishIntro() }
+            })
+            .transition(.opacity)
         } else {
-            onboardingView
+            setupView
         }
     }
 
@@ -118,42 +131,42 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Onboarding navigation
+    // MARK: - Setup navigation
 
     @ViewBuilder
-    private var onboardingView: some View {
-        switch currentOnboardingStep {
+    private var setupView: some View {
+        switch currentSetupStep {
         case .step1:
-            Onboarding1View(
+            Setup1View(
                 selectedStation: $homeStation,
                 selectedWalkTime: $homeWalkTime,
-                onNext: { withAnimation { currentOnboardingStep = .step2 } }
+                onNext: { withAnimation { currentSetupStep = .step2 } }
             )
             .environmentObject(store)
 
         case .step2:
-            Onboarding2View(
+            Setup2View(
                 selectedStation: $officeStation,
                 selectedWalkTime: $officeWalkTime,
-                onNext: { withAnimation { currentOnboardingStep = .step3 } },
-                onBack: { withAnimation { currentOnboardingStep = .step1 } }
+                onNext: { withAnimation { currentSetupStep = .step3 } },
+                onBack: { withAnimation { currentSetupStep = .step1 } }
             )
             .environmentObject(store)
 
         case .step3:
-            Onboarding3View(
+            Setup3View(
                 arrivalTime: $arrivalTime,
                 monday: $monday,
                 tuesday: $tuesday,
                 wednesday: $wednesday,
                 thursday: $thursday,
                 friday: $friday,
-                onNext: { withAnimation { currentOnboardingStep = .success } },
-                onBack: { withAnimation { currentOnboardingStep = .step2 } }
+                onNext: { withAnimation { currentSetupStep = .success } },
+                onBack: { withAnimation { currentSetupStep = .step2 } }
             )
 
         case .success:
-            OnboardingSuccessView(
+            SetupSuccessView(
                 nextCommute: CommuteCalculationService().nextCommuteDate(from: buildUserSettings()),
                 arrivalTime: arrivalTime,
                 onAllDone: {
@@ -161,12 +174,12 @@ struct ContentView: View {
                     if appState.isEditingSettings {
                         appState.finishSettingsEdit(with: settings)
                     } else {
-                        appState.completeOnboarding(with: settings)
+                        appState.completeSetup(with: settings)
                     }
                     mainViewModel = MainViewModel(settings: settings)
                 },
                 onChangeSettings: {
-                    withAnimation { currentOnboardingStep = .step1 }
+                    withAnimation { currentSetupStep = .step1 }
                 }
             )
         }

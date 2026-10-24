@@ -22,18 +22,19 @@ struct CustomButton: View {
     
     var body: some View {
         Button(action: action) {
+            // Figma "Button": 48pt tall, 10pt corners, H5 label.
             Text(title)
-                .typography(.button)
+                .typography(.h5)
                 .foregroundColor(foreground)
                 .frame(maxWidth: .infinity)
-                .frame(height: 56)
+                .frame(minHeight: 48)
                 .background(background)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 10)
                         .stroke(style == .outline && isEnabled ? Color.black : Color.clear, lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .contentShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .disabled(!isEnabled)
     }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Onboarding3View: View {
+struct Setup3View: View {
     @Binding var arrivalTime: Date
     @Binding var monday: Bool
     @Binding var tuesday: Bool
@@ -17,7 +17,7 @@ struct Onboarding3View: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            OnboardingHeader(
+            SetupHeader(
                 step: 3,
                 totalSteps: 3,
                 title: "When are you at the office?",
@@ -68,7 +68,7 @@ struct Onboarding3View: View {
         @State private var friday = false
 
         var body: some View {
-            Onboarding3View(
+            Setup3View(
                 arrivalTime: $arrivalTime,
                 monday: $monday,
                 tuesday: $tuesday,

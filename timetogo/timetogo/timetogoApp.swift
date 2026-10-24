@@ -14,8 +14,8 @@ struct timetogoApp: App {
     // Used to force light interface style on every UIWindow.
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    // Global app state: holds onboarding flag + loaded UserSettings.
-    // Created once; ContentView reads hasCompletedOnboarding to decide the root view.
+    // Global app state: holds setup flag + loaded UserSettings.
+    // Created once; ContentView reads hasCompletedSetup to decide the root view.
     @StateObject private var appState = AppState()
 
     var body: some Scene {

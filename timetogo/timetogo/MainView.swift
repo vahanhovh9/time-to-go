@@ -10,7 +10,7 @@ struct MainView: View {
     @ObservedObject var viewModel: MainViewModel
 
     @State private var selectedTab: MainTab = .inbound
-    @State private var showOutboundOnboarding = false
+    @State private var showOutboundSetup = false
 
     var body: some View {
         Group {
@@ -27,9 +27,9 @@ struct MainView: View {
         .onAppear {
             viewModel.loadCommute()
         }
-        .fullScreenCover(isPresented: $showOutboundOnboarding) {
-            OutboundOnboardingView(viewModel: viewModel) {
-                showOutboundOnboarding = false
+        .fullScreenCover(isPresented: $showOutboundSetup) {
+            OutboundSetupView(viewModel: viewModel) {
+                showOutboundSetup = false
             }
             .environmentObject(appState)
             .environmentObject(store)
@@ -43,7 +43,7 @@ struct MainView: View {
         if viewModel.settings.outboundEnabled {
             CommuteHomeView(direction: .backHome, viewModel: viewModel)
         } else {
-            OutboundEmptyView { showOutboundOnboarding = true }
+            OutboundEmptyView { showOutboundSetup = true }
         }
     }
 }

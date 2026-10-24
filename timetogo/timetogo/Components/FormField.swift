@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Labelled grey field used across onboarding (Figma: "Dropdown").
-/// 13pt label above a 56pt, 12pt-radius grey box with a trailing chevron.
+/// Labelled grey field used across setup (Figma: "Dropdown").
+/// 14pt label above a 48pt, 10pt-radius grey box with a trailing chevron.
 struct FormField<Value: View>: View {
     var label: String
     var action: () -> Void
@@ -25,10 +25,10 @@ struct FormField<Value: View>: View {
                 .padding(.leading, 16)
                 .padding(.trailing, 12)
                 .padding(.vertical, 8)
-                .frame(minHeight: 56)
+                .frame(minHeight: 48)
                 .background(Color.grey10)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .contentShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .contentShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(label)
@@ -43,7 +43,7 @@ struct FormFieldValue: View {
 
     var body: some View {
         Text(text)
-            .typography(.h3)
+            .typography(.h4)
             .foregroundColor(isPlaceholder ? .grey50 : .black)
             .lineLimit(1)
     }

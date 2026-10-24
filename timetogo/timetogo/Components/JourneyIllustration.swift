@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Onboarding artwork with a glow that travels along the artwork's dotted path
+/// Setup artwork with a glow that travels along the artwork's dotted path
 /// (e.g. home → tube), fades out, waits, and runs again. With Reduce Motion the glow is not shown.
 ///
 /// Sized by height so the figure is never cut top or bottom (legs included): full design
@@ -133,14 +133,14 @@ extension JourneyIllustration {
 
         /// Step 3: at the desk (no route). Artwork 1191×690 @3x.
         static let atDesk = Journey(
-            imageName: "onboarding-at-office",
+            imageName: "setup-at-office",
             designSize: CGSize(width: 397, height: 230)
         )
 
         /// Step 1: home pin → tube roundel. Artwork 1611×1119 @3x; the route is Figma's
         /// "Vector 30" in Group 21, which sits at (114.7, 10.7) inside the artwork.
         static let homeToTube = Journey(
-            imageName: "onboarding-walk-office",
+            imageName: "setup-walk-office",
             designSize: CGSize(width: 537, height: 373),
             glowColor: Color(hex: "8789FF"),
             glowCoreColor: Color(hex: "B9BAFF")
@@ -161,7 +161,7 @@ extension JourneyIllustration {
         /// Step 2: tube roundel → office pin. Artwork 1410×981 @3x; the route is Figma's
         /// "Vector 30" in Group 21 (drawn pin → tube there, reversed here), at (72.7, 30.8).
         static let tubeToOffice = Journey(
-            imageName: "onboarding-walk-desk",
+            imageName: "setup-walk-desk",
             designSize: CGSize(width: 470, height: 327),
             glowColor: Color(hex: "3ED3A7"),
             glowCoreColor: Color(hex: "A6F0D9")

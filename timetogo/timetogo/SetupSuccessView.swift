@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Success page (Figma "Success page"): illustrated yellow top, white panel with
 /// the confirmation, the next commute, and the two actions.
-/// Used at the end of onboarding and of the Back home setup.
-struct OnboardingSuccessView: View {
+/// Used at the end of setup and of the Back home setup.
+struct SetupSuccessView: View {
     var title = "🎉 Awesome, all set up! 🎉"
     var message = "Any time you open TimeToGo, it shows when to leave next."
     /// The next office day the app will plan for.
@@ -43,7 +43,7 @@ struct OnboardingSuccessView: View {
             .overlay(alignment: .bottom) {
                 // The artwork's bottom sits on the panel; its top (confetti) crops, as in Figma,
                 // and it's nudged 19.5pt left of centre like the design frame.
-                Image("onboarding-success")
+                Image("setup-success")
                     .resizable()
                     .frame(width: artworkSize.width * scale, height: artworkSize.height * scale)
                     .offset(x: -19.5 * scale)
@@ -125,7 +125,7 @@ struct OnboardingSuccessView: View {
 }
 
 #Preview {
-    OnboardingSuccessView(
+    SetupSuccessView(
         nextCommute: Date(),
         arrivalTime: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date(),
         onAllDone: {},
