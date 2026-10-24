@@ -35,7 +35,7 @@ Last updated: 19 Oct 2026
 | iPhone allowed landscape | iPhone is portrait-only |
 | Every Settings tap fired several TfL requests | Saving is instant; the reload waits until 0.6 s after your last change |
 | Technical error text on screen ("HTTP 500", "Failed to parse…") | Plain messages: "No internet connection. Pull down to try again." etc. |
-| Back home walk time defaulted to 5 min | Starts at "Choose", like onboarding; Next waits for a choice |
+| Back home walk time defaulted to 5 min | Starts at "Choose", like setup; Next waits for a choice |
 | Unused files | Deleted `ScheduleReviewSheet.swift` and `ComponentsIndex.swift` |
 
 ## 3. Test plan (real iPhone, Release build or TestFlight)
@@ -44,8 +44,8 @@ Use the **Release** build (Edit Scheme → Run → Build Configuration → Relea
 
 Change stations and times in **Settings** (not by reinstalling) unless a step says otherwise. After each change, the To office time should update within about a second.
 
-### A. Fresh install and onboarding
-1. Delete the app, then install it. Onboarding starts.
+### A. Fresh install and setup
+1. Delete the app, then install it. Setup starts.
 2. Home station: the sheet opens instantly and lists all stations A–Z. Search "kings cross", "totteridge and", "st paul" and "battersea". Each finds the right station as you type; Battersea shows as **Battersea Power Station**, not "Battersea Power".
 3. Walk time starts at "Choose"; Next stays disabled until you pick one. Same for the office station.
 4. Arrival time and days: "Complete" stays disabled until at least one day is on.

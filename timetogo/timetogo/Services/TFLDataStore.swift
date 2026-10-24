@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 /// Shared observable store that caches TFL lines and stations.
-/// Injected as @EnvironmentObject so onboarding views can load data on demand.
+/// Injected as @EnvironmentObject so setup views can load data on demand.
 @MainActor
 final class TFLDataStore: ObservableObject {
 

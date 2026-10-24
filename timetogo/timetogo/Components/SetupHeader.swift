@@ -1,5 +1,5 @@
 //
-//  OnboardingHeader.swift
+//  SetupHeader.swift
 //  timetogo
 //
 //  Created by Vahan Hovhannisyan on 31/10/2025.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct OnboardingHeader: View {
+struct SetupHeader: View {
     var step: Int?
     var totalSteps: Int?
     var title: String
@@ -24,7 +24,7 @@ struct OnboardingHeader: View {
     
     var body: some View {
         if let progressText {
-            // Figma "Onboarding - Step" header: step counter row, then a 28pt title.
+            // Figma "Setup - Step" header: step counter row, then a 28pt title.
             VStack(alignment: .leading, spacing: 12) {
                 progressRow(progressText)
                 Text(title)
@@ -78,9 +78,9 @@ struct OnboardingHeader: View {
 
 #Preview {
     VStack(alignment: .leading, spacing: 32) {
-        OnboardingHeader(step: 1, totalSteps: 4, title: "Where do you live?")
-        OnboardingHeader(step: 2, totalSteps: 4, title: "Where do you live?", showsBackButton: true) {}
-        OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome, all set up!")
+        SetupHeader(step: 1, totalSteps: 4, title: "Where do you live?")
+        SetupHeader(step: 2, totalSteps: 4, title: "Where do you live?", showsBackButton: true) {}
+        SetupHeader(step: nil, totalSteps: nil, title: "Awesome, all set up!")
     }
     .padding()
     .background(Color.white)

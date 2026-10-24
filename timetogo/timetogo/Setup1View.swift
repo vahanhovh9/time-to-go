@@ -1,13 +1,12 @@
 import SwiftUI
 
-struct Onboarding2View: View {
+struct Setup1View: View {
     @EnvironmentObject var store: TFLDataStore
 
     @Binding var selectedStation: TFLStopPoint
     @Binding var selectedWalkTime: String
 
-    var onNext: () -> Void
-    var onBack: () -> Void
+    var onNext: () -> Void = {}
 
     private var isFormValid: Bool {
         !selectedStation.naptanId.isEmpty && selectedWalkTime != "Choose"
@@ -15,24 +14,22 @@ struct Onboarding2View: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            OnboardingHeader(
-                step: 2,
+            SetupHeader(
+                step: 1,
                 totalSteps: 3,
-                title: "Where is the office?",
-                showsBackButton: true,
-                onBack: onBack
+                title: "Where do you live?"
             )
             .padding(.horizontal, 24)
             .padding(.top, 20)
 
             VStack(alignment: .leading, spacing: 38) {
                 StationSearchField(
-                    label: "Office station",
+                    label: "Home station",
                     selectedStation: $selectedStation
                 )
 
                 TimePicker(
-                    label: "How long is your walk from the tube?",
+                    label: "How long is your walk to the tube?",
                     selectedValue: $selectedWalkTime
                 )
             }
@@ -40,7 +37,7 @@ struct Onboarding2View: View {
             .padding(.top, 48)
 
             // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
-            JourneyIllustration(journey: .tubeToOffice)
+            JourneyIllustration(journey: .homeToTube)
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .padding(.top, 24)
 
@@ -59,11 +56,10 @@ struct Onboarding2View: View {
         @State private var walkTime = "Choose"
 
         var body: some View {
-            Onboarding2View(
+            Setup1View(
                 selectedStation: $station,
                 selectedWalkTime: $walkTime,
-                onNext: { print("Next") },
-                onBack: { print("Back") }
+                onNext: { print("Next tapped") }
             )
             .environmentObject(TFLDataStore(service: MockTFLService()))
         }

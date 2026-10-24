@@ -37,8 +37,7 @@ it ignores the setting.
 | `.h2` | Final/H2 | Bold | 24 | -0.5 | auto | Journey and group titles, success title, destination cards |
 | `.h3` | Final/H3 | Bold | 18 | -0.5 | auto | Card titles, field values, "Next commute" |
 | `.h4` | Final/H4 | Semibold | 16 | 0 | auto | Step counter, station names |
-| `.h5` | H5 | Semibold | 15 | 0 | auto | (not used yet) |
-| `.button` | Old/H3 | Bold | 20 | -0.5 | auto | Button labels |
+| `.h5` | H5 | Semibold | 15 | 0 | auto | Button labels, line badges |
 | `.large` | Final/Large | Medium | 16 | -0.5 | 140% | Body copy, settings rows, departures |
 | `.main` | Final/Main | Medium | 14 | -0.5 | auto | Field labels, day chips |
 | `.small` | Final/Small | Regular | 13 | 0 | auto | Line status, minutes chips |

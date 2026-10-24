@@ -15,7 +15,7 @@ import SwiftUI
 enum AppTextStyle: CaseIterable {
     /// 40 Bold, -2 — big page titles ("Settings"). Figma: Old/H1.
     case display
-    /// 28 Bold, -0.5 — onboarding step titles ("Where do you live?"). Figma: Final/H1.
+    /// 28 Bold, -0.5 — setup step titles ("Where do you live?"). Figma: Final/H1.
     case h1
     /// 24 Bold, -0.5 — journey and group titles, destination cards. Figma: Final/H2.
     case h2
@@ -23,10 +23,8 @@ enum AppTextStyle: CaseIterable {
     case h3
     /// 16 Semibold — step counter ("1 / 3"), station names. Figma: Final/H4.
     case h4
-    /// 15 Semibold. Figma: H5.
+    /// 15 Semibold — button labels. Figma: H5.
     case h5
-    /// 20 Bold, -0.5 — button labels. Figma: Old/H3.
-    case button
     /// 16 Medium, -0.5, 140% line height — body copy, settings rows, departures. Figma: Final/Large.
     case large
     /// 14 Medium, -0.5 — field labels, "LEAVE TODAY AT". Figma: Final/Main.
@@ -44,7 +42,6 @@ enum AppTextStyle: CaseIterable {
         case .h3:       return 18
         case .h4:       return 16
         case .h5:       return 15
-        case .button:   return 20
         case .large:    return 16
         case .main:     return 14
         case .small:    return 13
@@ -54,7 +51,7 @@ enum AppTextStyle: CaseIterable {
 
     var weight: Font.Weight {
         switch self {
-        case .display, .h1, .h2, .h3, .button: return .bold
+        case .display, .h1, .h2, .h3:          return .bold
         case .h4, .h5:                         return .semibold
         case .large, .main:                    return .medium
         case .small, .footnote:                return .regular
@@ -64,7 +61,7 @@ enum AppTextStyle: CaseIterable {
     var tracking: CGFloat {
         switch self {
         case .display:                                return -2
-        case .h1, .h2, .h3, .button, .large, .main:   return -0.5
+        case .h1, .h2, .h3, .large, .main:            return -0.5
         case .h4, .h5, .small, .footnote:             return 0
         }
     }

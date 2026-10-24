@@ -19,18 +19,18 @@ struct DayPicker: View {
         }) {
             HStack(spacing: 8) {
                 Text(day)
-                    .typography(.h3)
+                    .typography(.h4)
                     .foregroundColor(isSelected ? .white : .grey50)
                 Spacer(minLength: 0)
                 Checkmark(state: isSelected ? .checked : .unchecked)
             }
             .padding(.leading, 16)
             .padding(.trailing, 12)
-            .frame(height: 56)
+            .frame(minHeight: 48)
             .frame(maxWidth: .infinity)
             .background(isSelected ? Color.black : Color.grey10)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .contentShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

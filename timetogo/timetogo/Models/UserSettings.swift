@@ -5,7 +5,7 @@ enum OutboundDestinationType: String, Codable {
     case otherPlace
 }
 
-/// All user preferences collected during onboarding.
+/// All user preferences collected during setup.
 /// Stored to and loaded from UserDefaults as JSON.
 struct UserSettings: Codable {
 

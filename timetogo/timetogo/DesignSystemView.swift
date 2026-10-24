@@ -100,18 +100,18 @@ struct DesignSystemView: View {
                 .foregroundColor(Color.black)
                 .padding(.horizontal, 24)
             
-            // Onboarding Header
+            // Setup Header
             VStack(alignment: .leading, spacing: 16) {
-                Text("Onboarding Header")
+                Text("Setup Header")
                     .typography(.h3)
                     .foregroundColor(Color.black)
                 
                 VStack(alignment: .leading, spacing: 24) {
-                    OnboardingHeader(step: 1, totalSteps: 4, title: "Where do you live?")
-                    OnboardingHeader(step: 2, totalSteps: 4, title: "Where do you live?", showsBackButton: true) {
+                    SetupHeader(step: 1, totalSteps: 4, title: "Where do you live?")
+                    SetupHeader(step: 2, totalSteps: 4, title: "Where do you live?", showsBackButton: true) {
                         print("Back tapped")
                     }
-                    OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome, all set up!")
+                    SetupHeader(step: nil, totalSteps: nil, title: "Awesome, all set up!")
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 24)

@@ -6,7 +6,7 @@ TimeToGo is a proactive commute agent.
 
 The app calculates the exact time a user must leave home in order to arrive at their office desk at a preferred time.
 
-The user completes onboarding once.
+The user completes setup once.
 
 After that, whenever the user needs to know when to leave, they open TimeToGo and see the leave time immediately — no external map apps.
 
@@ -27,7 +27,7 @@ Pattern: MVVM
 
 ## **3. Stored User Data**
 
-Persisted after onboarding:
+Persisted after setup:
 
 ```
 userHomeLine: String
@@ -44,7 +44,7 @@ officeDays: [Weekday]
 
 ---
 
-## **4. Onboarding Logic**
+## **4. Setup Logic**
 
 ### **Step 1 — Home**
 
@@ -65,13 +65,13 @@ Same logic as Step 1
 - Store arrival time
 - Store selected weekdays
 
-Onboarding has 3 steps. There is no notification step.
+Setup has 3 steps. There is no notification step.
 
 ---
 
 ## **5. Completion Logic**
 
-When onboarding completes:
+When setup completes:
 
 1. Save settings.
 2. Show success screen:
@@ -289,7 +289,7 @@ Settings
 
 Inbound
 
-* Always available after initial onboarding.
+* Always available after initial setup.
 * Opens inbound commute screen.
 
 Outbound
@@ -335,11 +335,11 @@ Let’s go
 
 On tap:
 
-* Start outbound onboarding.
+* Start outbound setup.
 
 ⸻
 
-12.4 Outbound Onboarding
+12.4 Outbound Setup
 
 Step 1 — Destination Type
 
@@ -411,7 +411,7 @@ Outbound runs on the same officeDays as inbound.
 
 12.8 Completion Logic
 
-On outbound onboarding completion:
+On outbound setup completion:
 
 1. Save all outbound data
 2. Set:
@@ -531,7 +531,7 @@ It must NOT:
 - Modify active commute results
 - Affect cache state
 - Change leave times
-- Modify onboarding data
+- Modify setup data
 - Persist temporary schedule filtering state
 
 The purpose of Review Schedule is to display the real live train board for the boarding station, filtered to only trains travelling toward the commute destination.

@@ -24,7 +24,7 @@ struct LoadingView: View {
 
     /// Artwork size in points (the @3x export ÷ 3) and the top of its horizontal line.
     private let artSize = CGSize(width: 402, height: 874)
-    private let lineTop: CGFloat = 626
+    private let lineTop: CGFloat = 594
     private let trainSize = CGSize(width: 256, height: 30)
 
     var body: some View {

@@ -5,6 +5,8 @@ struct DevMenuView: View {
     @EnvironmentObject private var appState: AppState
     var onDismiss: () -> Void
     var onClearCache: (() -> Void)? = nil
+    /// Shows the launch loading screen with a pretend slow load.
+    var onPreviewLoading: (() -> Void)? = nil
     var journeyDebugInfo: String? = nil
 
     @State private var showDesignSystem = false
@@ -61,6 +63,13 @@ struct DevMenuView: View {
 
             Divider().padding(.leading, 24)
 
+            menuRow(title: "Preview loading screen") {
+                onDismiss()
+                onPreviewLoading?()
+            }
+
+            Divider().padding(.leading, 24)
+
             if let debug = journeyDebugInfo {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Journey diagnostics")
@@ -105,7 +114,7 @@ struct DevMenuView: View {
                 onDismiss()
             }
         } message: {
-            Text("This will delete all your settings and return you to onboarding.")
+            Text("This will delete all your settings and return you to setup.")
         }
     }
 
