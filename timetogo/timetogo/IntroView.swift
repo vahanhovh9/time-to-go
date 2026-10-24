@@ -81,6 +81,9 @@ struct IntroView: View {
                 Spacer(minLength: 0)
                 card(p, index: index)
                     .frame(minHeight: cardMinHeight)
+                    // Its own height only: without this the card's inner spacer stretches it
+                    // over the whole screen and hides the illustration.
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 20)
                     // Figma: 50pt from the screen bottom, i.e. 16pt above the home indicator.
                     .padding(.bottom, screen.safeAreaInsets.bottom + 16)
