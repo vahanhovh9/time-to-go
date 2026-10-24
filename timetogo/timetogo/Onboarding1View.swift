@@ -17,7 +17,7 @@ struct Onboarding1View: View {
             OnboardingHeader(
                 step: 1,
                 totalSteps: 3,
-                title: "Where do you leave?"
+                title: "Where do you live?"
             )
             .padding(.horizontal, 24)
             .padding(.top, 20)
@@ -29,7 +29,7 @@ struct Onboarding1View: View {
                 )
 
                 TimePicker(
-                    label: "How long do you walk to tube?",
+                    label: "How long is your walk to the tube?",
                     selectedValue: $selectedWalkTime
                 )
             }

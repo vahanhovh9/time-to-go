@@ -20,7 +20,7 @@ struct Onboarding3View: View {
             OnboardingHeader(
                 step: 3,
                 totalSteps: 3,
-                title: "When at office?",
+                title: "When are you at the office?",
                 showsBackButton: true,
                 onBack: onBack
             )

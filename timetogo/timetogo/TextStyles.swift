@@ -15,13 +15,13 @@ import SwiftUI
 enum AppTextStyle: CaseIterable {
     /// 40 Bold, -2 — big page titles ("Settings"). Figma: Old/H1.
     case display
-    /// 28 Bold, -0.5 — onboarding step titles ("Where do you leave?"). Figma: Final/H1.
+    /// 28 Bold, -0.5 — onboarding step titles ("Where do you live?"). Figma: Final/H1.
     case h1
     /// 24 Bold, -0.5 — journey and group titles, destination cards. Figma: Final/H2.
     case h2
     /// 18 Bold, -0.5 — field values, card titles. Figma: Final/H3.
     case h3
-    /// 16 Semibold — step counter ("01 / 3"), station names. Figma: Final/H4.
+    /// 16 Semibold — step counter ("1 / 3"), station names. Figma: Final/H4.
     case h4
     /// 15 Semibold. Figma: H5.
     case h5

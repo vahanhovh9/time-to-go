@@ -100,7 +100,7 @@ struct DevMenuView: View {
         }
         .alert("Reset app settings?", isPresented: $showResetAlert) {
             Button("Cancel", role: .cancel) {}
-            Button("Yes, Reset", role: .destructive) {
+            Button("Yes, reset", role: .destructive) {
                 appState.reset()
                 onDismiss()
             }

@@ -55,7 +55,7 @@ struct CustomButton: View {
             print("Filled button tapped")
         }
         
-        CustomButton(title: "Change you settings", style: .outline) {
+        CustomButton(title: "Change your settings", style: .outline) {
             print("Outline button tapped")
         }
     }

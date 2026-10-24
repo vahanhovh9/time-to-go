@@ -181,7 +181,7 @@ struct SettingsView: View {
 
     private func stationRow(label: String, station: TFLStopPoint, onTap: @escaping () -> Void) -> some View {
         Button(action: onTap) {
-            SettingsRow(label: label) {
+            SettingsRow(label: label, alignment: .firstTextBaseline) {
                 HStack(spacing: 8) {
                     if station.naptanId.isEmpty {
                         Text("Choose")
@@ -393,10 +393,12 @@ private struct SettingsCard<Rows: View>: View {
 /// One divided row: grey label on the left, value on the right.
 private struct SettingsRow<Value: View>: View {
     var label: String
+    /// `.firstTextBaseline` lines the label up with the value's first line (station rows).
+    var alignment: VerticalAlignment = .center
     @ViewBuilder var value: () -> Value
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: alignment, spacing: 12) {
             Text(label)
                 .typography(.large)
                 .foregroundColor(.grey30)
