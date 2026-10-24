@@ -54,7 +54,7 @@ struct FormFieldValue: View {
         FormField(label: "Home station", action: {}) {
             FormFieldValue(text: "Choose", isPlaceholder: true)
         }
-        FormField(label: "How long do you walk to tube?", action: {}) {
+        FormField(label: "How long is your walk to the tube?", action: {}) {
             FormFieldValue(text: "5 min", isPlaceholder: false)
         }
     }

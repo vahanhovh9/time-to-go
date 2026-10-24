@@ -99,7 +99,7 @@ struct OutboundOnboardingView: View {
 
             VStack(alignment: .leading, spacing: 38) {
                 StationSearchField(label: "Destination station", selectedStation: $destStation)
-                TimePicker(label: "How long do you walk from tube?", selectedValue: walkBinding)
+                TimePicker(label: "How long is your walk from the tube?", selectedValue: walkBinding)
             }
             .padding(.horizontal, 24)
             .padding(.top, 48)
@@ -164,7 +164,7 @@ struct OutboundOnboardingView: View {
     private var successStep: some View {
         OnboardingSuccessView(
             title: "🎉 Back home is all set! 🎉",
-            message: "Anytime you open Back home it will show when to leave the office.",
+            message: "Any time you open Back home, it shows when to leave the office.",
             nextCommute: nextTripHome,
             arrivalTime: arrivalTime,
             onAllDone: onComplete,

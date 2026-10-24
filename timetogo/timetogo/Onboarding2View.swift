@@ -32,7 +32,7 @@ struct Onboarding2View: View {
                 )
 
                 TimePicker(
-                    label: "How long do you walk from tube?",
+                    label: "How long is your walk from the tube?",
                     selectedValue: $selectedWalkTime
                 )
             }

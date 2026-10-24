@@ -84,11 +84,11 @@ nonisolated struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringCo
 
     var description: String { displayName }
 
-    /// "Jubilee Line" / "Jubilee, Metropolitan" / "Jubilee, Metropolitan +3 lines"
+    /// "Jubilee line" / "Jubilee, Metropolitan" / "Jubilee, Metropolitan +3 lines"
     var lineDisplayText: String {
         switch lines.count {
         case 0: return ""
-        case 1: return "\(lines[0].name) Line"
+        case 1: return "\(lines[0].name) line"
         case 2: return lines.map { $0.name }.joined(separator: ", ")
         default:
             let first2 = lines.prefix(2).map { $0.name }.joined(separator: ", ")

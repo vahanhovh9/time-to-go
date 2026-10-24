@@ -17,9 +17,9 @@ struct OnboardingHeader: View {
     private var progressText: String? {
         guard let step = step else { return nil }
         guard let totalSteps = totalSteps, totalSteps > 0 else {
-            return String(format: "%02d", step)
+            return "\(step)"
         }
-        return String(format: "%02d / %d", step, totalSteps)
+        return "\(step) / \(totalSteps)"
     }
     
     var body: some View {
@@ -80,7 +80,7 @@ struct OnboardingHeader: View {
     VStack(alignment: .leading, spacing: 32) {
         OnboardingHeader(step: 1, totalSteps: 4, title: "Where do you live?")
         OnboardingHeader(step: 2, totalSteps: 4, title: "Where do you live?", showsBackButton: true) {}
-        OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome all set up!")
+        OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome, all set up!")
     }
     .padding()
     .background(Color.white)

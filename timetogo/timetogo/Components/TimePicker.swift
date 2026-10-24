@@ -109,7 +109,7 @@ struct TimePickerModalView: View {
         
         var body: some View {
             TimePicker(
-                label: "How long do you walk to tube?",
+                label: "How long is your walk to the tube?",
                 selectedValue: $selectedTime
             )
             .padding()

@@ -111,7 +111,7 @@ struct DesignSystemView: View {
                     OnboardingHeader(step: 2, totalSteps: 4, title: "Where do you live?", showsBackButton: true) {
                         print("Back tapped")
                     }
-                    OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome all set up!")
+                    OnboardingHeader(step: nil, totalSteps: nil, title: "Awesome, all set up!")
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 24)
@@ -199,7 +199,7 @@ struct DesignSystemView: View {
                         print("Next tapped")
                     }
                     
-                    CustomButton(title: "Change you settings", style: .outline) {
+                    CustomButton(title: "Change your settings", style: .outline) {
                         print("Settings tapped")
                     }
                 }
