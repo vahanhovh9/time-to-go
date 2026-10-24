@@ -12,6 +12,8 @@ struct ContentView: View {
     @State private var showDevMenu = false
     @State private var currentOnboardingStep: OnboardingStep = .step1
     @State private var mainViewModel: MainViewModel?
+    /// Train loading screen at launch, until the first commute result (or error) is in.
+    @State private var showsLaunchLoading = true
 
     // MARK: - Onboarding state
 
@@ -44,6 +46,24 @@ struct ContentView: View {
             rootView
             #endif
 
+            if showsLaunchLoading && appState.hasCompletedOnboarding {
+                LoadingView(
+                    isReady: {
+                        guard let vm = mainViewModel else { return false }
+                        return vm.commuteResult != nil || vm.errorMessage != nil
+                    },
+                    onDone: { animated in
+                        if animated {
+                            withAnimation(.easeOut(duration: 0.3)) { showsLaunchLoading = false }
+                        } else {
+                            showsLaunchLoading = false
+                        }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(2000)
+            }
+
             #if DEBUG
             if !showDevMenu {
                 Button {
@@ -70,6 +90,8 @@ struct ContentView: View {
         }
         .onAppear {
             ensureMainViewModelIfNeeded()
+            // Only a returning user loads a commute at launch; onboarding starts straight away.
+            if !appState.hasCompletedOnboarding { showsLaunchLoading = false }
         }
     }
 
