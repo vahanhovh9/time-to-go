@@ -92,7 +92,8 @@ nonisolated struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringCo
         case 2: return lines.map { $0.name }.joined(separator: ", ")
         default:
             let first2 = lines.prefix(2).map { $0.name }.joined(separator: ", ")
-            return "\(first2) +\(lines.count - 2) lines"
+            let others = lines.count - 2
+            return "\(first2) +\(others) \(others == 1 ? "line" : "lines")"
         }
     }
 

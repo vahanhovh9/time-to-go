@@ -1,0 +1,62 @@
+{
+  "fill" : {
+    "automatic-gradient" : "srgb:0.94368,1.00000,0.64120,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "normal"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "none"
+            }
+          ],
+          "glass" : false,
+          "hidden" : false,
+          "image-name" : "train 4.png",
+          "name" : "train 4",
+          "position" : {
+            "scale" : 0.36,
+            "translation-in-points" : [
+              0,
+              -21.218999999999994
+            ]
+          }
+        },
+        {
+          "glass" : false,
+          "image-name" : "clock.svg",
+          "name" : "clock",
+          "position" : {
+            "scale" : 0.99,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

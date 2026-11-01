@@ -40,6 +40,10 @@ struct IntroView: View {
                 TabView(selection: $page) {
                     ForEach(pages.indices, id: \.self) { index in
                         pageView(pages[index], index: index, screen: geo)
+                            // Pages keep their own safe areas otherwise: the artwork must
+                            // start under the status bar and the card sit 16pt above the
+                            // home indicator, as in Figma.
+                            .ignoresSafeArea()
                             .tag(index)
                     }
                 }
@@ -65,7 +69,8 @@ struct IntroView: View {
     private func pageView(_ p: Page, index: Int, screen: GeometryProxy) -> some View {
         // Figma: the card is 383pt tall on a 874pt screen; shorter phones get a shorter
         // card (never shorter than its content).
-        let cardMinHeight = min(383, screen.size.height * 0.44)
+        let fullHeight = screen.size.height + screen.safeAreaInsets.top + screen.safeAreaInsets.bottom
+        let cardMinHeight = min(383, fullHeight * 0.44)
 
         return ZStack(alignment: .top) {
             Color(hex: "FFF9C0")
@@ -77,13 +82,12 @@ struct IntroView: View {
                 .frame(maxWidth: .infinity)
                 .accessibilityHidden(true)
 
-            VStack {
+            VStack(spacing: 0) {
+                // Takes all the room the card doesn't need, so the card stays at its
+                // minimum height instead of stretching over the illustration.
                 Spacer(minLength: 0)
-                card(p, index: index)
-                    .frame(minHeight: cardMinHeight)
-                    // Its own height only: without this the card's inner spacer stretches it
-                    // over the whole screen and hides the illustration.
-                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+                card(p, index: index, minHeight: cardMinHeight)
                     .padding(.horizontal, 20)
                     // Figma: 50pt from the screen bottom, i.e. 16pt above the home indicator.
                     .padding(.bottom, screen.safeAreaInsets.bottom + 16)
@@ -91,7 +95,7 @@ struct IntroView: View {
         }
     }
 
-    private func card(_ p: Page, index: Int) -> some View {
+    private func card(_ p: Page, index: Int, minHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 15) {
                 dots(active: index)
@@ -138,7 +142,8 @@ struct IntroView: View {
             .buttonStyle(.plain)
         }
         .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // Figma: 383pt; the button sits at the bottom, the text at the top.
+        .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.grey10, lineWidth: 1))
     }
