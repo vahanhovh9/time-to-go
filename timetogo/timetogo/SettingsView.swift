@@ -20,6 +20,7 @@ struct SettingsView: View {
 
     @State private var showHomeStationPicker = false
     @State private var showOfficeStationPicker = false
+    @State private var showOfficeDaysPicker = false
 
     // MARK: - Outbound state
 
@@ -55,6 +56,13 @@ struct SettingsView: View {
             .sheet(isPresented: $showOutboundDestPicker) {
                 StationSearchModalView(title: "Destination station", selectedStation: $outboundDestStation, onDismiss: { showOutboundDestPicker = false })
                     .environmentObject(store).preferredColorScheme(.light)
+            }
+            .sheet(isPresented: $showOfficeDaysPicker) {
+                OfficeDaysSheet(
+                    monday: $monday, tuesday: $tuesday, wednesday: $wednesday,
+                    thursday: $thursday, friday: $friday,
+                    onDone: { showOfficeDaysPicker = false }
+                )
             }
     }
 
@@ -152,14 +160,10 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             groupTitle("Back home")
 
-            Picker("Going to", selection: $outboundType) {
-                Text("Home").tag(OutboundDestinationType.home)
-                Text("Other place").tag(OutboundDestinationType.otherPlace)
-            }
-            .pickerStyle(.segmented)
-
-            if outboundType == .otherPlace {
-                SettingsCard(title: "Destination") {
+            SettingsCard(title: "Destination") {
+                goingToRow
+                // Home's station and walk come from the Home card above.
+                if outboundType == .otherPlace {
                     stationRow(label: "Station", station: outboundDestStation) { showOutboundDestPicker = true }
                     walkRow(label: "Walk from station", minutes: $outboundWalkMinutes)
                 }
@@ -182,32 +186,45 @@ struct SettingsView: View {
     private func stationRow(label: String, station: TFLStopPoint, onTap: @escaping () -> Void) -> some View {
         Button(action: onTap) {
             SettingsRow(label: label, alignment: .firstTextBaseline) {
-                HStack(spacing: 8) {
-                    if station.naptanId.isEmpty {
-                        Text("Choose")
-                            .typography(.large)
-                            .foregroundColor(.grey30)
-                    } else {
-                        VStack(alignment: .trailing, spacing: 4) {
+                if station.naptanId.isEmpty {
+                    ValueChip(text: "Choose", isActive: true)
+                } else {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        // Chevron belongs to the station name, not the two-line block.
+                        HStack(alignment: .firstTextBaseline, spacing: RowChevron.gap) {
                             Text(station.displayName)
                                 .typography(.h4)
                                 .foregroundColor(.black)
                                 .lineLimit(1)
-                            if !station.lineDisplayText.isEmpty {
-                                Text(station.lineDisplayText)
-                                    .typography(.footnote)
-                                    .foregroundColor(.grey30)
-                                    .lineLimit(1)
-                            }
+                            RowChevron()
+                                // Centred on the name's capitals, keeping its baseline
+                                // level with the row label.
+                                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 5.5 }
+                        }
+                        if !station.lineDisplayText.isEmpty {
+                            LineLabel(station: station)
+                                // Lines up under the station name, left of the chevron.
+                                .padding(.trailing, RowChevron.width + RowChevron.gap)
                         }
                     }
-                    Image(systemName: "chevron.right")
-                        .scaledFont(size: 12, weight: .semibold)
-                        .foregroundColor(.grey30)
                 }
             }
         }
         .buttonStyle(.plain)
+    }
+
+    /// Picks one option, so a native menu rather than tabs; the whole row opens it.
+    private var goingToRow: some View {
+        Menu {
+            Picker("Going to", selection: $outboundType) {
+                Text("Home").tag(OutboundDestinationType.home)
+                Text("Other place").tag(OutboundDestinationType.otherPlace)
+            }
+        } label: {
+            SettingsRow(label: "Going to") {
+                ValueChip(text: outboundType == .home ? "Home" : "Other place")
+            }
+        }
     }
 
     private func walkRow(label: String, minutes: Binding<Int>) -> some View {
@@ -249,21 +266,19 @@ struct SettingsView: View {
     }
 
     private var daysRow: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Office days")
-                .typography(.main)
-                .foregroundColor(.grey50)
-            HStack(spacing: 6) {
-                DayChip(title: "Mon", isOn: $monday)
-                DayChip(title: "Tue", isOn: $tuesday)
-                DayChip(title: "Wed", isOn: $wednesday)
-                DayChip(title: "Thu", isOn: $thursday)
-                DayChip(title: "Fri", isOn: $friday)
+        Button { showOfficeDaysPicker = true } label: {
+            SettingsRow(label: "Office days") {
+                ValueChip(text: officeDaysText, isActive: showOfficeDaysPicker)
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 20)
-        .overlay(alignment: .top) { Rectangle().fill(Color.grey10).frame(height: 1) }
+        .buttonStyle(.plain)
+    }
+
+    /// "Tu, Th"; every day shows, as there are at most five.
+    private var officeDaysText: String {
+        let days = [(monday, "Mo"), (tuesday, "Tu"), (wednesday, "We"), (thursday, "Th"), (friday, "Fr")]
+        let chosen = days.filter(\.0).map(\.1)
+        return chosen.isEmpty ? "Choose" : chosen.joined(separator: ", ")
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -412,36 +427,102 @@ private struct SettingsRow<Value: View>: View {
     }
 }
 
-/// Right-hand value text ("5 min", "9:00 am"). Dims while its picker is open.
+/// Right-hand value ("5 min", "9:00 am", "Choose") with the chevron every changeable value
+/// has. Dims while its picker is open.
 private struct ValueChip: View {
     var text: String
     var isActive = false
 
     var body: some View {
-        Text(text)
-            .typography(.large)
-            .foregroundColor(isActive ? .grey30 : .black)
-            .lineLimit(1)
-            .padding(.horizontal, 8)
-            .frame(minWidth: 63, minHeight: 20)
+        HStack(spacing: RowChevron.gap) {
+            Text(text)
+                .typography(.large)
+                .foregroundColor(isActive ? .grey30 : .black)
+                .lineLimit(1)
+            RowChevron()
+        }
     }
 }
 
-/// Weekday toggle: black when selected, grey10 otherwise.
-private struct DayChip: View {
-    var title: String
-    @Binding var isOn: Bool
+/// Trailing chevron on rows whose value can be changed.
+private struct RowChevron: View {
+    static let width: CGFloat = 8
+    static let gap: CGFloat = 8
 
     var body: some View {
-        Button { isOn.toggle() } label: {
-            Text(title)
-                .typography(.main)
-                .foregroundColor(isOn ? .white : .grey50)
-                .frame(maxWidth: .infinity, minHeight: 36)
-                .background(isOn ? Color.black : Color.grey10)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+        Image(systemName: "chevron.right")
+            .scaledFont(size: 12, weight: .semibold)
+            .foregroundColor(.grey30)
+            .frame(width: Self.width)
+            .accessibilityHidden(true)
+    }
+}
+
+/// "● Northern line": a 6pt dot in the line's colour for each line named in the text.
+private struct LineLabel: View {
+    let station: TFLStopPoint
+
+    var body: some View {
+        HStack(spacing: 4) {
+            HStack(spacing: 2) {
+                ForEach(station.lines.prefix(2), id: \.id) { line in
+                    Circle()
+                        .fill(Color.tflLine(line.id))
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .accessibilityHidden(true)
+            Text(station.lineDisplayText)
+                .typography(.footnote)
+                .foregroundColor(.grey30)
+                .lineLimit(1)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+/// Office days picker: the same radios as setup. Changes save as they're made.
+private struct OfficeDaysSheet: View {
+    @Binding var monday: Bool
+    @Binding var tuesday: Bool
+    @Binding var wednesday: Bool
+    @Binding var thursday: Bool
+    @Binding var friday: Bool
+    var onDone: () -> Void
+
+    /// As in setup: at least one day, or there's no commute to work out.
+    private var hasDay: Bool { monday || tuesday || wednesday || thursday || friday }
+
+    var body: some View {
+        NavigationView {
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ], spacing: 12) {
+                DayPicker(day: "Mon", isSelected: $monday)
+                DayPicker(day: "Tue", isSelected: $tuesday)
+                DayPicker(day: "Wed", isSelected: $wednesday)
+                DayPicker(day: "Thu", isSelected: $thursday)
+                DayPicker(day: "Fri", isSelected: $friday)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .background(Color.white)
+            .navigationTitle("Office days")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done", action: onDone)
+                        .disabled(!hasDay)
+                }
+            }
+            .toolbarBackground(Color.white, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .tint(Color.black)
+        }
+        .navigationViewStyle(.stack)
+        .preferredColorScheme(.light)
+        .presentationDetents([.height(300)])
+        .interactiveDismissDisabled(!hasDay)
     }
 }

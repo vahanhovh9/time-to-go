@@ -73,7 +73,8 @@ struct ContentView: View {
             }
 
             #if DEBUG
-            if !showDevMenu {
+            // Hidden during the intro, where it would cover Skip.
+            if !showDevMenu && (appState.hasSeenIntro || appState.hasCompletedSetup) {
                 Button {
                     withAnimation { showDevMenu = true }
                 } label: {
