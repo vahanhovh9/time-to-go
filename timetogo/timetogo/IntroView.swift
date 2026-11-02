@@ -141,7 +141,7 @@ struct IntroView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, minHeight: 48)
                     .background(Color.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.element))
             }
             .buttonStyle(.plain)
             .transaction { $0.animation = nil }
@@ -151,7 +151,7 @@ struct IntroView: View {
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
         // On the shape, not the card: a shadow on the card also lands on its text.
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: Radius.card)
                 .fill(Color.white)
                 .shadow(color: .black.opacity(0.08), radius: 4.5)
         )
@@ -163,12 +163,12 @@ struct IntroView: View {
                 .typography(.h2)
                 .foregroundColor(.black)
                 .fixedSize(horizontal: false, vertical: true)
-                .modifier(TextReveal(shown: isShown(index), delay: 0.15, reduceMotion: reduceMotion, enter: enter, exit: exit))
+                .textReveal(isShown(index), delay: 0.15)
             Text(p.body)
                 .typography(.large)
                 .foregroundColor(.grey50)
                 .fixedSize(horizontal: false, vertical: true)
-                .modifier(TextReveal(shown: isShown(index), delay: 0.27, reduceMotion: reduceMotion, enter: enter, exit: exit))
+                .textReveal(isShown(index), delay: 0.27)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityHidden(page != index)
@@ -186,22 +186,6 @@ struct IntroView: View {
         .animation(enter(duration: 0.6, delay: 0), value: page)
         .accessibilityElement()
         .accessibilityLabel("Page \(page + 1) of \(pages.count)")
-    }
-}
-
-/// Fades text in with a small rise, and straight out.
-private struct TextReveal: ViewModifier {
-    let shown: Bool
-    let delay: Double
-    let reduceMotion: Bool
-    let enter: (Double, Double) -> Animation
-    let exit: Animation
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(shown ? 1 : 0)
-            .offset(y: shown || reduceMotion ? 0 : 10)
-            .animation(shown ? enter(0.8, delay) : exit, value: shown)
     }
 }
 

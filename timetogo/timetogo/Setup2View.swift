@@ -30,11 +30,13 @@ struct Setup2View: View {
                 selectedStation: $selectedStation,
                 excluding: [homeStation]
             )
+            .setupReveal(order: 0)
 
             TimePicker(
                 label: "How long do you get to your desk?",
                 selectedValue: $selectedWalkTime
             )
+            .setupReveal(order: 1)
         }
     }
 }

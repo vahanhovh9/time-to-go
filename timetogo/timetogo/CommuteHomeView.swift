@@ -97,6 +97,7 @@ struct CommuteHomeView: View {
                     onClose: { showsJourneyDetails = false }
                 )
                 .presentationDetents([.medium, .large])
+                .presentationCornerRadius(Radius.card)
                 .presentationDragIndicator(.visible)
             } else {
                 // Opened from a saved result, which has no steps: fetch the journey, then show it.
@@ -105,6 +106,7 @@ struct CommuteHomeView: View {
                     .foregroundColor(.grey30)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .presentationDetents([.medium, .large])
+                    .presentationCornerRadius(Radius.card)
                     .presentationDragIndicator(.visible)
                     .task {
                         switch direction {

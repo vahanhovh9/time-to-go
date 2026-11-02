@@ -14,6 +14,9 @@ struct SetupSuccessView: View {
     private let artworkSize = CGSize(width: 402, height: 437)
     private let designCardTop: CGFloat = 419
 
+    /// The card's text fades in once the page appears, as on the setup steps.
+    @State private var revealed = false
+
     var body: some View {
         GeometryReader { geo in
             let scale = geo.size.width / artworkSize.width
@@ -23,6 +26,7 @@ struct SetupSuccessView: View {
                     .resizable()
                     .frame(width: geo.size.width, height: artworkSize.height * scale)
                     .overlay { ConfettiSparkle(scale: scale) }
+                    .artworkReveal(revealed)
                     .accessibilityHidden(true)
 
                 VStack(spacing: 0) {
@@ -32,30 +36,32 @@ struct SetupSuccessView: View {
                         .frame(maxHeight: designCardTop * scale)
                         .layoutPriority(1)
                     card
-                        .padding(.horizontal, 20)
-                        // Figma: 30pt from the screen bottom.
-                        .padding(.bottom, max(geo.safeAreaInsets.bottom - 4, 16))
+                        .padding(.horizontal, Spacing.padding)
+                        .padding(.bottom, Spacing.padding)
                 }
             }
             .ignoresSafeArea()
         }
         .background(Color.brightBackground.ignoresSafeArea())
+        .onAppear { revealed = true }
     }
 
     // MARK: - Card
 
     private var card: some View {
         SetupCard {
-            VStack(spacing: 30) {
+            VStack(spacing: 32) {
                 VStack(spacing: 12) {
                     Text("🎉 Awesome, all set up! 🎉")
                         .typography(.h2)
                         .foregroundColor(.black)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                        .textReveal(revealed, delay: 0.15)
                     Text("Just open TimeToGo anytime to see exactly when to leave home ;)")
                         .typography(.large)
                         .foregroundColor(.grey40)
+                        .textReveal(revealed, delay: 0.27)
                 }
                 .multilineTextAlignment(.center)
 
@@ -72,7 +78,8 @@ struct SetupSuccessView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(Color.brightBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.smallBlock))
+                .textReveal(revealed, delay: 0.39)
             }
 
             Spacer(minLength: 24)

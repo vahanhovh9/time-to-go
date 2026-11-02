@@ -22,7 +22,7 @@ struct CustomButton: View {
     
     var body: some View {
         Button(action: action) {
-            // Figma "Button": 48pt tall, 10pt corners, H5 label.
+            // Figma "Button": 48pt tall, Element corners, H5 label.
             Text(title)
                 .typography(.h5)
                 .foregroundColor(foreground)
@@ -30,11 +30,11 @@ struct CustomButton: View {
                 .frame(minHeight: 48)
                 .background(background)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: Radius.element)
                         .stroke(style == .outline && isEnabled ? Color.black : Color.clear, lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .contentShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.element))
+                .contentShape(RoundedRectangle(cornerRadius: Radius.element))
         }
         .disabled(!isEnabled)
     }

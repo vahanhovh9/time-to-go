@@ -34,7 +34,7 @@ struct DepartureBoard: View {
         .padding(.top, 16)
         .padding(.horizontal, 16)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: Radius.smallBlock)
                 .stroke(Color.grey10, lineWidth: 1)
         )
     }
@@ -89,7 +89,7 @@ private struct DepartureRow: View {
                 .padding(.horizontal, 8)
                 .frame(minWidth: 63, minHeight: 20)
                 .background(Color.grey10)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.element))
                 // Centres the chip on the time's first line, as in Figma.
                 .padding(.top, 2)
         }

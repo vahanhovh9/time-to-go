@@ -24,11 +24,13 @@ struct Setup3View: View {
             buttonTitle: "Complete",
             isButtonEnabled: isFormValid,
             onButton: onNext,
-            // The day row has no label; this keeps it level with the fields on steps 1 and 2.
-            fieldsTopInset: 22
+            fieldSpacing: 48
         ) {
             JourneyIllustration(journey: .atDesk)
         } fields: {
+            ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
+                .setupReveal(order: 0)
+
             HStack(spacing: 12) {
                 DayChip(day: "Mo", isSelected: $monday)
                 DayChip(day: "Tu", isSelected: $tuesday)
@@ -36,8 +38,7 @@ struct Setup3View: View {
                 DayChip(day: "Th", isSelected: $thursday)
                 DayChip(day: "Fr", isSelected: $friday)
             }
-
-            ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
+            .setupReveal(order: 1)
         }
     }
 }

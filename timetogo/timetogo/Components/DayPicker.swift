@@ -29,8 +29,8 @@ struct DayPicker: View {
             .frame(minHeight: 48)
             .frame(maxWidth: .infinity)
             .background(isSelected ? Color.black : Color.grey10)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .contentShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.element))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.element))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -55,8 +55,8 @@ struct DayChip: View {
                 .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .background(isSelected ? Color.black : Color.grey10)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .contentShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.element))
+                .contentShape(RoundedRectangle(cornerRadius: Radius.element))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

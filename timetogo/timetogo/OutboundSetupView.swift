@@ -15,6 +15,11 @@ struct OutboundSetupView: View {
 
     @State private var currentStep: OutboundStep = .destinationType
     @State private var destinationType: OutboundDestinationType = .home
+    /// The first step arrives by the Back home card's move, so its illustration doesn't
+    /// slide in that time. Later step changes slide like the initial setup.
+    @State private var arrivedByMove = true
+    @State private var stepForward = true
+    @State private var stepLayer: Double = 0
 
     // Station (Option B only)
     @State private var destStation: TFLStopPoint = .placeholder
@@ -26,10 +31,18 @@ struct OutboundSetupView: View {
     // MARK: - Body
 
     var body: some View {
-        switch currentStep {
-        case .destinationType: destinationTypeStep
-        case .details:         detailsStep
+        Group {
+            switch currentStep {
+            case .destinationType:
+                destinationTypeStep
+                    .setupStepTransition(layer: stepLayer)
+            case .details:
+                detailsStep
+                    .environment(\.setupMorph, nil)
+                    .setupStepTransition(layer: stepLayer)
+            }
         }
+        .environment(\.setupArtworkFrom, arrivedByMove ? nil : (stepForward ? 40 : -40))
     }
 
     // MARK: - Step 1: Destination type
@@ -41,7 +54,7 @@ struct OutboundSetupView: View {
             title: "Where are you heading?",
             showsBackButton: true,
             onBack: onComplete,
-            onButton: { withAnimation { currentStep = .details } }
+            onButton: { go(to: .details) }
         ) {
             JourneyIllustration(journey: .headingOut)
         } fields: {
@@ -53,6 +66,7 @@ struct OutboundSetupView: View {
                 ) {
                     destinationType = .home
                 }
+                .setupReveal(order: 0)
 
                 DestinationCard(
                     title: "Somewhere else",
@@ -61,6 +75,7 @@ struct OutboundSetupView: View {
                 ) {
                     destinationType = .otherPlace
                 }
+                .setupReveal(order: 1)
             }
         }
     }
@@ -73,7 +88,7 @@ struct OutboundSetupView: View {
             totalSteps: 2,
             title: "When do you need to arrive?",
             showsBackButton: true,
-            onBack: { withAnimation { currentStep = .destinationType } },
+            onBack: { go(to: .destinationType) },
             buttonTitle: "Complete",
             isButtonEnabled: isDetailsValid,
             onButton: saveAndComplete
@@ -82,9 +97,12 @@ struct OutboundSetupView: View {
         } fields: {
             if destinationType == .otherPlace {
                 StationSearchField(label: "Destination station", selectedStation: $destStation, excluding: [officeStation])
+                    .setupReveal(order: 0)
                 TimePicker(label: "How long is your walk from the tube?", selectedValue: walkBinding)
+                    .setupReveal(order: 1)
             }
             ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
+                .setupReveal(order: destinationType == .otherPlace ? 2 : 0)
         }
     }
 
@@ -98,6 +116,15 @@ struct OutboundSetupView: View {
     }
 
     // MARK: - Helpers
+
+    private func go(to step: OutboundStep) {
+        arrivedByMove = false
+        stepForward = step == .details
+        withAnimation {
+            stepLayer += 1
+            currentStep = step
+        }
+    }
 
     private var walkBinding: Binding<String> {
         Binding(
@@ -171,10 +198,10 @@ private struct DestinationCard: View {
             .frame(minHeight: 104)
             .background(Color.white)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: Radius.element)
                     .strokeBorder(isSelected ? Color.grey50 : Color.grey29, lineWidth: isSelected ? 2 : 1)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.element))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)

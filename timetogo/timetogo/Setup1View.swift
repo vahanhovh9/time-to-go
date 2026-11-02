@@ -28,12 +28,14 @@ struct Setup1View: View {
                 selectedStation: $selectedStation,
                 excluding: [officeStation]
             )
+            .setupReveal(order: 0)
 
             TimePicker(
                 label: "How long do you get to tube?",
                 selectedValue: $selectedWalkTime,
                 placeholder: "Choose (mins)"
             )
+            .setupReveal(order: 1)
         }
     }
 }

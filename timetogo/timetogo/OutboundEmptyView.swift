@@ -11,6 +11,7 @@ struct OutboundEmptyView: View {
             // Scales to the available height, so the figure is never cut off on small phones.
             JourneyIllustration(journey: .walkingHome)
                 .aspectRatio(CGSize(width: 402, height: 263), contentMode: .fit)
+                .setupMorph("artwork")
 
             Spacer(minLength: 8)
 
@@ -29,10 +30,11 @@ struct OutboundEmptyView: View {
                 Spacer(minLength: 24)
 
                 CustomButton(title: "Let’s go", style: .filled, action: onGetStarted)
+                    .setupMorph("button")
             }
             .frame(maxHeight: 325)
             .layoutPriority(1)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, Spacing.padding)
             // Figma: 35pt above the tab bar.
             .padding(.bottom, 35)
         }

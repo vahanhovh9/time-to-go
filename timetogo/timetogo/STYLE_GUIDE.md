@@ -75,12 +75,25 @@ Figma sets Final/H4, H5, Final/Small and Final/Footnote in Inter; the app uses S
 | Bright green | #3FEB00 |
 
 
+## Radius and spacing
+
+The Figma variables live in `Layout.swift`. Use them instead of numbers.
+
+| Token | Value | Figma variable | Used for |
+|-------|-------|----------------|----------|
+| `Radius.element` | 18 | Element | Buttons, fields, day chips, destination cards, status pill, minutes chip |
+| `Radius.smallBlock` | 22 | Small block | Leave-time card, departures card, Settings cards, success page's next-commute block |
+| `Radius.medium` | 12 | Corner/Medium | Not in use at the moment |
+| `Radius.card` | 36 | none yet | Large white cards: intro, setup, success, Back home |
+| `Spacing.padding` | 20 | Padding | Screen edges to the large cards (sides and bottom) |
+| `Spacing.paddingInside` | 24 | Padding inside | Inside the large cards |
+
 ## Setup step template
 
 Build every setup step with `SetupStepLayout` (`Components/SetupStepLayout.swift`), from Figma "Setup - Step 1":
 
 - Bright bg screen, step counter and H1 title 29pt from the sides.
 - Illustration in a 402×263 frame, 20pt under the title, resting on the card. Export the artwork at exactly that frame (1206×789 @3x); it fills the width and only shrinks on short phones.
-- White card: 20pt from the sides, 30pt from the screen bottom, radius 12, shadow 8% black. It takes the remaining height.
-- Fields at the top of the card, 32pt apart and outlined (Grey 29). The button sits at the bottom.
-- A first row without a label (step 3's day chips) uses `fieldsTopInset: 22` so it lines up with the fields on other steps.
+- White card: `Spacing.padding` from the sides and the screen bottom, `Radius.card` corners, `Spacing.paddingInside` inside, shadow 8% black. It takes the remaining height.
+- Fields at the top of the card, 24pt apart and outlined (Grey 29). The button sits at the bottom.
+- Step 3 puts the arrival time first and the day row 48pt under it (`fieldSpacing: 48`).

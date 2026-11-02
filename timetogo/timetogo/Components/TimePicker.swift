@@ -16,7 +16,7 @@ struct TimePicker: View {
     @State private var showPicker = false
     @State private var selectedMinutes: Int = 0
 
-    private let timeOptions: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+    private let timeOptions: [Int] = Array(1...25)
 
     init(label: String, selectedValue: Binding<String>, placeholder: String = "Choose") {
         self.label = label

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Labelled grey field used across setup (Figma: "Dropdown").
-/// 14pt label above a 48pt, 10pt-radius grey box with a trailing chevron.
+/// 14pt label above a 48pt grey box with Element corners with a trailing chevron.
 /// Outlined white instead when `formFieldOutlined` is set (setup cards).
 struct FormField<Value: View>: View {
     var label: String
@@ -30,13 +30,13 @@ struct FormField<Value: View>: View {
                 .padding(.vertical, 8)
                 .frame(minHeight: 48)
                 .background(isOutlined ? Color.white : Color.grey10)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.element))
                 .overlay {
                     if isOutlined {
-                        RoundedRectangle(cornerRadius: 10).strokeBorder(Color.grey29, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: Radius.element).strokeBorder(Color.grey29, lineWidth: 1)
                     }
                 }
-                .contentShape(RoundedRectangle(cornerRadius: 10))
+                .contentShape(RoundedRectangle(cornerRadius: Radius.element))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(label)

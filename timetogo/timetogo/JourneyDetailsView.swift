@@ -324,7 +324,7 @@ private struct StepRow: View {
                 .padding(.horizontal, 4)
                 .padding(.vertical, 1)
                 .background(Color.tflLine(leg.lineId))
-                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.element))
             if let heading = leg.heading {
                 Text("to \(heading)")
                     .typography(.main)
@@ -337,7 +337,7 @@ private struct StepRow: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
                     .background(Color(hex: "FFE7A3"))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.element))
             }
             if !leg.stops.isEmpty {
                 stopsToggle(leg)
@@ -346,7 +346,7 @@ private struct StepRow: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(hex: "F3F3F3"))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.smallBlock))
     }
 
     private func stopsToggle(_ leg: JourneyLeg) -> some View {

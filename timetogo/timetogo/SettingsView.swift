@@ -37,7 +37,7 @@ struct SettingsView: View {
     /// Settings save instantly; the TfL reload waits until the user pauses.
     @State private var reloadTask: Task<Void, Never>?
 
-    private let walkOptions: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+    private let walkOptions: [Int] = Array(1...25)
 
     private var outboundEnabled: Bool { appState.settings?.outboundEnabled ?? false }
 
@@ -122,7 +122,7 @@ struct SettingsView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(Color(hex: "FAFAFA").ignoresSafeArea())
+        .background(Color.brightBackground.ignoresSafeArea())
     }
 
     private var header: some View {
@@ -131,6 +131,9 @@ struct SettingsView: View {
             .tracking(-2)
             .foregroundColor(.black)
             .frame(maxWidth: .infinity, alignment: .leading)
+            #if DEBUG
+            .overlay(alignment: .trailing) { DevMenuButton() }
+            #endif
             .padding(.horizontal, 26)
             .padding(.top, 14)
             .padding(.bottom, 20)
@@ -401,10 +404,10 @@ private struct SettingsCard<Rows: View>: View {
         }
         .padding(.top, 16)
         .padding(.bottom, subtitle == nil ? 0 : 16)
-        .padding(.horizontal, 12)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: Radius.smallBlock))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: Radius.smallBlock)
                 .stroke(Color.grey10, lineWidth: 1)
         )
     }
