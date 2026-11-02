@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Toward Old Street / Powered by TfL Open Data" card listing live departures.
+/// "Toward Old Street / Updated live. Provided by TFL" card listing live departures.
 struct DepartureBoard: View {
     var title: String
     var entries: [ScheduleEntry]
@@ -13,7 +13,7 @@ struct DepartureBoard: View {
                 Text(title)
                     .typography(.h3)
                     .foregroundColor(.black)
-                Text("Powered by TfL Open Data")
+                Text("Updated live. Provided by TFL")
                     .typography(.footnote)
                     .foregroundColor(.grey30)
             }
@@ -32,7 +32,7 @@ struct DepartureBoard: View {
             }
         }
         .padding(.top, 16)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.grey10, lineWidth: 1)
@@ -93,7 +93,6 @@ private struct DepartureRow: View {
                 // Centres the chip on the time's first line, as in Figma.
                 .padding(.top, 2)
         }
-        .padding(.horizontal, 4)
         .padding(.top, 16)
         .padding(.bottom, 20)
         .overlay(alignment: .top) { Rectangle().fill(Color.grey10).frame(height: 1) }

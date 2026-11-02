@@ -2,9 +2,7 @@ import SwiftUI
 
 private enum OutboundStep {
     case destinationType
-    case stationSetup       // Option B only
-    case arrivalTime
-    case success
+    case details            // Arrival time; station and walk too for somewhere else
 }
 
 struct OutboundSetupView: View {
@@ -30,29 +28,25 @@ struct OutboundSetupView: View {
     var body: some View {
         switch currentStep {
         case .destinationType: destinationTypeStep
-        case .stationSetup:    stationSetupStep
-        case .arrivalTime:     arrivalTimeStep
-        case .success:         successStep
+        case .details:         detailsStep
         }
     }
 
     // MARK: - Step 1: Destination type
 
     private var destinationTypeStep: some View {
-        VStack(spacing: 0) {
-            SetupHeader(
-                step: 1,
-                totalSteps: destinationType == .home ? 2 : 3,
-                title: "Where are you going?",
-                showsBackButton: true,
-                onBack: onComplete
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-
-            VStack(spacing: 24) {
+        SetupStepLayout(
+            step: 1,
+            totalSteps: 2,
+            title: "Where are you heading?",
+            showsBackButton: true,
+            onBack: onComplete,
+            onButton: { withAnimation { currentStep = .details } }
+        ) {
+            JourneyIllustration(journey: .headingOut)
+        } fields: {
+            VStack(spacing: 12) {
                 DestinationCard(
-                    image: "destination-home",
                     title: "Home",
                     subtitle: "Back to your home station",
                     isSelected: destinationType == .home
@@ -61,136 +55,49 @@ struct OutboundSetupView: View {
                 }
 
                 DestinationCard(
-                    image: "destination-other",
-                    title: "Other place",
+                    title: "Somewhere else",
                     subtitle: "Any other destination",
                     isSelected: destinationType == .otherPlace
                 ) {
                     destinationType = .otherPlace
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 48)
-
-            Spacer(minLength: 24)
-
-            footer {
-                withAnimation {
-                    currentStep = destinationType == .home ? .arrivalTime : .stationSetup
-                }
-            }
         }
-        .background(Color.white)
     }
 
-    // MARK: - Step 2 (Option B): Station + walk
+    // MARK: - Step 2: Details
 
-    private var stationSetupStep: some View {
-        VStack(spacing: 0) {
-            SetupHeader(
-                step: 2,
-                totalSteps: 3,
-                title: "Where is your destination?",
-                showsBackButton: true,
-                onBack: { withAnimation { currentStep = .destinationType } }
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-
-            VStack(alignment: .leading, spacing: 38) {
-                StationSearchField(label: "Destination station", selectedStation: $destStation)
+    private var detailsStep: some View {
+        SetupStepLayout(
+            step: 2,
+            totalSteps: 2,
+            title: "When do you need to arrive?",
+            showsBackButton: true,
+            onBack: { withAnimation { currentStep = .destinationType } },
+            buttonTitle: "Complete",
+            isButtonEnabled: isDetailsValid,
+            onButton: saveAndComplete
+        ) {
+            JourneyIllustration(journey: .tubeToDestination)
+        } fields: {
+            if destinationType == .otherPlace {
+                StationSearchField(label: "Destination station", selectedStation: $destStation, excluding: [officeStation])
                 TimePicker(label: "How long is your walk from the tube?", selectedValue: walkBinding)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 48)
-
-            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
-            JourneyIllustration(journey: .tubeToDestination)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .padding(.top, 24)
-
-            footer(enabled: !destStation.naptanId.isEmpty && walkMinutes != nil) {
-                withAnimation { currentStep = .arrivalTime }
-            }
+            ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
         }
-        .background(Color.white)
     }
 
-    // MARK: - Step 2/3: Arrival time
-
-    private var arrivalTimeStep: some View {
-        let stepNum = destinationType == .home ? 2 : 3
-        let totalSteps = stepNum
-        let prevStep: OutboundStep = destinationType == .home ? .destinationType : .stationSetup
-
-        return VStack(spacing: 0) {
-            SetupHeader(
-                step: stepNum,
-                totalSteps: totalSteps,
-                title: "When do you need to arrive?",
-                showsBackButton: true,
-                onBack: { withAnimation { currentStep = prevStep } }
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Spacer(minLength: 40)
-
-                    ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
-                        .padding(.horizontal, 24)
-
-                    Spacer(minLength: 40)
-                }
-            }
-
-            VStack(spacing: 0) {
-                Divider().background(Color.grey10)
-                CustomButton(title: "Complete", style: .filled) {
-                    saveAndComplete()
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
-            }
-            .background(Color.white)
-        }
-        .background(Color.white)
+    private var isDetailsValid: Bool {
+        destinationType == .home || (!destStation.naptanId.isEmpty && walkMinutes != nil)
     }
 
-    // MARK: - Success
-
-    private var successStep: some View {
-        SetupSuccessView(
-            title: "🎉 Back home is all set! 🎉",
-            message: "Any time you open Back home, it shows when to leave the office.",
-            nextCommute: nextTripHome,
-            arrivalTime: arrivalTime,
-            onAllDone: onComplete,
-            onChangeSettings: { withAnimation { currentStep = .destinationType } }
-        )
-    }
-
-    /// Next office day whose trip home is still ahead (judged by the Back home arrival time,
-    /// not the morning one — at 10am today's 6pm trip still counts).
-    private var nextTripHome: Date {
-        var s = appState.settings ?? viewModel.settings
-        s.arrivalTime = arrivalTime
-        return CommuteCalculationService().nextCommuteDate(from: s)
+    private var officeStation: TFLStopPoint {
+        let s = appState.settings ?? viewModel.settings
+        return TFLStopPoint(naptanId: s.officeStationId, commonName: s.officeStationName, lines: s.officeStationLines)
     }
 
     // MARK: - Helpers
-
-    @ViewBuilder
-    private func footer(enabled: Bool = true, action: @escaping () -> Void) -> some View {
-        CustomButton(title: "Next", style: .filled, action: action, isEnabled: enabled)
-            .padding(.horizontal, 16)
-            .padding(.top, 20)
-            .padding(.bottom, 24)
-            .background(Color.white)
-    }
-
 
     private var walkBinding: Binding<String> {
         Binding(
@@ -224,7 +131,7 @@ struct OutboundSetupView: View {
         appState.updateSettings(s)
         viewModel.updateSettings(s)
 
-        withAnimation { currentStep = .success }
+        onComplete()
     }
 
     private static func time(_ hour: Int, _ minute: Int) -> Date {
@@ -234,10 +141,9 @@ struct OutboundSetupView: View {
 
 // MARK: - Destination card (Figma "card-illustration")
 
-/// Selectable card: illustration, title + subtitle, and a check circle.
-/// Selected: 2pt green border and green tick. Otherwise: 1pt grey border and empty circle.
+/// Selectable card: title + subtitle and a check circle.
+/// Selected: 2pt Grey 50 border and green tick. Otherwise: 1pt Grey 29 border and empty circle.
 private struct DestinationCard: View {
-    var image: String
     var title: String
     var subtitle: String
     var isSelected: Bool
@@ -246,31 +152,27 @@ private struct DestinationCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 16) {
-                Image(image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 88, height: 100)
-                    .accessibilityHidden(true)
-
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .typography(.h2)
+                        .typography(.h3)
+                        .foregroundColor(.grey50)
                     Text(subtitle)
                         .typography(.large)
+                        .foregroundColor(.grey40)
                 }
-                .foregroundColor(.grey50)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                // 104pt card minus its padding, so the text stays vertically centred.
+                .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
 
                 Checkmark(state: isSelected ? .checked : .unchecked)
             }
-            .padding(.leading, 16)
+            .padding(.leading, 24)
             .padding(.trailing, 12)
             .padding(.vertical, 16)
-            .frame(height: 132)
+            .frame(minHeight: 104)
             .background(Color.white)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(isSelected ? Color(hex: "059013") : Color.grey30, lineWidth: isSelected ? 2 : 1)
+                    .strokeBorder(isSelected ? Color.grey50 : Color.grey29, lineWidth: isSelected ? 2 : 1)
             )
             .contentShape(RoundedRectangle(cornerRadius: 12))
         }

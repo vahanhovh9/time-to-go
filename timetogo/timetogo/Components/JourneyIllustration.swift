@@ -19,15 +19,18 @@ struct JourneyIllustration: View {
 
     var body: some View {
         GeometryReader { geo in
-            let scale = min(geo.size.height / journey.designSize.height, 1)
+            let scale = journey.fillsFrame
+                ? min(geo.size.width / journey.designSize.width, geo.size.height / journey.designSize.height)
+                : min(geo.size.height / journey.designSize.height, 1)
             let size = CGSize(width: journey.designSize.width * scale, height: journey.designSize.height * scale)
 
             artwork
                 .frame(width: size.width, height: size.height)
                 .position(x: geo.size.width / 2, y: geo.size.height - size.height / 2)
         }
-        .frame(maxWidth: .infinity, maxHeight: journey.designSize.height)
-        .clipped()
+        .frame(maxWidth: .infinity, maxHeight: journey.fillsFrame ? nil : journey.designSize.height)
+        // Artwork that fills its frame has nothing to crop, and its glow may leave the frame.
+        .clipped(!journey.fillsFrame)
         .accessibilityHidden(true)
         .task(id: reduceMotion) {
             guard !reduceMotion, journey.route != nil else { return }
@@ -84,6 +87,9 @@ extension JourneyIllustration {
         let imageName: String
         /// Artwork size in points (the @3x export ÷ 3).
         let designSize: CGSize
+        /// Scales to the frame it's given, also above design size. For artwork made to the
+        /// exact frame of `SetupStepLayout`; other artwork is wider and crops at the sides.
+        let fillsFrame: Bool
         let glowColor: Color
         let glowCoreColor: Color
         /// The dotted route in artwork points, start → end of the glow. nil = no glow.
@@ -92,92 +98,101 @@ extension JourneyIllustration {
         init(
             imageName: String,
             designSize: CGSize,
+            fillsFrame: Bool = false,
             glowColor: Color = .clear,
             glowCoreColor: Color = .clear,
             route: ((_ point: (CGFloat, CGFloat) -> CGPoint) -> Path)? = nil
         ) {
             self.imageName = imageName
             self.designSize = designSize
+            self.fillsFrame = fillsFrame
             self.glowColor = glowColor
             self.glowCoreColor = glowCoreColor
             self.route = route
         }
 
-        /// Back home, other place: tube roundel (right) → destination pin (left).
-        /// Artwork 1410×981 @3x; same Figma "Vector 30" as step 2, drawn tube → pin
-        /// in this artwork, so it's used in its original order; it sits at (72, 39.5).
+        /// Back home setup: tube roundel → destination pin. Artwork 1206×789 @3x; the route
+        /// follows Figma's "Vector 30" corners (drawn pin → tube there, reversed here), in
+        /// artwork points.
         static let tubeToDestination = Journey(
             imageName: "back-home-tube",
-            designSize: CGSize(width: 470, height: 327),
+            designSize: CGSize(width: 402, height: 263),
+            fillsFrame: true,
             glowColor: Color(hex: "3ED3A7"),
             glowCoreColor: Color(hex: "A6F0D9")
         ) { p in
-            let o = CGPoint(x: 72, y: 39.5)
-            func q(_ x: CGFloat, _ y: CGFloat) -> CGPoint { p(x + o.x, y + o.y) }
             var path = Path()
-            path.move(to: q(250, 1.00027))
-            path.addLine(to: q(159.344, 34.4843))
-            path.addCurve(to: q(155.058, 34.8352), control1: q(157.974, 34.9903), control2: q(156.492, 35.1116))
-            path.addLine(to: q(58.8095, 16.2814))
-            path.addCurve(to: q(56.8923, 16.3036), control1: q(58.1741, 16.1589), control2: q(57.5222, 16.1555))
-            path.addCurve(to: q(29, 30.7046), control1: q(44.7767, 19.1511), control2: q(29, 30.7046))
-            path.addLine(to: q(29, 57.0003))
+            path.move(to: p(52.3, 81))
+            path.addLine(to: p(52.3, 52.5))
+            path.addLine(to: p(132, 16.5))
+            path.addLine(to: p(232, 48))
+            path.addLine(to: p(321.5, 19.5))
             return path
         }
 
-        /// Back home empty state: walking home from the office (no route). Artwork 537×373pt.
+        /// Back home empty state: walking home from the office (no route). Artwork 1206×789 @3x.
         static let walkingHome = Journey(
             imageName: "back-home-empty",
-            designSize: CGSize(width: 537, height: 373)
+            designSize: CGSize(width: 402, height: 263),
+            fillsFrame: true
         )
 
-        /// Step 3: at the desk (no route). Artwork 1191×690 @3x.
+        /// Back home setup, choosing a destination (no route). Artwork 1206×789 @3x.
+        static let headingOut = Journey(
+            imageName: "back-home-going",
+            designSize: CGSize(width: 402, height: 263),
+            fillsFrame: true
+        )
+
+        /// Step 3: at the desk (no route). Artwork 1206×789 @3x.
         static let atDesk = Journey(
             imageName: "setup-at-office",
-            designSize: CGSize(width: 397, height: 230)
+            designSize: CGSize(width: 402, height: 263),
+            fillsFrame: true
         )
 
-        /// Step 1: home pin → tube roundel. Artwork 1611×1119 @3x; the route is Figma's
-        /// "Vector 30" in Group 21, which sits at (114.7, 10.7) inside the artwork.
+        /// Step 1: home icon → tube roundel. Artwork 1206×789 @3x; the route follows
+        /// Figma's "Vector 30" corners, in artwork points.
         static let homeToTube = Journey(
             imageName: "setup-walk-office",
-            designSize: CGSize(width: 537, height: 373),
+            designSize: CGSize(width: 402, height: 263),
+            fillsFrame: true,
             glowColor: Color(hex: "8789FF"),
             glowCoreColor: Color(hex: "B9BAFF")
         ) { p in
-            let o = CGPoint(x: 114.7, y: 10.7)
-            func q(_ x: CGFloat, _ y: CGFloat) -> CGPoint { p(x + o.x, y + o.y) }
             var path = Path()
-            path.move(to: q(30.963, 46.6902))
-            path.addLine(to: q(66.4038, 7.02848))
-            path.addCurve(to: q(78.5984, 7.33942), control1: q(69.6937, 3.34678), control2: q(75.5005, 3.49484))
-            path.addLine(to: q(114.345, 51.7003))
-            path.addCurve(to: q(118.501, 53.5722), control1: q(115.353, 52.952), control2: q(116.895, 53.6394))
-            path.addCurve(to: q(170.034, 59.1409), control1: q(133.748, 52.9348), control2: q(161.861, 53.2613))
-            path.addCurve(to: q(213.301, 87.1551), control1: q(178.687, 65.3663), control2: q(202.484, 80.4109))
+            path.move(to: p(74, 34))
+            path.addLine(to: p(148.5, 2.2))
+            path.addLine(to: p(246.8, 22.2))
+            path.addLine(to: p(279.6, 72.4))
+            path.addLine(to: p(309.5, 91))
             return path
         }
 
-        /// Step 2: tube roundel → office pin. Artwork 1410×981 @3x; the route is Figma's
-        /// "Vector 30" in Group 21 (drawn pin → tube there, reversed here), at (72.7, 30.8).
+        /// Step 2: tube roundel → office pin. Artwork 1206×789 @3x; the route follows
+        /// Figma's "Vector 30" corners (drawn pin → tube there, reversed here), in artwork points.
         static let tubeToOffice = Journey(
             imageName: "setup-walk-desk",
-            designSize: CGSize(width: 470, height: 327),
+            designSize: CGSize(width: 402, height: 263),
+            fillsFrame: true,
             glowColor: Color(hex: "3ED3A7"),
             glowCoreColor: Color(hex: "A6F0D9")
         ) { p in
-            let o = CGPoint(x: 72.7, y: 30.8)
-            func q(_ x: CGFloat, _ y: CGFloat) -> CGPoint { p(x + o.x, y + o.y) }
             var path = Path()
-            path.move(to: q(29, 57.0003))
-            path.addLine(to: q(29, 30.7046))
-            path.addCurve(to: q(56.8923, 16.3036), control1: q(29, 30.7046), control2: q(44.7767, 19.1511))
-            path.addCurve(to: q(58.8095, 16.2814), control1: q(57.5222, 16.1555), control2: q(58.1741, 16.1589))
-            path.addLine(to: q(155.058, 34.8352))
-            path.addCurve(to: q(159.344, 34.4843), control1: q(156.492, 35.1116), control2: q(157.974, 34.9903))
-            path.addLine(to: q(250, 1.00027))
+            path.move(to: p(52.3, 81))
+            path.addLine(to: p(52.3, 23.5))
+            path.addLine(to: p(137.8, 2.5))
+            path.addLine(to: p(216.5, 28))
+            path.addLine(to: p(316.5, 18.5))
             return path
         }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func clipped(_ isClipped: Bool) -> some View {
+        if isClipped { clipped() } else { self }
     }
 }
 

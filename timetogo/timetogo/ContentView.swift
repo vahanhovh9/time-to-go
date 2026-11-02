@@ -110,6 +110,7 @@ struct ContentView: View {
             mainView
         } else if !appState.hasSeenIntro && !appState.isEditingSettings {
             IntroView(onFinish: {
+                restartSetup()
                 withAnimation(.easeInOut(duration: 0.3)) { appState.finishIntro() }
             })
             .transition(.opacity)
@@ -141,6 +142,7 @@ struct ContentView: View {
             Setup1View(
                 selectedStation: $homeStation,
                 selectedWalkTime: $homeWalkTime,
+                officeStation: officeStation,
                 onNext: { withAnimation { currentSetupStep = .step2 } }
             )
             .environmentObject(store)
@@ -149,6 +151,7 @@ struct ContentView: View {
             Setup2View(
                 selectedStation: $officeStation,
                 selectedWalkTime: $officeWalkTime,
+                homeStation: homeStation,
                 onNext: { withAnimation { currentSetupStep = .step3 } },
                 onBack: { withAnimation { currentSetupStep = .step1 } }
             )
@@ -178,15 +181,27 @@ struct ContentView: View {
                         appState.completeSetup(with: settings)
                     }
                     mainViewModel = MainViewModel(settings: settings)
-                },
-                onChangeSettings: {
-                    withAnimation { currentSetupStep = .step1 }
                 }
             )
         }
     }
 
     // MARK: - Helpers
+
+    /// A reset returns to the intro with this view still alive, so its setup state must be cleared.
+    private func restartSetup() {
+        currentSetupStep = .step1
+        homeStation = .placeholder
+        homeWalkTime = "Choose"
+        officeStation = .placeholder
+        officeWalkTime = "Choose"
+        arrivalTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+        monday = false
+        tuesday = true
+        wednesday = false
+        thursday = true
+        friday = false
+    }
 
     private func ensureMainViewModelIfNeeded() {
         guard mainViewModel == nil, let settings = appState.settings else { return }

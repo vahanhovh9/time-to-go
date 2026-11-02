@@ -120,6 +120,19 @@ nonisolated struct TFLStopPoint: Identifiable, Codable, Hashable, CustomStringCo
     }
 }
 
+extension Array where Element == TFLStopPoint {
+    /// Without the given stations. Names count too: a station can have several ids (tube,
+    /// rail, DLR) that are the same place to the user. Unset stations are ignored.
+    func excluding(_ stations: [TFLStopPoint]) -> [TFLStopPoint] {
+        let chosen = stations.filter { !$0.naptanId.isEmpty }
+        return filter { candidate in
+            !chosen.contains {
+                $0.naptanId == candidate.naptanId || $0.displayName == candidate.displayName
+            }
+        }
+    }
+}
+
 // MARK: - Station Search Response
 
 nonisolated struct TFLStopPointSearchResponse: Decodable {

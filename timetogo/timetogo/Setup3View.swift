@@ -16,45 +16,29 @@ struct Setup3View: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            SetupHeader(
-                step: 3,
-                totalSteps: 3,
-                title: "When are you at the office?",
-                showsBackButton: true,
-                onBack: onBack
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-
-            VStack(alignment: .leading, spacing: 32) {
-                ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
-
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
-                ], spacing: 12) {
-                    DayPicker(day: "Mon", isSelected: $monday)
-                    DayPicker(day: "Tue", isSelected: $tuesday)
-                    DayPicker(day: "Wed", isSelected: $wednesday)
-                    DayPicker(day: "Thu", isSelected: $thursday)
-                    DayPicker(day: "Fri", isSelected: $friday)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 48)
-
-            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
+        SetupStepLayout(
+            step: 3,
+            title: "When at office?",
+            showsBackButton: true,
+            onBack: onBack,
+            buttonTitle: "Complete",
+            isButtonEnabled: isFormValid,
+            onButton: onNext,
+            // The day row has no label; this keeps it level with the fields on steps 1 and 2.
+            fieldsTopInset: 22
+        ) {
             JourneyIllustration(journey: .atDesk)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .padding(.top, 24)
+        } fields: {
+            HStack(spacing: 12) {
+                DayChip(day: "Mo", isSelected: $monday)
+                DayChip(day: "Tu", isSelected: $tuesday)
+                DayChip(day: "We", isSelected: $wednesday)
+                DayChip(day: "Th", isSelected: $thursday)
+                DayChip(day: "Fr", isSelected: $friday)
+            }
 
-            CustomButton(title: "Complete", style: .filled, action: { onNext() }, isEnabled: isFormValid)
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
+            ArrivalTimePicker(label: "Arrival time", selectedTime: $arrivalTime)
         }
-        .background(Color.white)
     }
 }
 

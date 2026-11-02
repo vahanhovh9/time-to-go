@@ -2,10 +2,13 @@ import SwiftUI
 
 /// Labelled grey field used across setup (Figma: "Dropdown").
 /// 14pt label above a 48pt, 10pt-radius grey box with a trailing chevron.
+/// Outlined white instead when `formFieldOutlined` is set (setup cards).
 struct FormField<Value: View>: View {
     var label: String
     var action: () -> Void
     @ViewBuilder var value: () -> Value
+
+    @Environment(\.formFieldOutlined) private var isOutlined
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -26,13 +29,29 @@ struct FormField<Value: View>: View {
                 .padding(.trailing, 12)
                 .padding(.vertical, 8)
                 .frame(minHeight: 48)
-                .background(Color.grey10)
+                .background(isOutlined ? Color.white : Color.grey10)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    if isOutlined {
+                        RoundedRectangle(cornerRadius: 10).strokeBorder(Color.grey29, lineWidth: 1)
+                    }
+                }
                 .contentShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(label)
         }
+    }
+}
+
+private struct FormFieldOutlinedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var formFieldOutlined: Bool {
+        get { self[FormFieldOutlinedKey.self] }
+        set { self[FormFieldOutlinedKey.self] = newValue }
     }
 }
 

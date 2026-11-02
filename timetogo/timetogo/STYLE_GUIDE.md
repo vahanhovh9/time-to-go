@@ -66,8 +66,21 @@ Figma sets Final/H4, H5, Final/Small and Final/Footnote in Inter; the app uses S
 |------|----------|
 | White | #FFFFFF |
 | Grey 10 | #EBEBEB |
+| Grey 29 | #CDCDCD |
 | Grey 30 | #949494 |
 | Grey 40 | #686868 |
 | Grey 50 | #3E3E3E |
 | Black | #000000 |
+| Bright bg | #FFF8EF |
+| Bright green | #3FEB00 |
 
+
+## Setup step template
+
+Build every setup step with `SetupStepLayout` (`Components/SetupStepLayout.swift`), from Figma "Setup - Step 1":
+
+- Bright bg screen, step counter and H1 title 29pt from the sides.
+- Illustration in a 402×263 frame, 20pt under the title, resting on the card. Export the artwork at exactly that frame (1206×789 @3x); it fills the width and only shrinks on short phones.
+- White card: 20pt from the sides, 30pt from the screen bottom, radius 12, shadow 8% black. It takes the remaining height.
+- Fields at the top of the card, 32pt apart and outlined (Grey 29). The button sits at the bottom.
+- A first row without a label (step 3's day chips) uses `fieldsTopInset: 22` so it lines up with the fields on other steps.

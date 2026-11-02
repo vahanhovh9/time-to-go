@@ -83,9 +83,12 @@ struct DesignSystemView: View {
             VStack(spacing: 16) {
                 ColorCard(name: "White", hex: "#FFFFFF", color: Color.white, textColor: Color.black)
                 ColorCard(name: "Grey 10", hex: "#EBEBEB", color: Color.grey10, textColor: Color.black)
+                ColorCard(name: "Grey 29", hex: "#CDCDCD", color: Color.grey29, textColor: Color.black)
                 ColorCard(name: "Grey 30", hex: "#949494", color: Color.grey30, textColor: Color.white)
                 ColorCard(name: "Grey 40", hex: "#686868", color: Color.grey40, textColor: Color.white)
                 ColorCard(name: "Grey 50", hex: "#3E3E3E", color: Color.grey50, textColor: Color.white)
+                ColorCard(name: "Bright bg", hex: "#FFF8EF", color: Color.brightBackground, textColor: Color.black)
+                ColorCard(name: "Bright green", hex: "#3FEB00", color: Color.brightGreen, textColor: Color.black)
                 ColorCard(name: "Black", hex: "#000000", color: Color.black, textColor: Color.white)
             }
             .padding(.horizontal, 24)

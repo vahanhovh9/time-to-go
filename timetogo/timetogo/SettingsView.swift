@@ -41,20 +41,25 @@ struct SettingsView: View {
 
     private var outboundEnabled: Bool { appState.settings?.outboundEnabled ?? false }
 
+    /// The office can't be the home station, or the Other place destination while it's in use.
+    private var officeExclusions: [TFLStopPoint] {
+        outboundType == .otherPlace ? [homeStation, outboundDestStation] : [homeStation]
+    }
+
     // MARK: - Body
 
     var body: some View {
         outboundObserved
             .sheet(isPresented: $showHomeStationPicker) {
-                StationSearchModalView(title: "Home station", selectedStation: $homeStation, onDismiss: { showHomeStationPicker = false })
+                StationSearchModalView(title: "Home station", selectedStation: $homeStation, excluding: [officeStation], onDismiss: { showHomeStationPicker = false })
                     .environmentObject(store).preferredColorScheme(.light)
             }
             .sheet(isPresented: $showOfficeStationPicker) {
-                StationSearchModalView(title: "Office station", selectedStation: $officeStation, onDismiss: { showOfficeStationPicker = false })
+                StationSearchModalView(title: "Office station", selectedStation: $officeStation, excluding: officeExclusions, onDismiss: { showOfficeStationPicker = false })
                     .environmentObject(store).preferredColorScheme(.light)
             }
             .sheet(isPresented: $showOutboundDestPicker) {
-                StationSearchModalView(title: "Destination station", selectedStation: $outboundDestStation, onDismiss: { showOutboundDestPicker = false })
+                StationSearchModalView(title: "Destination station", selectedStation: $outboundDestStation, excluding: [officeStation], onDismiss: { showOutboundDestPicker = false })
                     .environmentObject(store).preferredColorScheme(.light)
             }
             .sheet(isPresented: $showOfficeDaysPicker) {

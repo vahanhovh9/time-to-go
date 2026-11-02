@@ -18,7 +18,7 @@ struct CommuteHomeView: View {
     @State private var isScrolled = false
     @State private var showsJourneyDetails = false
 
-    /// Space between the leave-time card and the bottom of the yellow header.
+    /// Space between the leave-time card and the bottom of the header.
     private let cardBottomGap: CGFloat = 50
 
     var body: some View {
@@ -54,7 +54,7 @@ struct CommuteHomeView: View {
         .onPreferenceChange(HeaderOffsetKey.self) { minY in
             isScrolled = minY < -4
         }
-        // Run the yellow header up behind the status bar; the header pads its own content.
+        // Run the header up behind the status bar; the header pads its own content.
         .ignoresSafeArea(edges: .top)
         .background(Color.white.ignoresSafeArea())
         .overlay(alignment: .top) {
@@ -165,16 +165,16 @@ struct CommuteHomeView: View {
         }
         .background(alignment: .bottom) {
             ZStack(alignment: .bottom) {
-                Color(hex: "FFF9C0")
+                headerColor
                 Rectangle()
-                    .fill(Color(hex: "F3EEB9"))
+                    .fill(headerLineColor)
                     .frame(height: 3)
                 MovingTrain(leftToRight: direction == .toOffice)
             }
         }
-        // Yellow above the header fills the pull-to-refresh overscroll and scrolls with it.
+        // The header colour above it fills the pull-to-refresh overscroll and scrolls with it.
         .background(alignment: .top) {
-            Color(hex: "FFF9C0")
+            headerColor
                 .frame(height: 1000)
                 .offset(y: -1000)
         }
@@ -218,6 +218,16 @@ struct CommuteHomeView: View {
 
     private var headerImage: String {
         direction == .toOffice ? "home-header-office" : "home-header-back"
+    }
+
+    /// Matches the artwork's own background.
+    private var headerColor: Color {
+        Color(hex: direction == .toOffice ? "FFF9C0" : "FFE3F5")
+    }
+
+    /// The line the train runs on: the header colour, a shade darker.
+    private var headerLineColor: Color {
+        Color(hex: direction == .toOffice ? "F3EEB9" : "F3D9EC")
     }
 
     private var journeyTitle: String {
