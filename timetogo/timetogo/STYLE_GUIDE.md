@@ -66,8 +66,37 @@ Figma sets Final/H4, H5, Final/Small and Final/Footnote in Inter; the app uses S
 |------|----------|
 | White | #FFFFFF |
 | Grey 10 | #EBEBEB |
+| Grey 29 | #CDCDCD |
 | Grey 30 | #949494 |
 | Grey 40 | #686868 |
 | Grey 50 | #3E3E3E |
 | Black | #000000 |
+| Bright bg | #FFF8EF |
+| Bright green | #3FEB00 |
 
+
+## Radius and spacing
+
+The Figma variables live in `Layout.swift`. Use them instead of numbers.
+
+| Token | Value | Figma variable | Used for |
+|-------|-------|----------------|----------|
+| `Radius.extraSmall` | 8 | Extra small | Journey page: line badge, delay pill |
+| `Radius.smallElement` | 14 | Small element | Leave-time card's line-status pill (padding 12 × 6), success page's next-commute block |
+| `Radius.element` | 18 | Element | Buttons, fields, day chips, destination cards, minutes chip, journey page's train cards |
+| `Radius.smallBlock` | 22 | Small block | Leave-time card, departures card, Settings cards |
+| `Radius.medium` | 12 | Corner/Medium | Not in use at the moment |
+| `Radius.card` | 36 | none yet | Large white cards: intro, setup, success, Back home |
+| `Radius.sheet` | 38 | none yet | Journey sheet top corners |
+| `Spacing.padding` | 20 | Padding | Screen edges to the large cards (sides and bottom) |
+| `Spacing.paddingInside` | 24 | Padding inside | Inside the large cards |
+
+## Setup step template
+
+Build every setup step with `SetupStepLayout` (`Components/SetupStepLayout.swift`), from Figma "Setup - Step 1":
+
+- Bright bg screen, step counter and H1 title 29pt from the sides.
+- Illustration in a 402×263 frame, 20pt under the title, resting on the card. Export the artwork at exactly that frame (1206×789 @3x); it fills the width and only shrinks on short phones.
+- White card: `Spacing.padding` from the sides and the screen bottom, `Radius.card` corners, `Spacing.paddingInside` inside, shadow 8% black. It takes the remaining height.
+- Fields at the top of the card, 24pt apart and outlined (Grey 29). The button sits at the bottom.
+- Step 3 puts the arrival time first and the day row 48pt under it (`fieldSpacing: 48`).

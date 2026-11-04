@@ -1,164 +1,191 @@
 import SwiftUI
 
-/// First-launch intro (onboarding): three short screens on what TimeToGo is, how it treats
-/// your data and how it works, then setup. Swipe or tap Next; Skip goes straight to setup.
+/// First-launch intro (onboarding): two short screens on what TimeToGo is and how it treats
+/// your data, then setup. Swipe or tap Next. The card and its button stay put; the background,
+/// illustration and text change in place.
 struct IntroView: View {
-    /// Skip, or the last screen's button.
+    /// The last screen's button.
     var onFinish: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var page = 0
+    /// False for the first frame, so the first screen animates in too.
+    @State private var hasAppeared = false
 
     private struct Page {
         let image: String
+        /// Artwork size in points (the @3x export ÷ 3).
+        let imageSize: CGSize
+        /// Gap between the artwork and the card.
+        var imageBottom: CGFloat = 0
+        /// Where the artwork slides in from.
+        let slideFrom: CGFloat
+        let background: Color
         let title: String
         let body: String
-        var tip: String? = nil
     }
 
     private let pages: [Page] = [
         Page(
             image: "intro-1",
-            title: "Know when to leave",
-            body: "TimeToGo tells you when to leave home so you get to work on time, with the next trains from your station."
+            imageSize: CGSize(width: 236, height: 401),
+            imageBottom: 13,
+            slideFrom: -40,
+            background: Color(hex: "C8FEB4"),
+            title: "See when to leave the door for your train",
+            body: "Add your home and office stations and walking times. We use live TFL API to tell you when to leave."
         ),
         Page(
             image: "intro-2",
+            imageSize: CGSize(width: 402, height: 378),
+            slideFrom: 40,
+            background: Color(hex: "EBE3FF"),
             title: "Your data stays on your phone",
-            body: "We only ask for your stations and how long you walk to them. No account, no tracking: everything is saved on your phone.",
-            tip: "Tip: time your walk to the station once. Map apps only give an estimate."
-        ),
-        Page(
-            image: "intro-3",
-            title: "Set up once, then just open it",
-            body: "Choose your stations and walking times. TimeToGo shows when to leave and the live trains at your station, on the way home too."
+            body: "No account, no tracking: everything is saved on your phone."
         ),
     ]
 
+    /// Figma: the area above the card on the 874pt screen. The artwork scales to fit it.
+    private let artAreaHeight: CGFloat = 492
+    private let artAreaWidth: CGFloat = 402
+
+    /// Long, soft landing: moves quickly at first, then settles.
+    private func enter(duration: Double, delay: Double) -> Animation {
+        .timingCurve(0.16, 1, 0.3, 1, duration: duration).delay(delay)
+    }
+    private let exit = Animation.easeOut(duration: 0.2)
+
     var body: some View {
         GeometryReader { geo in
-            ZStack(alignment: .topTrailing) {
-                TabView(selection: $page) {
-                    ForEach(pages.indices, id: \.self) { index in
-                        pageView(pages[index], index: index, screen: geo)
-                            // Pages keep their own safe areas otherwise: the artwork must
-                            // start under the status bar and the card sit 16pt above the
-                            // home indicator, as in Figma.
-                            .ignoresSafeArea()
-                            .tag(index)
-                    }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .ignoresSafeArea()
-
-                if page < pages.count - 1 {
-                    Button("Skip", action: onFinish)
-                        .typography(.large)
-                        .foregroundColor(.grey50)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 15)
-                        .contentShape(Rectangle())
-                        .buttonStyle(.plain)
-                }
-            }
-        }
-        .background(Color(hex: "FFF9C0").ignoresSafeArea())
-    }
-
-    // MARK: - Page
-
-    private func pageView(_ p: Page, index: Int, screen: GeometryProxy) -> some View {
-        // Figma: the card is 383pt tall on a 874pt screen; shorter phones get a shorter
-        // card (never shorter than its content).
-        let fullHeight = screen.size.height + screen.safeAreaInsets.top + screen.safeAreaInsets.bottom
-        let cardMinHeight = min(383, fullHeight * 0.44)
-
-        return ZStack(alignment: .top) {
-            Color(hex: "FFF9C0")
-
-            // Artwork covers the top of the screen (402×437 in Figma), status bar included.
-            Image(p.image)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .accessibilityHidden(true)
+            let fullHeight = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
 
             VStack(spacing: 0) {
-                // Takes all the room the card doesn't need, so the card stays at its
-                // minimum height instead of stretching over the illustration.
-                Spacer(minLength: 0)
-                    .layoutPriority(1)
-                card(p, index: index, minHeight: cardMinHeight)
+                GeometryReader { area in
+                    artwork(in: area.size)
+                }
+                card(minHeight: min(352, fullHeight * 0.4))
                     .padding(.horizontal, 20)
-                    // Figma: 50pt from the screen bottom, i.e. 16pt above the home indicator.
-                    .padding(.bottom, screen.safeAreaInsets.bottom + 16)
+                    // Figma: 30pt from the screen bottom.
+                    .padding(.bottom, max(geo.safeAreaInsets.bottom - 4, 16))
+            }
+            .ignoresSafeArea()
+        }
+        .background(pages[page].background.ignoresSafeArea())
+        .animation(.easeInOut(duration: 0.5), value: page)
+        .contentShape(Rectangle())
+        .gesture(swipe)
+        .onAppear { hasAppeared = true }
+    }
+
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 20).onEnded { value in
+            if value.translation.width < -50, page < pages.count - 1 {
+                page += 1
+            } else if value.translation.width > 50, page > 0 {
+                page -= 1
             }
         }
     }
 
-    private func card(_ p: Page, index: Int, minHeight: CGFloat) -> some View {
+    private func isShown(_ index: Int) -> Bool {
+        hasAppeared && page == index
+    }
+
+    // MARK: - Artwork
+
+    private func artwork(in size: CGSize) -> some View {
+        let scale = min(size.width / artAreaWidth, size.height / artAreaHeight)
+
+        return ZStack(alignment: .bottom) {
+            ForEach(pages.indices, id: \.self) { index in
+                let p = pages[index]
+                let shown = isShown(index)
+                Image(p.image)
+                    .resizable()
+                    .frame(width: p.imageSize.width * scale, height: p.imageSize.height * scale)
+                    .padding(.bottom, p.imageBottom * scale)
+                    .opacity(shown ? 1 : 0)
+                    .offset(x: shown || reduceMotion ? 0 : p.slideFrom)
+                    .animation(shown ? enter(duration: 1.1, delay: 0.1) : exit, value: shown)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(width: size.width, height: size.height, alignment: .bottom)
+    }
+
+    // MARK: - Card
+
+    private func card(minHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 15) {
-                dots(active: index)
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(p.title)
-                        .typography(.h2)
-                        .foregroundColor(.black)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(p.body)
-                        .typography(.large)
-                        .foregroundColor(.grey50)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if let tip = p.tip {
-                    Text(tip)
-                        .typography(.main)
-                        .lineSpacing(1.5)   // Figma: 130% line height at 14pt
-                        .foregroundColor(.grey40)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(Color.grey10)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                dots
+                // Both pages stay in the layout so the card keeps its height between them.
+                ZStack(alignment: .topLeading) {
+                    ForEach(pages.indices, id: \.self) { index in
+                        pageText(pages[index], index: index)
+                    }
                 }
             }
 
             Spacer(minLength: 24)
 
             Button {
-                if index < pages.count - 1 {
-                    withAnimation(.easeInOut(duration: 0.3)) { page = index + 1 }
+                if page < pages.count - 1 {
+                    page += 1
                 } else {
                     onFinish()
                 }
             } label: {
-                Text(index < pages.count - 1 ? "Next" : "Set up my journey")
+                Text(page < pages.count - 1 ? "Next" : "Set up my journey")
                     .typography(.h5)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, minHeight: 48)
                     .background(Color.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.element))
             }
             .buttonStyle(.plain)
+            .transaction { $0.animation = nil }
         }
         .padding(24)
-        // Figma: 383pt; the button sits at the bottom, the text at the top.
+        // Figma: 352pt; the button sits at the bottom, the text at the top.
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.grey10, lineWidth: 1))
+        // On the shape, not the card: a shadow on the card also lands on its text.
+        .background(
+            RoundedRectangle(cornerRadius: Radius.card)
+                .fill(Color.white)
+                .shadow(color: .black.opacity(0.08), radius: 4.5)
+        )
     }
 
-    /// Current page as a black pill, the others as grey dots.
-    private func dots(active: Int) -> some View {
+    private func pageText(_ p: Page, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(p.title)
+                .typography(.h2)
+                .foregroundColor(.black)
+                .fixedSize(horizontal: false, vertical: true)
+                .textReveal(isShown(index), delay: 0.15)
+            Text(p.body)
+                .typography(.large)
+                .foregroundColor(.grey50)
+                .fixedSize(horizontal: false, vertical: true)
+                .textReveal(isShown(index), delay: 0.27)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityHidden(page != index)
+    }
+
+    /// Current page as a black pill, the other as a grey dot.
+    private var dots: some View {
         HStack(spacing: 6) {
             ForEach(pages.indices, id: \.self) { i in
                 Capsule()
-                    .fill(i == active ? Color.black : Color.grey30)
-                    .frame(width: i == active ? 20 : 6, height: 6)
+                    .fill(i == page ? Color.black : Color.grey30)
+                    .frame(width: i == page ? 20 : 6, height: 6)
             }
         }
+        .animation(enter(duration: 0.6, delay: 0), value: page)
         .accessibilityElement()
-        .accessibilityLabel("Page \(active + 1) of \(pages.count)")
+        .accessibilityLabel("Page \(page + 1) of \(pages.count)")
     }
 }
 

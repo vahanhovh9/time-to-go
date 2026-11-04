@@ -10,15 +10,18 @@ import SwiftUI
 struct TimePicker: View {
     var label: String
     @Binding var selectedValue: String
-    
+    /// Shown while nothing is chosen (`selectedValue` is "Choose").
+    var placeholder: String
+
     @State private var showPicker = false
     @State private var selectedMinutes: Int = 0
-    
-    private let timeOptions: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
-    
-    init(label: String, selectedValue: Binding<String>) {
+
+    private let timeOptions: [Int] = Array(1...25)
+
+    init(label: String, selectedValue: Binding<String>, placeholder: String = "Choose") {
         self.label = label
         self._selectedValue = selectedValue
+        self.placeholder = placeholder
     }
     
     var body: some View {
@@ -32,7 +35,10 @@ struct TimePicker: View {
             }
             showPicker = true
         }) {
-            FormFieldValue(text: selectedValue, isPlaceholder: selectedValue == "Choose")
+            FormFieldValue(
+                text: selectedValue == "Choose" ? placeholder : selectedValue,
+                isPlaceholder: selectedValue == "Choose"
+            )
         }
         .sheet(isPresented: $showPicker) {
             TimePickerModalView(

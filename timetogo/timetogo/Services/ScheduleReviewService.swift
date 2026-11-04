@@ -57,41 +57,54 @@ nonisolated final class ScheduleReviewService: @unchecked Sendable {
             }
         }
 
-        let live = reachesDestination.compactMap { arrival -> ScheduleEntry? in
+        var live = reachesDestination.compactMap { arrival -> (entry: ScheduleEntry, terminus: String?)? in
             guard let date = Self.parseDate(arrival.expectedArrival) else { return nil }
-            return ScheduleEntry(
+            let entry = ScheduleEntry(
                 id: arrival.id,
                 lineName: arrival.lineName,
                 platformName: arrival.platformName,
                 destinationName: Self.cleanName(arrival.destinationName ?? ""),
                 towards: arrival.towards ?? "",
-                expectedArrival: date,
-                minutesUntilArrival: Self.minutes(until: date, from: now)
+                expectedArrival: date
             )
+            return (entry, arrival.destinationNaptanId)
         }
 
         // TfL only predicts trains that are already moving, so near the start of a line
         // (Totteridge, two stops from High Barnet) the live feed misses trains still waiting
         // at the terminus. Fill in after the last live train from the timetable. A timetable
         // failure just leaves the live trains.
-        let lastLive = live.map(\.expectedArrival).max()
-        let platform = Self.mostCommon(future.filter { $0.direction?.lowercased() == direction }.map(\.platformName))
-        let scheduled = ((try? await scheduledDepartures(context: context, direction: direction, now: now)) ?? [])
-            .filter { lastLive == nil || $0.date > lastLive!.addingTimeInterval(60) }
-            .map { departure in
-                ScheduleEntry(
-                    id: "scheduled-\(departure.date.timeIntervalSince1970)",
-                    lineName: "",
-                    platformName: platform.map { "Scheduled · \($0)" } ?? "Scheduled",
-                    destinationName: departure.terminus,
-                    towards: "",
-                    expectedArrival: departure.date,
-                    minutesUntilArrival: Self.minutes(until: departure.date, from: now),
-                    isScheduled: true
-                )
+        var timetabled = (try? await scheduledDepartures(context: context, direction: direction, now: now)) ?? []
+        if let last = live.indices.max(by: { live[$0].entry.expectedArrival < live[$1].entry.expectedArrival }) {
+            let lastDate = live[last].entry.expectedArrival
+            timetabled.removeAll { $0.date <= lastDate }
+            // The last live train is often the one about to leave the terminus, which TfL
+            // times as if it were leaving now: the 9:20 from Totteridge showed as a live 9:17
+            // and again as the timetabled 9:20. A timetabled train to the same terminus just
+            // after it is that train, so show it once, at the timetabled time.
+            if let twin = timetabled.firstIndex(where: {
+                $0.terminusId == live[last].terminus && $0.date <= lastDate.addingTimeInterval(Self.earlyPredictionLimit)
+            }) {
+                live[last].entry.expectedArrival = timetabled[twin].date
+                timetabled.remove(at: twin)
             }
+            let lastLive = live[last].entry.expectedArrival
+            timetabled.removeAll { $0.date <= lastLive.addingTimeInterval(60) }
+        }
+        let platform = Self.mostCommon(future.filter { $0.direction?.lowercased() == direction }.map(\.platformName))
+        let scheduled = timetabled.map { departure in
+            ScheduleEntry(
+                id: "scheduled-\(departure.date.timeIntervalSince1970)",
+                lineName: "",
+                platformName: platform.map { "Scheduled · \($0)" } ?? "Scheduled",
+                destinationName: departure.terminus,
+                towards: "",
+                expectedArrival: departure.date,
+                isScheduled: true
+            )
+        }
 
-        return (live + scheduled)
+        return (live.map(\.entry) + scheduled)
             .sorted { $0.expectedArrival < $1.expectedArrival }
             .prefix(10)
             .map { $0 }
@@ -102,6 +115,10 @@ nonisolated final class ScheduleReviewService: @unchecked Sendable {
     /// How far ahead to show scheduled trains.
     private static let timetableWindow: TimeInterval = 60 * 60
 
+    /// How much earlier than its timetabled time TfL may show a train still at the terminus.
+    /// Kept under the gap between trains to the same terminus, so two real trains never merge.
+    private static let earlyPredictionLimit: TimeInterval = 3 * 60
+
     /// Timetables per line, stop and direction, fetched once per app session.
     nonisolated(unsafe) private static var timetableCache: [String: TFLTimetable] = [:]
 
@@ -110,7 +127,7 @@ nonisolated final class ScheduleReviewService: @unchecked Sendable {
         context: ScheduleReviewContext,
         direction: String,
         now: Date
-    ) async throws -> [(date: Date, terminus: String)] {
+    ) async throws -> [(date: Date, terminus: String, terminusId: String?)] {
         let key = "\(context.lineId)|\(context.stopId)|\(direction)"
         let timetable: TFLTimetable
         if let cached = Self.cacheLock.withLock({ Self.timetableCache[key] }) {
@@ -126,7 +143,7 @@ nonisolated final class ScheduleReviewService: @unchecked Sendable {
         let today = calendar.startOfDay(for: now)
         let end = now.addingTimeInterval(Self.timetableWindow)
 
-        var departures: [(date: Date, terminus: String)] = []
+        var departures: [(date: Date, terminus: String, terminusId: String?)] = []
         for route in timetable.routes {
             let patterns = Dictionary(route.stationIntervals.map { (Int($0.id) ?? -1, $0.intervals.map(\.stopId)) },
                                       uniquingKeysWith: { first, _ in first })
@@ -143,7 +160,7 @@ nonisolated final class ScheduleReviewService: @unchecked Sendable {
                           let date = calendar.date(byAdding: .minute, value: hour * 60 + minute, to: serviceDay),
                           date > now, date <= end else { continue }
                     let terminus = stops.last.flatMap { names[$0] } ?? ""
-                    departures.append((date, terminus))
+                    departures.append((date, terminus, stops.last))
                 }
             }
         }
@@ -168,10 +185,6 @@ nonisolated final class ScheduleReviewService: @unchecked Sendable {
             day = day % 7 + 1
         }
         return range
-    }
-
-    private static func minutes(until date: Date, from now: Date) -> Int {
-        max(0, Int(date.timeIntervalSince(now) / 60))
     }
 
     private static func mostCommon(_ values: [String]) -> String? {

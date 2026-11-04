@@ -27,7 +27,7 @@ struct LeaveTimeCard: View {
         }
         .padding(16)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.smallBlock))
         .shadow(color: Color.black.opacity(0.08), radius: 9)
     }
 }
@@ -42,10 +42,10 @@ struct ServiceStatusPill: View {
             .foregroundColor(colors.text)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
             .background(colors.background)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.smallElement))
     }
 
     private var text: String {

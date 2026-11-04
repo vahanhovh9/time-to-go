@@ -1,12 +1,51 @@
 #if DEBUG
 import SwiftUI
 
+// MARK: - DEV button (Settings header)
+
+private struct OpenDevMenuKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// Set by ContentView; nil in previews, where the button is hidden.
+    var openDevMenu: (() -> Void)? {
+        get { self[OpenDevMenuKey.self] }
+        set { self[OpenDevMenuKey.self] = newValue }
+    }
+}
+
+struct DevMenuButton: View {
+    @Environment(\.openDevMenu) private var openDevMenu
+
+    var body: some View {
+        if let openDevMenu {
+            Button(action: openDevMenu) {
+                Text("DEV")
+                    .scaledFont(size: 10, weight: .medium)
+                    .foregroundColor(Color.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Color.white)
+                    .cornerRadius(4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.grey30, lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
+            }
+        }
+    }
+}
+
 struct DevMenuView: View {
     @EnvironmentObject private var appState: AppState
     var onDismiss: () -> Void
     var onClearCache: (() -> Void)? = nil
     /// Shows the launch loading screen with a pretend slow load.
     var onPreviewLoading: (() -> Void)? = nil
+    /// Clears what lives outside AppState, such as the recent stations.
+    var onReset: (() -> Void)? = nil
     var journeyDebugInfo: String? = nil
 
     @State private var showDesignSystem = false
@@ -111,6 +150,7 @@ struct DevMenuView: View {
             Button("Cancel", role: .cancel) {}
             Button("Yes, reset", role: .destructive) {
                 appState.reset()
+                onReset?()
                 onDismiss()
             }
         } message: {

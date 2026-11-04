@@ -89,6 +89,9 @@ struct JourneyDetailsView: View {
                 .typography(.large)
                 .foregroundColor(.black)
         }
+        // Figma: the header ends in a Grey 10 line 8pt under the summary.
+        .padding(.bottom, 8)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.grey10).frame(height: 1) }
     }
 
     /// "Tomorrow · Sun 18 Oct", "Monday · Mon 19 Oct".
@@ -321,10 +324,10 @@ private struct StepRow: View {
             Text(step.title)
                 .typography(.h5)
                 .foregroundColor(Color.tflLineText(leg.lineId))
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 1)
                 .background(Color.tflLine(leg.lineId))
-                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.extraSmall))
             if let heading = leg.heading {
                 Text("to \(heading)")
                     .typography(.main)
@@ -337,7 +340,7 @@ private struct StepRow: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
                     .background(Color(hex: "FFE7A3"))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.extraSmall))
             }
             if !leg.stops.isEmpty {
                 stopsToggle(leg)
@@ -346,7 +349,7 @@ private struct StepRow: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(hex: "F3F3F3"))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.element))
     }
 
     private func stopsToggle(_ leg: JourneyLeg) -> some View {

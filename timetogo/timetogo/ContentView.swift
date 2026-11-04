@@ -11,6 +11,10 @@ struct ContentView: View {
 
     @State private var showDevMenu = false
     @State private var currentSetupStep: SetupStep = .step1
+    /// Which way the last step change went; the new illustration slides in from that side.
+    @State private var setupForward = true
+    /// Raised on every step change, so the incoming step sits above the outgoing one.
+    @State private var setupLayer: Double = 0
     @State private var mainViewModel: MainViewModel?
     /// Train loading screen at launch, until the first commute result (or error) is in.
     @State private var showsLaunchLoading = true
@@ -35,6 +39,11 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             #if DEBUG
+            // Settings shows the DEV button. The menu covers the app instead of replacing it,
+            // so closing it goes back to Settings rather than the first tab.
+            rootView
+                .environment(\.openDevMenu) { withAnimation { showDevMenu = true } }
+
             if showDevMenu {
                 DevMenuView(
                     onDismiss: { withAnimation { showDevMenu = false } },
@@ -43,10 +52,10 @@ struct ContentView: View {
                         loadingPreviewEnds = Date().addingTimeInterval(3)
                         showsLaunchLoading = true
                     },
+                    onReset: { store.clearRecentStations() },
                     journeyDebugInfo: mainViewModel?.journeyDebugInfo
                 )
-            } else {
-                rootView
+                .zIndex(1000)
             }
             #else
             rootView
@@ -71,31 +80,6 @@ struct ContentView: View {
                 .transition(.opacity)
                 .zIndex(2000)
             }
-
-            #if DEBUG
-            // Hidden during the intro, where it would cover Skip.
-            if !showDevMenu && (appState.hasSeenIntro || appState.hasCompletedSetup) {
-                Button {
-                    withAnimation { showDevMenu = true }
-                } label: {
-                    Text("DEV")
-                        .scaledFont(size: 10, weight: .medium)
-                        .foregroundColor(Color.black)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color.white)
-                        .cornerRadius(4)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(Color.grey30, lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
-                }
-                .padding(.top, 16)
-                .padding(.trailing, 24)
-                .zIndex(1000)
-            }
-            #endif
         }
         .onAppear {
             ensureMainViewModelIfNeeded()
@@ -110,11 +94,13 @@ struct ContentView: View {
             mainView
         } else if !appState.hasSeenIntro && !appState.isEditingSettings {
             IntroView(onFinish: {
+                restartSetup()
                 withAnimation(.easeInOut(duration: 0.3)) { appState.finishIntro() }
             })
             .transition(.opacity)
         } else {
             setupView
+                .environment(\.setupArtworkFrom, setupForward ? 40 : -40)
         }
     }
 
@@ -141,18 +127,22 @@ struct ContentView: View {
             Setup1View(
                 selectedStation: $homeStation,
                 selectedWalkTime: $homeWalkTime,
-                onNext: { withAnimation { currentSetupStep = .step2 } }
+                officeStation: officeStation,
+                onNext: { go(to: .step2) }
             )
             .environmentObject(store)
+            .setupStepTransition(layer: setupLayer)
 
         case .step2:
             Setup2View(
                 selectedStation: $officeStation,
                 selectedWalkTime: $officeWalkTime,
-                onNext: { withAnimation { currentSetupStep = .step3 } },
-                onBack: { withAnimation { currentSetupStep = .step1 } }
+                homeStation: homeStation,
+                onNext: { go(to: .step3) },
+                onBack: { go(to: .step1) }
             )
             .environmentObject(store)
+            .setupStepTransition(layer: setupLayer)
 
         case .step3:
             Setup3View(
@@ -162,9 +152,10 @@ struct ContentView: View {
                 wednesday: $wednesday,
                 thursday: $thursday,
                 friday: $friday,
-                onNext: { withAnimation { currentSetupStep = .success } },
-                onBack: { withAnimation { currentSetupStep = .step2 } }
+                onNext: { go(to: .success) },
+                onBack: { go(to: .step2) }
             )
+            .setupStepTransition(layer: setupLayer)
 
         case .success:
             SetupSuccessView(
@@ -178,15 +169,37 @@ struct ContentView: View {
                         appState.completeSetup(with: settings)
                     }
                     mainViewModel = MainViewModel(settings: settings)
-                },
-                onChangeSettings: {
-                    withAnimation { currentSetupStep = .step1 }
                 }
             )
+            .setupStepTransition(layer: setupLayer)
+        }
+    }
+
+    private func go(to step: SetupStep) {
+        let order: [SetupStep] = [.step1, .step2, .step3, .success]
+        setupForward = (order.firstIndex(of: step) ?? 0) > (order.firstIndex(of: currentSetupStep) ?? 0)
+        withAnimation {
+            setupLayer += 1
+            currentSetupStep = step
         }
     }
 
     // MARK: - Helpers
+
+    /// A reset returns to the intro with this view still alive, so its setup state must be cleared.
+    private func restartSetup() {
+        currentSetupStep = .step1
+        homeStation = .placeholder
+        homeWalkTime = "Choose"
+        officeStation = .placeholder
+        officeWalkTime = "Choose"
+        arrivalTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+        monday = false
+        tuesday = true
+        wednesday = false
+        thursday = true
+        friday = false
+    }
 
     private func ensureMainViewModelIfNeeded() {
         guard mainViewModel == nil, let settings = appState.settings else { return }

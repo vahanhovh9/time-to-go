@@ -1,95 +1,91 @@
 import SwiftUI
 
-/// Success page (Figma "Success page"): illustrated yellow top, white panel with
-/// the confirmation, the next commute, and the two actions.
-/// Used at the end of setup and of the Back home setup.
+/// Success page (Figma "Success page"): the illustration across the top of the screen with
+/// the confirmation card over its lower edge, showing the next commute.
+/// Shown at the end of setup.
 struct SetupSuccessView: View {
-    var title = "🎉 Awesome, all set up! 🎉"
-    var message = "Any time you open TimeToGo, it shows when to leave next."
     /// The next office day the app will plan for.
     var nextCommute: Date
     /// The user's chosen office arrival time.
     var arrivalTime: Date
     var onAllDone: () -> Void
-    var onChangeSettings: () -> Void
 
-    /// Artwork size in points (1323×1167 @3x export).
-    private let artworkSize = CGSize(width: 441, height: 389)
-    /// Height of the yellow area in the 874pt-tall Figma frame (status bar included).
-    private let designHeaderHeight: CGFloat = 330
+    /// Figma: the artwork, and where the card starts over it.
+    private let artworkSize = CGSize(width: 402, height: 437)
+    private let designCardTop: CGFloat = 419
+
+    /// The card's text fades in once the page appears, as on the setup steps.
+    @State private var revealed = false
 
     var body: some View {
         GeometryReader { geo in
-            let topInset = geo.safeAreaInsets.top
-            let fullHeight = geo.size.height + topInset + geo.safeAreaInsets.bottom
-            // Same share of the screen as the design (330 of 874), so small phones keep room for the panel.
-            let headerHeight = min(designHeaderHeight, fullHeight * designHeaderHeight / 874)
+            let scale = geo.size.width / artworkSize.width
 
-            VStack(spacing: 0) {
-                header(height: headerHeight)
-                panel
-            }
-            .ignoresSafeArea(edges: .top)
-        }
-        .background(Color.white)
-    }
-
-    // MARK: - Header
-
-    private func header(height: CGFloat) -> some View {
-        let scale = min(height / designHeaderHeight, 1)
-        return Color(hex: "FFF9C0")
-            .frame(height: height)
-            .overlay(alignment: .bottom) {
-                // The artwork's bottom sits on the panel; its top (confetti) crops, as in Figma,
-                // and it's nudged 19.5pt left of centre like the design frame.
+            ZStack(alignment: .top) {
                 Image("setup-success")
                     .resizable()
-                    .frame(width: artworkSize.width * scale, height: artworkSize.height * scale)
-                    .offset(x: -19.5 * scale)
+                    .frame(width: geo.size.width, height: artworkSize.height * scale)
+                    .overlay { ConfettiSparkle(scale: scale) }
+                    .artworkReveal(revealed)
                     .accessibilityHidden(true)
+
+                VStack(spacing: 0) {
+                    // Keeps the card at the design position; on short phones the card
+                    // covers more of the artwork instead of cropping its text.
+                    Color.clear
+                        .frame(maxHeight: designCardTop * scale)
+                        .layoutPriority(1)
+                    card
+                        .padding(.horizontal, Spacing.padding)
+                        .padding(.bottom, Spacing.padding)
+                }
             }
-            .clipped()
+            .ignoresSafeArea()
+        }
+        .background(Color.brightBackground.ignoresSafeArea())
+        .onAppear { revealed = true }
     }
 
-    // MARK: - Panel
+    // MARK: - Card
 
-    private var panel: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                Text(title)
-                    .typography(.h2)
-                    .foregroundColor(.black)
-                Text(message)
-                    .typography(.large)
-                    .foregroundColor(.grey50)
+    private var card: some View {
+        SetupCard {
+            VStack(spacing: 32) {
+                VStack(spacing: 12) {
+                    Text("🎉 Awesome, all set up! 🎉")
+                        .typography(.h2)
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .textReveal(revealed, delay: 0.15)
+                    Text("Just open TimeToGo anytime to see exactly when to leave home ;)")
+                        .typography(.large)
+                        .foregroundColor(.grey40)
+                        .textReveal(revealed, delay: 0.27)
+                }
+                .multilineTextAlignment(.center)
+
+                VStack(spacing: 4) {
+                    Text("Next commute")
+                        .scaledFont(size: 12, weight: .bold)
+                        .tracking(-0.5)
+                        .foregroundColor(.grey40)
+                    Text(nextCommuteText)
+                        .scaledFont(size: 14, weight: .medium)
+                        .foregroundColor(.black)
+                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.brightBackground)
+                .clipShape(RoundedRectangle(cornerRadius: Radius.smallElement))
+                .textReveal(revealed, delay: 0.39)
             }
-            .multilineTextAlignment(.center)
-            .padding(.top, 46)
 
             Spacer(minLength: 24)
 
-            VStack(spacing: 8) {
-                Text("Next commute")
-                    .typography(.h3)
-                    .foregroundColor(.black)
-                Text(nextCommuteText)
-                    .scaledFont(size: 14, weight: .medium)
-                    .foregroundColor(.grey50)
-            }
-            .multilineTextAlignment(.center)
-
-            Spacer(minLength: 24)
-
-            VStack(spacing: 12) {
-                CustomButton(title: "All done", style: .filled, action: onAllDone)
-                CustomButton(title: "Change your settings", style: .text, action: onChangeSettings)
-            }
-            .padding(.bottom, 24)
+            CustomButton(title: "All done", style: .filled, action: onAllDone)
         }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
     }
 
     /// "Tuesday 15th July, arrive 9:00 am"
@@ -124,11 +120,62 @@ struct SetupSuccessView: View {
     }()
 }
 
+/// Makes the artwork's confetti twinkle: soft patches of the background colour fade in and
+/// out over the pieces, each at its own pace, so they dim and brighten in turn.
+/// Off with Reduce Motion, where the artwork stays as it is.
+private struct ConfettiSparkle: View {
+    var scale: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Centres of the confetti pieces in artwork points. None sit on the figure.
+    private static let pieces: [CGPoint] = [
+        (196, 31), (303, 51), (347, 65), (102, 61), (158, 67), (248, 70), (69, 94), (155, 95),
+        (227, 94), (269, 92), (106, 111), (316, 106), (358, 110), (255, 122), (308, 132),
+        (201, 132), (153, 145), (252, 148), (340, 161), (393, 152), (289, 183), (272, 204),
+        (367, 199), (62, 220), (32, 247), (324, 229), (351, 228), (303, 247), (377, 268),
+        (45, 307), (63, 348),
+    ].map { CGPoint(x: $0.0, y: $0.1) }
+
+    private let patchRadius: CGFloat = 24
+    private let maxOpacity = 0.85
+
+    var body: some View {
+        if !reduceMotion {
+            TimelineView(.animation) { timeline in
+                Canvas { context, _ in
+                    let time = timeline.date.timeIntervalSinceReferenceDate
+                    let radius = patchRadius * scale
+                    context.drawLayer { layer in
+                        layer.addFilter(.blur(radius: 6 * scale))
+                        for (index, piece) in Self.pieces.enumerated() {
+                            // The golden angle spreads the pieces out of step with each other.
+                            let phase = Double(index) * 2.399
+                            let period = 2.6 + Double(index % 5) * 0.35
+                            let wave = max(0, sin(time * 2 * .pi / period + phase))
+                            let rect = CGRect(
+                                x: piece.x * scale - radius,
+                                y: piece.y * scale - radius,
+                                width: radius * 2,
+                                height: radius * 2
+                            )
+                            layer.fill(
+                                Path(ellipseIn: rect),
+                                with: .color(Color.brightBackground.opacity(wave * wave * maxOpacity))
+                            )
+                        }
+                    }
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
+}
+
 #Preview {
     SetupSuccessView(
         nextCommute: Date(),
         arrivalTime: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date(),
-        onAllDone: {},
-        onChangeSettings: {}
+        onAllDone: {}
     )
 }

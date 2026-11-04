@@ -5,6 +5,7 @@ struct Setup2View: View {
 
     @Binding var selectedStation: TFLStopPoint
     @Binding var selectedWalkTime: String
+    var homeStation: TFLStopPoint = .placeholder
 
     var onNext: () -> Void
     var onBack: () -> Void
@@ -14,42 +15,29 @@ struct Setup2View: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            SetupHeader(
-                step: 2,
-                totalSteps: 3,
-                title: "Where is the office?",
-                showsBackButton: true,
-                onBack: onBack
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-
-            VStack(alignment: .leading, spacing: 38) {
-                StationSearchField(
-                    label: "Office station",
-                    selectedStation: $selectedStation
-                )
-
-                TimePicker(
-                    label: "How long is your walk from the tube?",
-                    selectedValue: $selectedWalkTime
-                )
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 48)
-
-            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
+        SetupStepLayout(
+            step: 2,
+            title: "Where is the office",
+            showsBackButton: true,
+            onBack: onBack,
+            isButtonEnabled: isFormValid,
+            onButton: onNext
+        ) {
             JourneyIllustration(journey: .tubeToOffice)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .padding(.top, 24)
+        } fields: {
+            StationSearchField(
+                label: "Office station",
+                selectedStation: $selectedStation,
+                excluding: [homeStation]
+            )
+            .setupReveal(order: 0)
 
-            CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
+            TimePicker(
+                label: "How long do you get to your desk?",
+                selectedValue: $selectedWalkTime
+            )
+            .setupReveal(order: 1)
         }
-        .background(Color.white)
     }
 }
 

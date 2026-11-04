@@ -37,24 +37,29 @@ struct SettingsView: View {
     /// Settings save instantly; the TfL reload waits until the user pauses.
     @State private var reloadTask: Task<Void, Never>?
 
-    private let walkOptions: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+    private let walkOptions: [Int] = Array(1...25)
 
     private var outboundEnabled: Bool { appState.settings?.outboundEnabled ?? false }
+
+    /// The office can't be the home station, or the Other place destination while it's in use.
+    private var officeExclusions: [TFLStopPoint] {
+        outboundType == .otherPlace ? [homeStation, outboundDestStation] : [homeStation]
+    }
 
     // MARK: - Body
 
     var body: some View {
         outboundObserved
             .sheet(isPresented: $showHomeStationPicker) {
-                StationSearchModalView(title: "Home station", selectedStation: $homeStation, onDismiss: { showHomeStationPicker = false })
+                StationSearchModalView(title: "Home station", selectedStation: $homeStation, excluding: [officeStation], onDismiss: { showHomeStationPicker = false })
                     .environmentObject(store).preferredColorScheme(.light)
             }
             .sheet(isPresented: $showOfficeStationPicker) {
-                StationSearchModalView(title: "Office station", selectedStation: $officeStation, onDismiss: { showOfficeStationPicker = false })
+                StationSearchModalView(title: "Office station", selectedStation: $officeStation, excluding: officeExclusions, onDismiss: { showOfficeStationPicker = false })
                     .environmentObject(store).preferredColorScheme(.light)
             }
             .sheet(isPresented: $showOutboundDestPicker) {
-                StationSearchModalView(title: "Destination station", selectedStation: $outboundDestStation, onDismiss: { showOutboundDestPicker = false })
+                StationSearchModalView(title: "Destination station", selectedStation: $outboundDestStation, excluding: [officeStation], onDismiss: { showOutboundDestPicker = false })
                     .environmentObject(store).preferredColorScheme(.light)
             }
             .sheet(isPresented: $showOfficeDaysPicker) {
@@ -111,13 +116,18 @@ struct SettingsView: View {
                     toOfficeGroup
                     // Only once Back home is set up (from the Back home tab).
                     if outboundEnabled { backHomeGroup }
+                    #if DEBUG
+                    // Last on the page, so only someone who scrolls all the way down finds it.
+                    DevMenuButton()
+                        .frame(maxWidth: .infinity)
+                    #endif
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
                 .padding(.bottom, 32)
             }
         }
-        .background(Color(hex: "FAFAFA").ignoresSafeArea())
+        .background(Color.brightBackground.ignoresSafeArea())
     }
 
     private var header: some View {
@@ -396,10 +406,10 @@ private struct SettingsCard<Rows: View>: View {
         }
         .padding(.top, 16)
         .padding(.bottom, subtitle == nil ? 0 : 16)
-        .padding(.horizontal, 12)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: Radius.smallBlock))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: Radius.smallBlock)
                 .stroke(Color.grey10, lineWidth: 1)
         )
     }

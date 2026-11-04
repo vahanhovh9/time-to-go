@@ -17,8 +17,13 @@ struct CommuteHomeView: View {
     /// True once the header has scrolled up under the status bar.
     @State private var isScrolled = false
     @State private var showsJourneyDetails = false
+    @Environment(\.scenePhase) private var scenePhase
 
-    /// Space between the leave-time card and the bottom of the yellow header.
+    /// TfL updates arrivals about every 30 seconds; once a minute keeps us well inside the
+    /// app key's shared request limit.
+    private static let departuresRefresh: Duration = .seconds(60)
+
+    /// Space between the leave-time card and the bottom of the header.
     private let cardBottomGap: CGFloat = 50
 
     var body: some View {
@@ -54,7 +59,7 @@ struct CommuteHomeView: View {
         .onPreferenceChange(HeaderOffsetKey.self) { minY in
             isScrolled = minY < -4
         }
-        // Run the yellow header up behind the status bar; the header pads its own content.
+        // Run the header up behind the status bar; the header pads its own content.
         .ignoresSafeArea(edges: .top)
         .background(Color.white.ignoresSafeArea())
         .overlay(alignment: .top) {
@@ -71,13 +76,19 @@ struct CommuteHomeView: View {
             case .toOffice: await viewModel.refreshInbound()
             case .backHome: await viewModel.refreshOutbound()
             }
-            if let ctx = scheduleContext { schedule.load(context: ctx) }
+            if let ctx = scheduleContext { await schedule.load(context: ctx) }
         }
-        .task(id: scheduleContext) {
-            if let ctx = scheduleContext { schedule.load(context: ctx) }
+        // Departures go stale within minutes: reload while the screen is open, and straight
+        // away on coming back to the app.
+        .task(id: DeparturesKey(context: scheduleContext, isActive: scenePhase == .active)) {
+            guard let ctx = scheduleContext, scenePhase == .active else { return }
+            while !Task.isCancelled {
+                await schedule.load(context: ctx)
+                try? await Task.sleep(for: Self.departuresRefresh)
+            }
         }
         .onAppear {
-            if direction == .backHome, viewModel.outboundResult == nil {
+            if direction == .backHome, viewModel.outboundResult == nil, !viewModel.isLoadingOutbound {
                 viewModel.loadOutbound()
             }
         }
@@ -97,6 +108,7 @@ struct CommuteHomeView: View {
                     onClose: { showsJourneyDetails = false }
                 )
                 .presentationDetents([.medium, .large])
+                .presentationCornerRadius(Radius.sheet)
                 .presentationDragIndicator(.visible)
             } else {
                 // Opened from a saved result, which has no steps: fetch the journey, then show it.
@@ -105,6 +117,7 @@ struct CommuteHomeView: View {
                     .foregroundColor(.grey30)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .presentationDetents([.medium, .large])
+                    .presentationCornerRadius(Radius.sheet)
                     .presentationDragIndicator(.visible)
                     .task {
                         switch direction {
@@ -165,16 +178,16 @@ struct CommuteHomeView: View {
         }
         .background(alignment: .bottom) {
             ZStack(alignment: .bottom) {
-                Color(hex: "FFF9C0")
+                headerColor
                 Rectangle()
-                    .fill(Color(hex: "F3EEB9"))
+                    .fill(headerLineColor)
                     .frame(height: 3)
                 MovingTrain(leftToRight: direction == .toOffice)
             }
         }
-        // Yellow above the header fills the pull-to-refresh overscroll and scrolls with it.
+        // The header colour above it fills the pull-to-refresh overscroll and scrolls with it.
         .background(alignment: .top) {
-            Color(hex: "FFF9C0")
+            headerColor
                 .frame(height: 1000)
                 .offset(y: -1000)
         }
@@ -218,6 +231,16 @@ struct CommuteHomeView: View {
 
     private var headerImage: String {
         direction == .toOffice ? "home-header-office" : "home-header-back"
+    }
+
+    /// Matches the artwork's own background.
+    private var headerColor: Color {
+        Color(hex: direction == .toOffice ? "FFF9C0" : "FFE3F5")
+    }
+
+    /// The line the train runs on: the header colour, a shade darker.
+    private var headerLineColor: Color {
+        Color(hex: direction == .toOffice ? "F3EEB9" : "F3D9EC")
     }
 
     private var journeyTitle: String {
@@ -273,6 +296,12 @@ struct CommuteHomeView: View {
         let cleaned = day.replacingOccurrences(of: "Upcoming ", with: "")
         return "LEAVE \(cleaned.uppercased()) AT"
     }
+}
+
+/// Restarts the departures refresh when the journey changes or the app comes back.
+private struct DeparturesKey: Equatable {
+    var context: ScheduleReviewContext?
+    var isActive: Bool
 }
 
 // MARK: - Scroll tracking

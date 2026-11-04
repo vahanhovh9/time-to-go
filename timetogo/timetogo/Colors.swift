@@ -11,12 +11,18 @@ import SwiftUI
 extension Color {
     static let white = Color(hex: "FFFFFF")
     static let grey10 = Color(hex: "EBEBEB")
+    /// Field outlines on white cards. Figma: Grey 29.
+    static let grey29 = Color(hex: "CDCDCD")
     static let grey30 = Color(hex: "949494")
     /// Secondary text on grey surfaces (e.g. the journey page's train cards).
     static let grey40 = Color(hex: "686868")
     static let grey50 = Color(hex: "3E3E3E")
     static let black = Color(hex: "000000")
     static let yellow = Color(hex: "FFF9E6") // Light yellow background
+    /// Setup screens. Figma: Bright bg.
+    static let brightBackground = Color(hex: "FFF8EF")
+    /// Text on selected day chips.
+    static let brightGreen = Color(hex: "3FEB00")
 }
 
 // MARK: - Color Extension for Hex

@@ -5,6 +5,8 @@ struct Setup1View: View {
 
     @Binding var selectedStation: TFLStopPoint
     @Binding var selectedWalkTime: String
+    /// Already chosen as the office station (after going back from step 2).
+    var officeStation: TFLStopPoint = .placeholder
 
     var onNext: () -> Void = {}
 
@@ -13,40 +15,28 @@ struct Setup1View: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            SetupHeader(
-                step: 1,
-                totalSteps: 3,
-                title: "Where do you live?"
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-
-            VStack(alignment: .leading, spacing: 38) {
-                StationSearchField(
-                    label: "Home station",
-                    selectedStation: $selectedStation
-                )
-
-                TimePicker(
-                    label: "How long is your walk to the tube?",
-                    selectedValue: $selectedWalkTime
-                )
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 48)
-
-            // Takes the remaining height; the artwork scales to fit it, so it's never cut off.
+        SetupStepLayout(
+            step: 1,
+            title: "Where do you live?",
+            isButtonEnabled: isFormValid,
+            onButton: onNext
+        ) {
             JourneyIllustration(journey: .homeToTube)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .padding(.top, 24)
+        } fields: {
+            StationSearchField(
+                label: "Home station",
+                selectedStation: $selectedStation,
+                excluding: [officeStation]
+            )
+            .setupReveal(order: 0)
 
-            CustomButton(title: "Next", style: .filled, action: { onNext() }, isEnabled: isFormValid)
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
+            TimePicker(
+                label: "How long do you get to tube?",
+                selectedValue: $selectedWalkTime,
+                placeholder: "Choose (mins)"
+            )
+            .setupReveal(order: 1)
         }
-        .background(Color.white)
     }
 }
 

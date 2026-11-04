@@ -7,6 +7,8 @@ import SwiftUI
 struct StationSearchField: View {
     var label: String
     @Binding var selectedStation: TFLStopPoint
+    /// Stations already used elsewhere in the journey; not offered here.
+    var excluding: [TFLStopPoint] = []
     @EnvironmentObject var store: TFLDataStore
 
     @State private var showModal = false
@@ -31,6 +33,7 @@ struct StationSearchField: View {
             StationSearchModalView(
                 title: label,
                 selectedStation: $selectedStation,
+                excluding: excluding,
                 onDismiss: { showModal = false }
             )
             .environmentObject(store)
@@ -44,10 +47,15 @@ struct StationSearchField: View {
 struct StationSearchModalView: View {
     var title: String
     @Binding var selectedStation: TFLStopPoint
+    /// Stations already used elsewhere in the journey; hidden from every list here.
+    var excluding: [TFLStopPoint] = []
     var onDismiss: () -> Void
 
     @EnvironmentObject var store: TFLDataStore
     @State private var searchText = ""
+
+    private var results: [TFLStopPoint] { store.stationSearchResults.excluding(excluding) }
+    private var recents: [TFLStopPoint] { store.recentStations.excluding(excluding) }
 
     var body: some View {
         NavigationView {
@@ -55,15 +63,15 @@ struct StationSearchModalView: View {
                 if store.isSearchingStations {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if !searchText.isEmpty && store.stationSearchResults.isEmpty {
+                } else if !searchText.isEmpty && results.isEmpty {
                     Text("No stations found")
                         .foregroundColor(Color.grey30)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {
-                        if searchText.isEmpty && !store.recentStations.isEmpty {
+                        if searchText.isEmpty && !recents.isEmpty {
                             Section {
-                                ForEach(store.recentStations) { stationRow($0) }
+                                ForEach(recents) { stationRow($0) }
                             } header: {
                                 HStack {
                                     sectionTitle("Recent")
@@ -75,13 +83,13 @@ struct StationSearchModalView: View {
                                 }
                             }
                             Section {
-                                ForEach(store.stationSearchResults) { stationRow($0) }
+                                ForEach(results) { stationRow($0) }
                             } header: {
                                 sectionTitle("All stations")
                             }
                         } else {
                             // While typing, recently picked stations that match come first.
-                            ForEach(store.stationSearchResultsWithRecentFirst) { stationRow($0) }
+                            ForEach(store.stationSearchResultsWithRecentFirst.excluding(excluding)) { stationRow($0) }
                         }
                     }
                     .listStyle(.plain)

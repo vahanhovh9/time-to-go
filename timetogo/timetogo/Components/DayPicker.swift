@@ -29,8 +29,34 @@ struct DayPicker: View {
             .frame(minHeight: 48)
             .frame(maxWidth: .infinity)
             .background(isSelected ? Color.black : Color.grey10)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .contentShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.element))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.element))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// Compact day toggle for a row of five (Figma: setup step 3): grey when off, black with
+/// green text when on.
+struct DayChip: View {
+    var day: String
+    @Binding var isSelected: Bool
+
+    var body: some View {
+        Button {
+            isSelected.toggle()
+        } label: {
+            Text(day)
+                .typography(.h4)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundColor(isSelected ? .brightGreen : .grey50)
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(isSelected ? Color.black : Color.grey10)
+                .clipShape(RoundedRectangle(cornerRadius: Radius.element))
+                .contentShape(RoundedRectangle(cornerRadius: Radius.element))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

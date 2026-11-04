@@ -22,6 +22,11 @@ final class MainViewModel: ObservableObject {
     private let calculationService: CommuteCalculationService
     @Published private(set) var settings: UserSettings
 
+    /// Raised on every load. A slow request finishing after a newer one (e.g. the old
+    /// destination after a Settings change) is dropped instead of overwriting it.
+    private var inboundLoad = 0
+    private var outboundLoad = 0
+
     // MARK: - Init
 
     init(settings: UserSettings) {
@@ -47,41 +52,25 @@ final class MainViewModel: ObservableObject {
         if commuteResult == nil, !forceRefresh {
             commuteResult = calculationService.cachedResult(for: settings)
         }
-        Task {
-            isLoading = true
-            errorMessage = nil
-            do {
-                commuteResult = try await calculationService.calculate(
-                    for: settings,
-                    forceRefresh: forceRefresh
-                )
-                journeyDebugInfo = buildJourneyDebugInfo()
-            } catch {
-                errorMessage = UserFacingError.message(for: error)
-                journeyDebugInfo = buildJourneyDebugInfo(error: error)
-            }
-            isLoading = false
-        }
+        Task { await fetchInbound(forceRefresh: forceRefresh) }
     }
 
     func loadOutbound(forceRefresh: Bool = false) {
         guard settings.outboundEnabled else { return }
-        Task {
-            isLoadingOutbound = true
-            outboundErrorMessage = nil
-            do {
-                outboundResult = try await calculationService.calculateOutbound(
-                    for: settings,
-                    forceRefresh: forceRefresh
-                )
-            } catch {
-                outboundErrorMessage = UserFacingError.message(for: error)
-            }
-            isLoadingOutbound = false
-        }
+        Task { await fetchOutbound(forceRefresh: forceRefresh) }
     }
 
     func updateSettings(_ newSettings: UserSettings) {
+        // A journey between other stations is wrong, not just old: don't leave it on screen
+        // while the new one loads, or if it fails.
+        if newSettings.homeStationId != settings.homeStationId
+            || newSettings.officeStationId != settings.officeStationId {
+            commuteResult = nil
+        }
+        if newSettings.officeStationId != settings.officeStationId
+            || newSettings.effectiveOutboundDestinationId != settings.effectiveOutboundDestinationId {
+            outboundResult = nil
+        }
         settings = newSettings
         settings.save()
         calculationService.clearCache()   // the saved result belongs to the old settings
@@ -91,25 +80,43 @@ final class MainViewModel: ObservableObject {
 
     /// Awaitable versions for pull-to-refresh — keeps the spinner visible until the request completes.
     func refreshInbound() async {
+        await fetchInbound(forceRefresh: true)
+    }
+
+    func refreshOutbound() async {
+        guard settings.outboundEnabled else { return }
+        await fetchOutbound(forceRefresh: true)
+    }
+
+    private func fetchInbound(forceRefresh: Bool) async {
+        inboundLoad += 1
+        let load = inboundLoad
         isLoading = true
         errorMessage = nil
         do {
-            commuteResult = try await calculationService.calculate(for: settings, forceRefresh: true)
+            let result = try await calculationService.calculate(for: settings, forceRefresh: forceRefresh)
+            guard load == inboundLoad else { return }
+            commuteResult = result
             journeyDebugInfo = buildJourneyDebugInfo()
         } catch {
+            guard load == inboundLoad else { return }
             errorMessage = UserFacingError.message(for: error)
             journeyDebugInfo = buildJourneyDebugInfo(error: error)
         }
         isLoading = false
     }
 
-    func refreshOutbound() async {
-        guard settings.outboundEnabled else { return }
+    private func fetchOutbound(forceRefresh: Bool) async {
+        outboundLoad += 1
+        let load = outboundLoad
         isLoadingOutbound = true
         outboundErrorMessage = nil
         do {
-            outboundResult = try await calculationService.calculateOutbound(for: settings, forceRefresh: true)
+            let result = try await calculationService.calculateOutbound(for: settings, forceRefresh: forceRefresh)
+            guard load == outboundLoad else { return }
+            outboundResult = result
         } catch {
+            guard load == outboundLoad else { return }
             outboundErrorMessage = UserFacingError.message(for: error)
         }
         isLoadingOutbound = false

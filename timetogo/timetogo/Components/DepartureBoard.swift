@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Toward Old Street / Powered by TfL Open Data" card listing live departures.
+/// "Toward Old Street / Updated live. Provided by TFL" card listing live departures.
 struct DepartureBoard: View {
     var title: String
     var entries: [ScheduleEntry]
@@ -13,28 +13,32 @@ struct DepartureBoard: View {
                 Text(title)
                     .typography(.h3)
                     .foregroundColor(.black)
-                Text("Powered by TfL Open Data")
+                Text("Updated live. Provided by TFL")
                     .typography(.footnote)
                     .foregroundColor(.grey30)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(spacing: 0) {
-                if isLoading && entries.isEmpty {
-                    message { ProgressView().tint(.black) }
-                } else if let errorMessage, entries.isEmpty {
-                    message { Text(errorMessage) }
-                } else if entries.isEmpty {
-                    message { Text("No upcoming trains found in your direction right now.") }
-                } else {
-                    ForEach(entries) { DepartureRow(entry: $0) }
+            // Counts down between refreshes and drops trains once they've gone.
+            TimelineView(.periodic(from: .now, by: 15)) { timeline in
+                let upcoming = entries.filter { $0.expectedArrival > timeline.date.addingTimeInterval(-30) }
+                VStack(spacing: 0) {
+                    if isLoading && upcoming.isEmpty {
+                        message { ProgressView().tint(.black) }
+                    } else if let errorMessage, upcoming.isEmpty {
+                        message { Text(errorMessage) }
+                    } else if upcoming.isEmpty {
+                        message { Text("No upcoming trains found in your direction right now.") }
+                    } else {
+                        ForEach(upcoming) { DepartureRow(entry: $0, now: timeline.date) }
+                    }
                 }
             }
         }
         .padding(.top, 16)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: Radius.smallBlock)
                 .stroke(Color.grey10, lineWidth: 1)
         )
     }
@@ -52,6 +56,7 @@ struct DepartureBoard: View {
 
 private struct DepartureRow: View {
     let entry: ScheduleEntry
+    let now: Date
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -89,21 +94,21 @@ private struct DepartureRow: View {
                 .padding(.horizontal, 8)
                 .frame(minWidth: 63, minHeight: 20)
                 .background(Color.grey10)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.element))
                 // Centres the chip on the time's first line, as in Figma.
                 .padding(.top, 2)
         }
-        .padding(.horizontal, 4)
         .padding(.top, 16)
         .padding(.bottom, 20)
         .overlay(alignment: .top) { Rectangle().fill(Color.grey10).frame(height: 1) }
     }
 
     private var minutesText: String {
-        switch entry.minutesUntilArrival {
+        let minutes = Int(entry.expectedArrival.timeIntervalSince(now) / 60)
+        switch minutes {
         case ...0: return "Due"
         case 1:    return "1 min"
-        default:   return "\(entry.minutesUntilArrival) mins"
+        default:   return "\(minutes) mins"
         }
     }
 }
