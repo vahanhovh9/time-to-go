@@ -44,6 +44,8 @@ struct DevMenuView: View {
     var onClearCache: (() -> Void)? = nil
     /// Shows the launch loading screen with a pretend slow load.
     var onPreviewLoading: (() -> Void)? = nil
+    /// Clears what lives outside AppState, such as the recent stations.
+    var onReset: (() -> Void)? = nil
     var journeyDebugInfo: String? = nil
 
     @State private var showDesignSystem = false
@@ -148,6 +150,7 @@ struct DevMenuView: View {
             Button("Cancel", role: .cancel) {}
             Button("Yes, reset", role: .destructive) {
                 appState.reset()
+                onReset?()
                 onDismiss()
             }
         } message: {

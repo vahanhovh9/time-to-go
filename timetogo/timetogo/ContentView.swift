@@ -52,6 +52,7 @@ struct ContentView: View {
                         loadingPreviewEnds = Date().addingTimeInterval(3)
                         showsLaunchLoading = true
                     },
+                    onReset: { store.clearRecentStations() },
                     journeyDebugInfo: mainViewModel?.journeyDebugInfo
                 )
                 .zIndex(1000)
