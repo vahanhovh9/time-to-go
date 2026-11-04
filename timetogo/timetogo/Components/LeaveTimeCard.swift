@@ -42,10 +42,10 @@ struct ServiceStatusPill: View {
             .foregroundColor(colors.text)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
             .background(colors.background)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.element))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.smallElement))
     }
 
     private var text: String {

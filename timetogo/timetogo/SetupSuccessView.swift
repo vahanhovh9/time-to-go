@@ -78,7 +78,7 @@ struct SetupSuccessView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(Color.brightBackground)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.smallBlock))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.smallElement))
                 .textReveal(revealed, delay: 0.39)
             }
 

@@ -19,15 +19,19 @@ struct DepartureBoard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(spacing: 0) {
-                if isLoading && entries.isEmpty {
-                    message { ProgressView().tint(.black) }
-                } else if let errorMessage, entries.isEmpty {
-                    message { Text(errorMessage) }
-                } else if entries.isEmpty {
-                    message { Text("No upcoming trains found in your direction right now.") }
-                } else {
-                    ForEach(entries) { DepartureRow(entry: $0) }
+            // Counts down between refreshes and drops trains once they've gone.
+            TimelineView(.periodic(from: .now, by: 15)) { timeline in
+                let upcoming = entries.filter { $0.expectedArrival > timeline.date.addingTimeInterval(-30) }
+                VStack(spacing: 0) {
+                    if isLoading && upcoming.isEmpty {
+                        message { ProgressView().tint(.black) }
+                    } else if let errorMessage, upcoming.isEmpty {
+                        message { Text(errorMessage) }
+                    } else if upcoming.isEmpty {
+                        message { Text("No upcoming trains found in your direction right now.") }
+                    } else {
+                        ForEach(upcoming) { DepartureRow(entry: $0, now: timeline.date) }
+                    }
                 }
             }
         }
@@ -52,6 +56,7 @@ struct DepartureBoard: View {
 
 private struct DepartureRow: View {
     let entry: ScheduleEntry
+    let now: Date
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -99,10 +104,11 @@ private struct DepartureRow: View {
     }
 
     private var minutesText: String {
-        switch entry.minutesUntilArrival {
+        let minutes = Int(entry.expectedArrival.timeIntervalSince(now) / 60)
+        switch minutes {
         case ...0: return "Due"
         case 1:    return "1 min"
-        default:   return "\(entry.minutesUntilArrival) mins"
+        default:   return "\(minutes) mins"
         }
     }
 }

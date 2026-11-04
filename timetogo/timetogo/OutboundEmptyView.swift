@@ -5,13 +5,29 @@ struct OutboundEmptyView: View {
     var onGetStarted: () -> Void
 
     var body: some View {
+        GeometryReader { geo in
+            content(topInset: geo.safeAreaInsets.top)
+        }
+        .background(Color.brightBackground.ignoresSafeArea())
+    }
+
+    private func content(topInset: CGFloat) -> some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 8)
+            // Setup's header, unseen, so the illustration sits exactly where "Where are you
+            // heading?" has it and stays put on Let's go. Same spacing as SetupStepLayout.
+            SetupHeader(step: 1, totalSteps: 2, title: "Where are you heading?", showsBackButton: true)
+                .padding(.horizontal, 29)
+                .padding(.top, max(67 - topInset, 12))
+                .hidden()
+                .accessibilityHidden(true)
+                .layoutPriority(2)
 
             // Scales to the available height, so the figure is never cut off on small phones.
             JourneyIllustration(journey: .walkingHome)
                 .aspectRatio(CGSize(width: 402, height: 263), contentMode: .fit)
+                .frame(maxWidth: .infinity)
                 .setupMorph("artwork")
+                .padding(.top, 20)
 
             Spacer(minLength: 8)
 
@@ -39,7 +55,6 @@ struct OutboundEmptyView: View {
             .padding(.bottom, 35)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.brightBackground.ignoresSafeArea())
     }
 }
 

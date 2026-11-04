@@ -116,6 +116,11 @@ struct SettingsView: View {
                     toOfficeGroup
                     // Only once Back home is set up (from the Back home tab).
                     if outboundEnabled { backHomeGroup }
+                    #if DEBUG
+                    // Last on the page, so only someone who scrolls all the way down finds it.
+                    DevMenuButton()
+                        .frame(maxWidth: .infinity)
+                    #endif
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
@@ -131,9 +136,6 @@ struct SettingsView: View {
             .tracking(-2)
             .foregroundColor(.black)
             .frame(maxWidth: .infinity, alignment: .leading)
-            #if DEBUG
-            .overlay(alignment: .trailing) { DevMenuButton() }
-            #endif
             .padding(.horizontal, 26)
             .padding(.top, 14)
             .padding(.bottom, 20)

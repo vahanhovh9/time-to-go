@@ -21,8 +21,7 @@ nonisolated struct ScheduleEntry: Identifiable {
     let platformName: String
     let destinationName: String
     let towards: String
-    let expectedArrival: Date
-    let minutesUntilArrival: Int
+    var expectedArrival: Date
     /// From the timetable rather than a live prediction.
     var isScheduled = false
 }

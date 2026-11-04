@@ -81,10 +81,13 @@ The Figma variables live in `Layout.swift`. Use them instead of numbers.
 
 | Token | Value | Figma variable | Used for |
 |-------|-------|----------------|----------|
-| `Radius.element` | 18 | Element | Buttons, fields, day chips, destination cards, status pill, minutes chip |
-| `Radius.smallBlock` | 22 | Small block | Leave-time card, departures card, Settings cards, success page's next-commute block |
+| `Radius.extraSmall` | 8 | Extra small | Journey page: line badge, delay pill |
+| `Radius.smallElement` | 14 | Small element | Leave-time card's line-status pill (padding 12 × 6), success page's next-commute block |
+| `Radius.element` | 18 | Element | Buttons, fields, day chips, destination cards, minutes chip, journey page's train cards |
+| `Radius.smallBlock` | 22 | Small block | Leave-time card, departures card, Settings cards |
 | `Radius.medium` | 12 | Corner/Medium | Not in use at the moment |
 | `Radius.card` | 36 | none yet | Large white cards: intro, setup, success, Back home |
+| `Radius.sheet` | 38 | none yet | Journey sheet top corners |
 | `Spacing.padding` | 20 | Padding | Screen edges to the large cards (sides and bottom) |
 | `Spacing.paddingInside` | 24 | Padding inside | Inside the large cards |
 

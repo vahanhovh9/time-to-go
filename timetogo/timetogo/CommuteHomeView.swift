@@ -17,6 +17,11 @@ struct CommuteHomeView: View {
     /// True once the header has scrolled up under the status bar.
     @State private var isScrolled = false
     @State private var showsJourneyDetails = false
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// TfL updates arrivals about every 30 seconds; once a minute keeps us well inside the
+    /// app key's shared request limit.
+    private static let departuresRefresh: Duration = .seconds(60)
 
     /// Space between the leave-time card and the bottom of the header.
     private let cardBottomGap: CGFloat = 50
@@ -71,13 +76,19 @@ struct CommuteHomeView: View {
             case .toOffice: await viewModel.refreshInbound()
             case .backHome: await viewModel.refreshOutbound()
             }
-            if let ctx = scheduleContext { schedule.load(context: ctx) }
+            if let ctx = scheduleContext { await schedule.load(context: ctx) }
         }
-        .task(id: scheduleContext) {
-            if let ctx = scheduleContext { schedule.load(context: ctx) }
+        // Departures go stale within minutes: reload while the screen is open, and straight
+        // away on coming back to the app.
+        .task(id: DeparturesKey(context: scheduleContext, isActive: scenePhase == .active)) {
+            guard let ctx = scheduleContext, scenePhase == .active else { return }
+            while !Task.isCancelled {
+                await schedule.load(context: ctx)
+                try? await Task.sleep(for: Self.departuresRefresh)
+            }
         }
         .onAppear {
-            if direction == .backHome, viewModel.outboundResult == nil {
+            if direction == .backHome, viewModel.outboundResult == nil, !viewModel.isLoadingOutbound {
                 viewModel.loadOutbound()
             }
         }
@@ -97,7 +108,7 @@ struct CommuteHomeView: View {
                     onClose: { showsJourneyDetails = false }
                 )
                 .presentationDetents([.medium, .large])
-                .presentationCornerRadius(Radius.card)
+                .presentationCornerRadius(Radius.sheet)
                 .presentationDragIndicator(.visible)
             } else {
                 // Opened from a saved result, which has no steps: fetch the journey, then show it.
@@ -106,7 +117,7 @@ struct CommuteHomeView: View {
                     .foregroundColor(.grey30)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .presentationDetents([.medium, .large])
-                    .presentationCornerRadius(Radius.card)
+                    .presentationCornerRadius(Radius.sheet)
                     .presentationDragIndicator(.visible)
                     .task {
                         switch direction {
@@ -285,6 +296,12 @@ struct CommuteHomeView: View {
         let cleaned = day.replacingOccurrences(of: "Upcoming ", with: "")
         return "LEAVE \(cleaned.uppercased()) AT"
     }
+}
+
+/// Restarts the departures refresh when the journey changes or the app comes back.
+private struct DeparturesKey: Equatable {
+    var context: ScheduleReviewContext?
+    var isActive: Bool
 }
 
 // MARK: - Scroll tracking
